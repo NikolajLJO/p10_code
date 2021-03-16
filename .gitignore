@@ -19,3 +19,4 @@ libale.somakefile.mac
 README.md
 libale.so
 src/agent/libalewrap.so
+*.t7
