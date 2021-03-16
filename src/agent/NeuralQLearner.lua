@@ -251,7 +251,8 @@ function nql:__init(args)
               " is not a string!")
     end
 
-
+    pred = "\"convnet_atari3_PRND\""()
+    targ = "\"convnet_atari3_TRND\""()
 --#####################################
 --###########   Q Network   ###########
 --#####################################
