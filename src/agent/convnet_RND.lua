@@ -1,12 +1,26 @@
-require "initenv"
+require 'torch'
+require 'nn'
+require 'nngraph'
+require 'nnutils'
+--require 'more_utils'
+--require 'image'
+--require 'optim'
+--require 'Scale'
+--require 'NeuralQLearner'
+--require 'TransitionTable'
+--require 'Node'
+--require 'Rectifier'
+--require 'ALEWrapper'
+--require 'CustomLinear'
+--require 'DebugWindow'
 
 function create_network(args)
     
-    local prednet = nn.Sequential()
+    local net = nn.Sequential()
 
     -- network input
-    conv_layers = nn.Sequential()
-    conv_layers:add(nn.reshape(1,84,84))
+    local conv_layers = nn.Sequential()
+    conv_layers:add(nn.Reshape(1,84,84))
     
     -- first convlayer
     conv_layers:add(nn.SpatialConvolution(1, args.n_units[1],
@@ -14,7 +28,7 @@ function create_network(args)
                                           args.filter_size[1],
                                           args.filter_stride[1],
                                           args.filter_stride[1],1))
-    conv_Layers:add(nn.Rectifier())
+    conv_layers:add(nn.Rectifier())
 
     -- additional convlayers
     for i=1,(#args.n_units-1) do
@@ -24,20 +38,20 @@ function create_network(args)
                                               args.filter_size[i+1],
                                               args.filter_stride[i+1],
                                               args.filter_stride[i+1]))
-        conv_Layers:add(nn.Rectifier())
+        conv_layers:add(nn.Rectifier())
     end
 
     local nel
     if args.gpu >= 0 then
         --nel = encoder:cuda():forward(torch.zeros(1, unpack(args.input_dims)):cuda()):nElement()
-        nel = encoder:cuda():forward(torch.zeros(1, 1, 84, 84):cuda()):nElement()
+        nel = conv_layers:cuda():forward(torch.zeros(1, 1, 84, 84):cuda()):nElement()
     else
         --nel = encoder:forward(torch.zeros(1, unpack(args.input_dims))):nElement()
-        nel = encoder:forward(torch.zeros(1, 1, 84, 84)):nElement()
+        nel = conv_layers:forward(torch.zeros(1, 1, 84, 84)):nElement()
     end
 
-    conv_Layers:add(nn.Reshape(nel))
-    
+    conv_layers:add(nn.Reshape(nel))
+    net:add(conv_layers)
     -- MLP
     net:add(nn.Linear(nel, args.n_hid[1]))
     net:add(nn.Rectifier())
@@ -50,10 +64,10 @@ function create_network(args)
         net:add(nn.Rectifier())
     end
 
-    prednet:add(nn.Linear(last_layer_size, args.rnd_out) 
+    net:add(nn.Linear(last_layer_size, args.rnd_out))
 
-    print(prednet)
+    print(net)
 
-    return 1
+    return net
 
 end

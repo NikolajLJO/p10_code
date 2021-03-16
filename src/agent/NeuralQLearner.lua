@@ -7,6 +7,7 @@ See LICENSE file for full terms of limited license.
 if not dqn then
     require 'initenv'
 end
+require 'convnet_atari3_PRND'
 
 local nql = torch.class('dqn.NeuralQLearner')
 
@@ -251,8 +252,11 @@ function nql:__init(args)
               " is not a string!")
     end
 
-    pred = "\"convnet_atari3_PRND\""()
-    targ = "\"convnet_atari3_TRND\""()
+    --msg, err = pcall(require, "convnet_atari3_PRND")
+    --self.RND_P_network = err
+    --lars = self:RND_P_network()
+    --os.execute("sleep " .. tonumber(10000))
+    --targ = convnet_atari3_TRND()
 --#####################################
 --###########   Q Network   ###########
 --#####################################
