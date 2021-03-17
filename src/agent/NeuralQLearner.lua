@@ -252,11 +252,14 @@ function nql:__init(args)
               " is not a string!")
     end
 
-    --msg, err = pcall(require, "convnet_atari3_PRND")
-    --self.RND_P_network = err
-    --lars = self:RND_P_network()
-    --os.execute("sleep " .. tonumber(10000))
-    --targ = convnet_atari3_TRND()
+    print("pred network------------------------------------------")
+    msg, err = pcall(require, "convnet_atari3_PRND")
+    self.RND_P_network = err
+    self.RND_P_network = self:RND_P_network()
+    print("targ network------------------------------------------")
+    msg, err = pcall(require, "convnet_atari3_TRND")
+    self.RND_T_network = err
+    self.RND_T_network = self:RND_T_network()
 --#####################################
 --###########   Q Network   ###########
 --#####################################
@@ -2184,4 +2187,16 @@ end
 function nql:report()
     print(get_weight_norms(self.network))
     print(get_grad_norms(self.network))
+end
+
+function nql:RND_calc_novelty(next_state)
+    -- this function calculates the novelty of a state
+    local criterion = nn.MSECriterion()
+    local prediction = self.RND_P_network:forward(next_state)
+    local target = self.RND_T_network:forward(next_state)
+    return criterion:forward(prediction, target)
+end
+
+function nql:RND_update()
+    alert("Not implemened");
 end
