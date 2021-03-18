@@ -177,6 +177,7 @@ function nql:__init(args)
 
     self.hist_len                       = args.hist_len or 1
     self.ee_histLen                     = args.ee_histLen or 1
+    self.RND_histLen                    = args.RND_histLen or 1
     self.rescale_r                      = args.rescale_r
     self.max_reward                     = args.max_reward
     self.min_reward                     = args.min_reward
