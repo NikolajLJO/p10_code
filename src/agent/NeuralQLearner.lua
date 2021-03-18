@@ -2198,5 +2198,41 @@ function nql:RND_calc_novelty(next_state)
 end
 
 function nql:RND_update()
-    alert("Not implemened");
+    assert(self.transitions:size() > self.minibatch_size)
+    s = self.transition:sample_RND(self.minibatch_size)
+
+    net = self.RND_P_network
+
+    s:reshape(self.minibatch_size, 4 * 84 * 84)
+
+    targ = self.RND_T_network:forward(s):clone():float()
+    pred = self.RND_P_network:forward(s):clone():float()
+    -- compute linearly annealed learning rate
+    local t = math.max(0, self.numSteps - self.step_count_when_learning_began)
+    self.lr_image_compare = (self.lr_start_image_compare - self.lr_end_image_compare) * (self.lr_endt_image_compare - t) / self.lr_endt_image_compare + self.lr_end_image_compare
+    self.lr_image_compare = math.max(self.lr_image_compare, self.lr_end_image_compare)
+
+    self.config_adam.learningRate = self.lr_image_compare
+    self.config_adam.momentum = self.mom_image_compare
+
+    -- add weight cost to gradient
+    function feval(params)
+        
+        -- zero gradients of parameters
+        dw:zero()
+
+        local loss = nn.MSECriterion():forward(pred, targ)
+
+        local dloss_doutputs = nn.MSECriterion():backward(pred, targ)
+        if self.gpu >= 0 then
+            dloss_doutputs = dloss_doutputs:cuda()
+        end
+        
+        -- get new gradient
+        net:backward(net_input, dloss_doutputs)
+
+        return loss, dw
+    end
+
+    optim.adam(feval, w, self.config_adam)
 end
