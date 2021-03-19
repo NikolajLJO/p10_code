@@ -370,9 +370,11 @@ function nql:__init(args)
 
     self.w, self.dw = self.network:getParameters()
     self.image_compare_w, self.image_compare_dw = self.image_compare_network:getParameters()
+    self.RND_w, self.RND_dw = self.RND_P_network:getParameters()
 
     self.dw:zero()
     self.image_compare_dw:zero()
+    self.RND_dw:zero()
 
     self.deltas = self.dw:clone():fill(0)
     self.image_compare_deltas = self.image_compare_dw:clone():fill(0)
@@ -2200,14 +2202,15 @@ end
 
 function nql:RND_update()
     assert(self.transitions:size() > self.minibatch_size)
-    s = self.transition:sample_RND(self.minibatch_size)
+
+    s = self.transitions:sample_RND(self.minibatch_size)
 
     net = self.RND_P_network
-
-    s:reshape(self.minibatch_size, 4 * 84 * 84)
-
+    s:reshape(self.minibatch_size, 1, 84,  84)
+    
     targ = self.RND_T_network:forward(s):clone():float()
     pred = self.RND_P_network:forward(s):clone():float()
+
     -- compute linearly annealed learning rate
     local t = math.max(0, self.numSteps - self.step_count_when_learning_began)
     self.lr_image_compare = (self.lr_start_image_compare - self.lr_end_image_compare) * (self.lr_endt_image_compare - t) / self.lr_endt_image_compare + self.lr_end_image_compare
@@ -2215,6 +2218,9 @@ function nql:RND_update()
 
     self.config_adam.learningRate = self.lr_image_compare
     self.config_adam.momentum = self.mom_image_compare
+    
+    local w = self.image_compare_w
+    local dw = self.image_compare_dw
 
     -- add weight cost to gradient
     function feval(params)
@@ -2228,9 +2234,9 @@ function nql:RND_update()
         if self.gpu >= 0 then
             dloss_doutputs = dloss_doutputs:cuda()
         end
-        
+
         -- get new gradient
-        net:backward(net_input, dloss_doutputs)
+        net:backward(s, dloss_doutputs)
 
         return loss, dw
     end
