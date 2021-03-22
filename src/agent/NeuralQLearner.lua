@@ -7,7 +7,6 @@ See LICENSE file for full terms of limited license.
 if not dqn then
     require 'initenv'
 end
-require 'convnet_atari3_PRND'
 
 local nql = torch.class('dqn.NeuralQLearner')
 
@@ -1109,7 +1108,7 @@ end
 function nql:update_nodes(args)
 
     local s = (args.s):clone():reshape(84, 84)
-
+    --lars: her skal noeget ændes
     local self_directions = self:get_self_directions{s=s, stochastic_inference=false}
 
     local self_error = 0
@@ -1176,7 +1175,7 @@ function nql:update_nodes(args)
     -- (B) Vector from existing node (i) to existing node (j)
     -- Can't be (j) if the distance is too big.
     for node_num = 1, #self.nodes do
-
+        --lars rnd kan finde denne udregning 
         local direction_diff = self.nodes[node_num]:get_direction_diff_to{directions_to_current_state=directions_to_current_state[node_num]}
         
         --print("first direction_diff at node " .. node_num .. " = " .. (direction_diff[1] or -99))
@@ -1504,7 +1503,7 @@ function nql:add_new_node()
     --]]
 
     -- Update directions for all nodes
-
+    --lars RND update dist med novelty
     -- Existing nodes to new node
     for i = 1, #self.nodes - 1 do
         self.nodes[i]:add_directions_to_node{to_node=new_node.idx, directions=self.best_pending_node_info.directions_to_current_state[i]}
@@ -1803,9 +1802,11 @@ function nql:perceive(reward, rawstate, terminal, testing, testing_ep, first_scr
     end
     
     --lars: jeg tror ikke det har skal være efter vi har implementeret RND
+    --[[]
     if self.numSteps > 0 and self.numSteps % self.stored_displacements_refresh_steps == 0 then
         self:refresh_stored_displacements()
     end
+    --]]
 
     -- Log node visits and thresholds
     if self.numSteps > 0 and self.numSteps % self.logger_steps == 0 and self.nodes then
