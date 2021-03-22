@@ -16,7 +16,7 @@ require 'nnutils'
 
 function create_network(args)
     
-    local net = nn.Sequential()
+    
 
     -- network input
     local conv_layers = nn.Sequential()
@@ -49,11 +49,31 @@ function create_network(args)
         --nel = encoder:forward(torch.zeros(1, unpack(args.input_dims))):nElement()
         nel = conv_layers:forward(torch.zeros(1, 1, 84, 84)):nElement()
     end
-
+    
+    
     conv_layers:add(nn.Reshape(nel))
-    net:add(conv_layers)
+    
+    local parallelle_conv_layers = nn.ParallelTable()
+    parallelle_conv_layers:add(conv_layers)
+    parallelle_conv_layers:add(conv_layers:clone('weight', 'bias', 'gradWeight', 'gradBias', 'running_mean', 'running_std', 'running_var'))
+
+    local net = nn.Sequential()
+    net:add(nn.SplitTable(2))
+    net:add(parallelle_conv_layers)
+
+    local mean = nn.Sequential()
+    mean:add(nn.CAddTable())
+    mean:add(nn.MulConstant(0.5))
+    
+    local subAndMean = nn.ConcatTable()
+    subAndMean:add(nn.CSubTable())
+    subAndMean:add(mean)
+    net:add(subAndMean)
+
+    net:add(nn.JoinTable(2))
+
     -- MLP
-    net:add(nn.Linear(nel, args.n_hid[1]))
+    net:add(nn.Linear(nel*2, args.n_hid[1]))
     net:add(nn.Rectifier())
     local last_layer_size = args.n_hid[1]
 
