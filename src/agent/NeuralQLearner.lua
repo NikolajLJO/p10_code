@@ -1801,7 +1801,8 @@ function nql:perceive(reward, rawstate, terminal, testing, testing_ep, first_scr
     if self.rescale_r then
         self.r_max = math.max(self.r_max, reward)
     end
-
+    
+    --lars: jeg tror ikke det har skal være efter vi har implementeret RND
     if self.numSteps > 0 and self.numSteps % self.stored_displacements_refresh_steps == 0 then
         self:refresh_stored_displacements()
     end
@@ -1983,6 +1984,21 @@ function nql:perceive(reward, rawstate, terminal, testing, testing_ep, first_scr
 
         for i = 1, self.ee_n_replay do
             self:image_compare_learn_minibatch{replay_memory=self.transitions}
+        end
+    end
+
+    --Do some RND updates
+    if self.transitions:size() >= self.RND_learn_start
+        and self.numSteps <= self.RND_learn_end
+        and not testing
+        and self.numSteps % self.image_compare_update_freq == 0 then
+
+        if self.step_count_when_learning_began == -1 then
+            self.step_count_when_learning_began = self.numSteps
+        end
+
+        for i = 1, self.RND_n_replay do
+            self:RND_update()
         end
     end
 
