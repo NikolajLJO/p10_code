@@ -1021,7 +1021,6 @@ end
 function nql:get_self_directions(args)
 
     local s = (args.s):clone():reshape(84, 84)
-    local stochastic_inference = args.stochastic_inference or false
 
     local net_input = torch.FloatTensor(1, 2, 84, 84):fill(0)
 
@@ -1043,19 +1042,13 @@ function nql:get_self_directions(args)
     image.save(self.logfilePath .. "dummy2.png", img)
     --]]
 
-    local net_output = self.image_compare_network:forward(net_input):float()
+    local net_output = self.RND_calc_novelty(net_input)
 
-    local action_probs = {}
-
-    for act_idx = 1, self.n_actions do
-        action_probs[act_idx] = net_output[1][act_idx]
-    end
-
-    return action_probs
+    return net_output
 end
 
 
-function nql:get_directions_to_and_from_state(args)
+function nql:get_novelty_to_and_from_state(args)
 
     local s = args.s
 
@@ -1078,7 +1071,7 @@ function nql:get_directions_to_and_from_state(args)
         net_input = net_input:float()
     end
 
-    local net_output = self.image_compare_network:forward(net_input):float()
+    local net_output = self.RND_calc_novelty(net_input)
 
     local directions_to_current_state = {}
     for node_num = 1, #self.nodes do
@@ -1101,7 +1094,7 @@ function nql:get_directions_to_and_from_state(args)
         end
     end
 
-    return directions_to_current_state, directions_from_current_state
+    return novelty_to_current_state, novelty_from_current_state
 end
 
 
@@ -1109,13 +1102,7 @@ function nql:update_nodes(args)
 
     local s = (args.s):clone():reshape(84, 84)
     --lars: her skal noeget ændes
-    local self_directions = self:get_self_directions{s=s, stochastic_inference=false}
-
-    local self_error = 0
-    for i = 1, #self_directions do
-        self_error = self_error + self_directions[i]
-    end
-    self_error = math.abs(self_error)
+    local self_novelty = self:get_self_directions{s=s}
 
     if #self.nodes == 0 then
 
@@ -1132,9 +1119,9 @@ function nql:update_nodes(args)
             --self.pending_node_info.rule_out_reason = {}
             self.pending_node_info.directions_to_current_state = {}
             --self.pending_node_info.self_directions = self:get_self_directions{s=first_screen_reshaped, stochastic_inference=false}
-            self.pending_node_info.self_directions = self_directions
+            self.pending_node_info.self_directions = self_nuvelty
             self.pending_node_info.episode_age = #self.current_episode
-            self.pending_node_info.self_error = self_error
+            self.pending_node_info.self_error = math.abs(self_novelty)
             self.pending_node_info.smallest_max_discrepancy = 0
             self.pending_node_info.closest_node = 0
             self.pending_node_info.closest_node_visited = 0
@@ -1156,7 +1143,7 @@ function nql:update_nodes(args)
         self.nodes[new_node.idx] = new_node
     end --]]
 
-    local directions_to_current_state, directions_from_current_state = self:get_directions_to_and_from_state{s=s}
+    local directions_to_current_state, directions_from_current_state = self:get_novelty_to_and_from_state{s=s}
 
     --local overall_candidates = {}
     local max_discrepancies = {}
@@ -1176,26 +1163,14 @@ function nql:update_nodes(args)
     -- Can't be (j) if the distance is too big.
     for node_num = 1, #self.nodes do
         --lars rnd kan finde denne udregning 
-        local direction_diff = self.nodes[node_num]:get_direction_diff_to{directions_to_current_state=directions_to_current_state[node_num]}
+        --local direction_diff = self.nodes[node_num]:get_direction_diff_to{directions_to_current_state=directions_to_current_state[node_num]}
+        local novelty = self.RND_calc_novelty_between_two_states(self.nodes[node_num].s, s)
         
         --print("first direction_diff at node " .. node_num .. " = " .. (direction_diff[1] or -99))
         --print(" dir diff is so long: " .. #direction_diff)
 
-        for j = 1, #direction_diff do
-
-            --if direction_diff[j] > self.image_compare_node_add_thresh then
-
-                -- If node j is still a candidate then remove it
-                --if overall_candidates[j] then
-                    --overall_candidates[j] = false
-                    --rule_out_reason[j] = {node_num, "to", directions_to_current_state[node_num], self.nodes[node_num].directions_to_node[j]}
-                --end
-            --end
-
-            --sum_discrepancies[j] = sum_discrepancies[j] + direction_diff[j]
-            if direction_diff[j] > max_discrepancies[j] then
-                max_discrepancies[j] = direction_diff[j]
-            end
+        if novelty > max_discrepancies[j] then
+            max_discrepancies[j] = novelty
         end
     end
 
@@ -1206,24 +1181,15 @@ function nql:update_nodes(args)
     -- (B) Vector from existing node (i) to existing node (j)
     -- Can't be (i) if the distance is too big.
     for node_num = 1, #self.nodes do
+        --lars rnd kan finde denne udregning 
+        --local direction_diff = self.nodes[node_num]:get_direction_diff_to{directions_to_current_state=directions_to_current_state[node_num]}
+        local novelty = self.RND_calc_novelty_between_two_states(s, self.nodes[node_num].s)
+        
+        --print("first direction_diff at node " .. node_num .. " = " .. (direction_diff[1] or -99))
+        --print(" dir diff is so long: " .. #direction_diff)
 
-        local direction_diff = self.nodes[node_num]:get_direction_diff_from{directions_from_current_state=directions_from_current_state}
-
-        for j = 1, #direction_diff do
-
-            --if direction_diff[j] > self.image_compare_node_add_thresh then
-
-                -- If node node_num is still a candidate then remove it
-                --if overall_candidates[node_num] then
-                    --overall_candidates[node_num] = false
-                    --rule_out_reason[node_num] = {j, "from", directions_from_current_state[j], self.nodes[node_num].directions_to_node[j]}
-                --end
-            --end
-
-            --sum_discrepancies[node_num] = sum_discrepancies[node_num] + direction_diff[j]
-            if direction_diff[j] > max_discrepancies[node_num] then
-                max_discrepancies[node_num] = direction_diff[j]
-            end
+        if novelty > max_discrepancies[j] then
+            max_discrepancies[j] = novelty
         end
     end
 
@@ -1356,9 +1322,9 @@ function nql:update_nodes(args)
         self.pending_node_info.pending_time = 0
         --self.pending_node_info.rule_out_reason = rule_out_reason
         self.pending_node_info.directions_to_current_state = directions_to_current_state
-        self.pending_node_info.self_directions = self_directions
+        self.pending_node_info.self_directions = self_nuvelty
         self.pending_node_info.episode_age = #self.current_episode
-        self.pending_node_info.self_error = self_error
+        self.pending_node_info.self_error = math.abs(self_novelty)
         self.pending_node_info.smallest_max_discrepancy = smallest_max_discrepancy
         self.pending_node_info.closest_node = self.current_node_num       
         self.pending_node_info.closest_node_visited = 0
@@ -1478,7 +1444,6 @@ function nql:add_new_node()
     
     self:log("\n(+) Creating node " .. new_node.idx)
 
-    self:log("Self error = " .. self.best_pending_node_info.self_error)
     self:log("Episode age = " .. self.best_pending_node_info.episode_age)
     self:log("Smallest max. discrepancy = " .. self.best_pending_node_info.smallest_max_discrepancy)
     self:log("-----------------") 
@@ -2259,4 +2224,19 @@ function nql:RND_update()
     end
 
     optim.adam(feval, w, self.config_adam)
+end
+
+function RND_calc_novelty_between_two_states(from_state, to_state)
+    local net_input = torch.FloatTensor(1, 2, 84, 84):fill(0)
+
+    net_input[i][1]:copy(from_state)
+    net_input[i][2]:copy(to_state)
+
+    if self.gpu and self.gpu >= 0 then
+        net_input = net_input:cuda()
+    else
+        net_input = net_input:float()
+    end
+
+    return self.RND_calc_novelty(net_input)
 end
