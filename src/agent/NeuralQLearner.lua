@@ -1101,7 +1101,7 @@ end
 function nql:update_nodes(args)
 
     local s = (args.s):clone():reshape(84, 84)
-    --lars: her skal noeget ændes
+    --lars: her skal noeget ændes (lars has been here to RND the place up )
     local self_novelty = self:get_self_directions{s=s}
 
     if #self.nodes == 0 then
@@ -1162,7 +1162,7 @@ function nql:update_nodes(args)
     -- (B) Vector from existing node (i) to existing node (j)
     -- Can't be (j) if the distance is too big.
     for node_num = 1, #self.nodes do
-        --lars rnd kan finde denne udregning 
+        --lars rnd kan finde denne udregning ( the calculation is changed)
         --local direction_diff = self.nodes[node_num]:get_direction_diff_to{directions_to_current_state=directions_to_current_state[node_num]}
         local novelty = self.RND_calc_novelty_between_two_states(self.nodes[node_num].s, s)
         
@@ -1181,7 +1181,7 @@ function nql:update_nodes(args)
     -- (B) Vector from existing node (i) to existing node (j)
     -- Can't be (i) if the distance is too big.
     for node_num = 1, #self.nodes do
-        --lars rnd kan finde denne udregning 
+        --lars rnd kan finde denne udregning (been here done that)
         --local direction_diff = self.nodes[node_num]:get_direction_diff_to{directions_to_current_state=directions_to_current_state[node_num]}
         local novelty = self.RND_calc_novelty_between_two_states(s, self.nodes[node_num].s)
         
@@ -1251,7 +1251,7 @@ function nql:update_nodes(args)
     if self.best_pending_node_info and not self.bg_visited then
         local cand_max_disc = -math.huge
         for node_num = 1, #self.nodes do
-            local direction_diff = self:get_subgoal_diff{directions_from_current_state=directions_from_current_state, directions_to_current_state = directions_to_current_state, directions_from_candidate_subgoal = self.best_pending_node_info.dir_from, directions_to_candidate_subgoal = self.best_pending_node_info.dir_to}
+            local direction_diff = self:get_subgoal_diff{s = s, pending_s = self.best_pending_node_info.s}
 
             for j = 1, #direction_diff do
 
@@ -1359,26 +1359,15 @@ end
 
 function nql:get_subgoal_diff(args)
 
-    local directions_from_current_state = args.directions_from_current_state
+    local current_state = args.s
     
-    local directions_to_current_state = args.directions_to_current_state
-    
-    local directions_from_candidate_subgoal = args.directions_from_candidate_subgoal
-    
-    local directions_to_candidate_subgoal = args.directions_to_candidate_subgoal
+    local candidate_state = args.pending_s
 
     local direction_difference = {}
 
-    for dest_node_idx = 1, #directions_from_current_state do
-
-        direction_difference[dest_node_idx] = calculate_aux_reward_difference{r1=directions_to_current_state[dest_node_idx], r2=directions_to_candidate_subgoal[dest_node_idx]}
-        
-        direction_difference[#directions_from_current_state + dest_node_idx] = calculate_aux_reward_difference{r1=directions_from_current_state[dest_node_idx], r2=directions_from_candidate_subgoal[dest_node_idx]}
-
-        --direction_difference[dest_node_idx] = calculate_aux_reward_difference{r1=self.directions_to_node[dest_node_idx], r2=directions_from_current_state[dest_node_idx]} / self.distance_scale[dest_node_idx]
-
-        --direction_difference[dest_node_idx] = calculate_cosine_difference{r1=self.directions_to_node[dest_node_idx], r2=directions_from_current_state[dest_node_idx]}
-    end
+    direction_difference[1] = RND_calc_novelty_between_two_states{current_state, candidate_state}
+    
+    direction_difference[2] = RND_calc_novelty_between_two_states{candidate_state, current_state}
 
     return direction_difference
 end
@@ -1468,7 +1457,7 @@ function nql:add_new_node()
     --]]
 
     -- Update directions for all nodes
-    --lars RND update dist med novelty
+    --lars RND update dist med novelty (usikker men jeg tror den er der)
     -- Existing nodes to new node
     for i = 1, #self.nodes - 1 do
         self.nodes[i]:add_directions_to_node{to_node=new_node.idx, directions=self.best_pending_node_info.directions_to_current_state[i]}

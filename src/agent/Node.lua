@@ -64,10 +64,10 @@ function node:add_directions_to_node(args)
     local directions_mag = self:calculate_directions_mag(directions)
 
     if not self.directions_to_node[to_node] then
-        self.initial_directions_mag[to_node] = directions_mag
+        self.initial_directions_mag[to_node] = directions
         self.distance_scale[to_node] = 1
     else
-        self.distance_scale[to_node] = directions_mag / self.initial_directions_mag[to_node]
+        self.distance_scale[to_node] = directions / self.initial_directions_mag[to_node]
     end
 
     self.directions_to_node[to_node] = directions
