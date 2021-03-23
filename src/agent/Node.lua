@@ -88,7 +88,8 @@ end
 function node:refresh_directions_to_nodes(args)
 
     local nodes = args.nodes
-    local net = args.net
+    local net = args.pred
+    local targ = args.targ
     local gpu = args.gpu
 
     if #nodes > 0 then
@@ -106,13 +107,14 @@ function node:refresh_directions_to_nodes(args)
             net_input[i][2]:copy(nodes[i].s)
         end
 
-        local net_output = net:forward(net_input):float()
+        local criterion = nn.MSECriterion()
+        local prediction = self.RND_P_network:forward(next_state)
+        local target = self.RND_T_network:forward(next_state)
+        local novelty = criterion:forward(prediction, target)
 
         for i = 1, #nodes do
             local directions = {}
-            for j = 1, net_output[i]:size(1) do
-                directions[j] = net_output[i][j]
-            end
+            directions[j] = novelty[i]]
             self:add_directions_to_node{to_node=i, directions=directions}
         end
     end

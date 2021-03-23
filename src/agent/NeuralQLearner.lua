@@ -252,14 +252,7 @@ function nql:__init(args)
               " is not a string!")
     end
 
-    print("pred network------------------------------------------")
-    msg, err = pcall(require, "convnet_atari3_PRND")
-    self.RND_P_network = err
-    self.RND_P_network = self:RND_P_network()
-    print("targ network------------------------------------------")
-    msg, err = pcall(require, "convnet_atari3_TRND")
-    self.RND_T_network = err
-    self.RND_T_network = self:RND_T_network()
+
 --#####################################
 --###########   Q Network   ###########
 --#####################################
@@ -275,25 +268,36 @@ function nql:__init(args)
     end
 
 
---#################################################
---###########   Image Compare Network   ###########
---#################################################
-
-    msg, err = pcall(require, args.image_compare_network)
+--########################################
+--###########   RDN networks   ###########
+--########################################
+    msg, err = pcall(require, "convnet_atari3_PRND")
     if not msg then
         -- try to load saved agent
-        print('Loading Image Compare Network from ' .. args.image_compare_network)
-        self:log('Loading Image Compare Network from ' .. args.image_compare_network)
-        self.image_compare_network = torch.load(args.image_compare_network)
+        print('Loading Image Compare Network from ' .. "convnet_atari3_PRND")
+        self:log('Loading Image Compare Network from ' .. "convnet_atari3_PRND")
+        self.RND_P_network = torch.load("convnet_atari3_PRND")
     else
-        print("self.image_compare_network = " .. self.image_compare_network)
-        print('Creating Image Compare Network from ' .. self.image_compare_network)
-        self:log('Creating Image Compare Network from ' .. self.image_compare_network)
-        self.image_compare_network = err
-        self.image_compare_network = self:image_compare_network()
+        print('Creating Image Compare Network from ' .. "convnet_atari3_PRND")
+        self.RND_P_network = err
+        self.RND_P_network = self:RND_P_network()
     end
-
-    self:log(tostring(self.image_compare_network))
+    self:log(tostring(self.RND_P_network))
+    self:log("--------------------------------------------------")
+    self:log("")
+    
+    msg, err = pcall(require, "convnet_atari3_TRND")
+    if not msg then
+        -- try to load saved agent
+        print('Loading Image Compare Network from ' .. "convnet_atari3_TRND")
+        self:log('Loading Image Compare Network from ' .. "convnet_atari3_TRND")
+        self.RND_P_network = torch.load("convnet_atari3_TRND")
+    else
+        print('Creating Image Compare Network from ' .. "convnet_atari3_TRND")
+        self.RND_T_network = err
+        self.RND_T_network = self:RND_T_network()
+    end
+    self:log(tostring(self.RND_T_network))
     self:log("--------------------------------------------------")
     self:log("")
 
@@ -301,10 +305,12 @@ function nql:__init(args)
     -- Finalisation
     if self.gpu and self.gpu >= 0 then
         self.network:cuda()
-        self.image_compare_network:cuda()
+        self.RND_P_network:cuda()
+        self.RND_T_network:cuda()
     else
         self.network:float()
-        self.image_compare_network:float()
+        self.RND_P_network:float()
+        self.RND_T_network:float()
     end
 
     -- Load preprocessing network.
@@ -1463,7 +1469,7 @@ function nql:add_new_node()
         self.nodes[i]:add_directions_to_node{to_node=new_node.idx, directions=self.best_pending_node_info.directions_to_current_state[i]}
     end
 
-    new_node:refresh_directions_to_nodes{nodes=self.nodes, net=self.image_compare_network, gpu=self.gpu}
+    new_node:refresh_directions_to_nodes{nodes=self.nodes, pred=self.RND_P_network, targ=self.RND_T_network, gpu=self.gpu}
 
     new_node:save_img(self.logfilePath)
 
@@ -1506,7 +1512,7 @@ end
 function nql:refresh_stored_displacements()
 
     for i = 1, #self.nodes do
-        self.nodes[i]:refresh_directions_to_nodes{nodes=self.nodes, net=self.image_compare_network, gpu=self.gpu}
+        self.nodes[i]:refresh_directions_to_nodes{nodes=self.nodes, pred=self.RND_P_network, targ=self.RND_T_network, gpu=self.gpu}
     end
 end
 
@@ -1924,21 +1930,6 @@ function nql:perceive(reward, rawstate, terminal, testing, testing_ep, first_scr
 
         for i = 1, self.n_replay do
             self:qLearnMinibatch()
-        end
-    end
-
-    --Do some image compare updates
-    if self.transitions:size() >= self.ee_learn_start
-        and self.numSteps <= self.ee_learn_end
-        and not testing
-        and self.numSteps % self.image_compare_update_freq == 0 then
-
-        if self.step_count_when_learning_began == -1 then
-            self.step_count_when_learning_began = self.numSteps
-        end
-
-        for i = 1, self.ee_n_replay do
-            self:image_compare_learn_minibatch{replay_memory=self.transitions}
         end
     end
 
