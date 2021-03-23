@@ -118,8 +118,8 @@ mom_image_compare=0.95 # Not applicable to all training methods
 # RND parameters #
 ##################
 
-RND_learn_start=2500
-RND_learn_end=2000000 
+RND_learn_start=250000
+RND_learn_end=10000000 
 
 #######################
 # Node logic settings #
