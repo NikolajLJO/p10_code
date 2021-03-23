@@ -130,8 +130,10 @@ function trans:__init(args)
 
     local s_size_RND = self.stateDim * self.agent.RND_histLen
     self.buf_RND_s               = torch.ByteTensor(self.bufferSize, s_size_RND):fill(0)
+    self.buf_RND_s2               = torch.ByteTensor(self.bufferSize, s_size_RND):fill(0)
     if self.gpu and self.gpu >= 0 then
         self.gpu_RND_s  = self.buf_RND_s:float():cuda()
+        self.gpu_RND_s2  = self.buf_RND_s2:float():cuda()
     end
 end
 
@@ -855,11 +857,13 @@ function trans:sample_RND(batch_size)
     local range = {{index, index+batch_size-1}}
 
     local buf_s = self.buf_RND_s
+    local buf_s2 = self.buf_RND_s2
     if self.gpu and self.gpu >=0  then
-        buf_s = self.gpu_s
+        buf_s = self.gpu_RND_s
+        buf_s2 = self.gpu_RND_s2
     end
 
-    return buf_s[range]
+    return buf_s[range], buf_s2[range]
 end
 
 function trans:fill_buffer_RND(args)
@@ -868,25 +872,24 @@ function trans:fill_buffer_RND(args)
     -- clear CPU buffers
     self.buf_ind_RND = 1
     for i = 1, self.bufferSize do
-        local s = self:sample_one_RND()
+        local s,s2 = self:sample_one_RND()
         self.buf_RND_s[i]:copy(s)
+        self.buf_RND_s2[i]:copy(s2)
     end
 
     self.buf_RND_s = self.buf_RND_s:float():div(255)
+    self.buf_RND_s2 = self.buf_RND_s2:float():div(255)
 
     if self.gpu and self.gpu >= 0 then
         self.gpu_RND_s:copy(self.buf_RND_s)
+        self.gpu_RND_s2:copy(self.buf_RND_s2)
     end
 end
 
 function trans:sample_one_RND()
 
     assert(self.numEntries > 1)
-    local index
-    local valid = false
 
-    index = torch.random(2, self.numEntries - self.recentMemSize)
-
-    local s, a, r, s2, term, ret_mc, node_visits_s, node_visits_s2 = self:get(index)
-    return s[1]
+    local s1, s2, smid, a, action_rewards_mc, action_probs = self:sample_one_ee()
+    return s1, s2
 end

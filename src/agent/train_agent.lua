@@ -249,13 +249,12 @@ while step < opt.steps do
         end
 
         torch.save(filename .. "_q_net.t7", agent.network:clearState())
-        torch.save(filename .. "_dist_net.t7", agent.image_compare_network:clearState())
+        torch.save(filename .. "_RNDP_net.t7", agent.RND_P_network:clearState())
+        torch.save(filename .. "_RNDT_net.t7", agent.RND_T_network:clearState())
 
         if opt.saveNetworkParams then
             local nets = {network=w:clone():float()}
             torch.save(filename..'.params.t7', nets, 'ascii')
-            local image_compare_nets = {image_compare_network=image_compare_w:clone():float()}
-            torch.save(filename..'.image_compare_params.t7', image_compare_nets, 'ascii')
         end
 
         print('Saved:', filename .. '.t7')

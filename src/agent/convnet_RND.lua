@@ -20,10 +20,10 @@ function create_network(args)
 
     -- network input
     local conv_layers = nn.Sequential()
-    conv_layers:add(nn.Reshape(1,84,84))
+    conv_layers:add(nn.Reshape(2,84,84))
     
     -- first convlayer
-    conv_layers:add(nn.SpatialConvolution(1, args.n_units[1],
+    conv_layers:add(nn.SpatialConvolution(2, args.n_units[1],
                                           args.filter_size[1], 
                                           args.filter_size[1],
                                           args.filter_stride[1],
@@ -44,10 +44,10 @@ function create_network(args)
     local nel
     if args.gpu >= 0 then
         --nel = encoder:cuda():forward(torch.zeros(1, unpack(args.input_dims)):cuda()):nElement()
-        nel = conv_layers:cuda():forward(torch.zeros(1, 1, 84, 84):cuda()):nElement()
+        nel = conv_layers:cuda():forward(torch.zeros(1, 2, 84, 84):cuda()):nElement()
     else
         --nel = encoder:forward(torch.zeros(1, unpack(args.input_dims))):nElement()
-        nel = conv_layers:forward(torch.zeros(1, 1, 84, 84)):nElement()
+        nel = conv_layers:forward(torch.zeros(1, 2, 84, 84)):nElement()
     end
     
     
@@ -58,10 +58,10 @@ function create_network(args)
     parallelle_conv_layers:add(conv_layers:clone('weight', 'bias', 'gradWeight', 'gradBias', 'running_mean', 'running_std', 'running_var'))
 
     local net = nn.Sequential()
-    net:add(nn.SplitTable(2))
-    net:add(parallelle_conv_layers)
+    --net:add(nn.SplitTable(2))
+    net:add(conv_layers)
 
-    local mean = nn.Sequential()
+    --[[local mean = nn.Sequential()
     mean:add(nn.CAddTable())
     mean:add(nn.MulConstant(0.5))
     
@@ -70,10 +70,10 @@ function create_network(args)
     subAndMean:add(mean)
     net:add(subAndMean)
 
-    net:add(nn.JoinTable(2))
+    net:add(nn.JoinTable(2))]]
 
     -- MLP
-    net:add(nn.Linear(nel*2, args.n_hid[1]))
+    net:add(nn.Linear(nel, args.n_hid[1]))
     net:add(nn.Rectifier())
     local last_layer_size = args.n_hid[1]
 

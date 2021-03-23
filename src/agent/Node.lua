@@ -114,7 +114,7 @@ function node:refresh_directions_to_nodes(args)
 
         for i = 1, #nodes do
             local directions = {}
-            directions[j] = novelty[i]]
+            directions[j] = novelty[i]
             self:add_directions_to_node{to_node=i, directions=directions}
         end
     end

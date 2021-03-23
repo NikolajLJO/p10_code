@@ -110,6 +110,7 @@ function nql:__init(args)
     -- Number of points to replay per learning step.
     self.n_replay                  = args.n_replay or 1
     self.ee_n_replay               = args.ee_n_replay or 1
+    self.RND_n_replay              = args.RND_n_replay or 1
 
     self.q_learn_min_partitions             = args.q_learn_min_partitions
     self.double_dqn                         = args.double_dqn
@@ -120,6 +121,10 @@ function nql:__init(args)
 
     -- Number of steps after which learning starts.
     self.learn_start                               = args.learn_start or 0
+    
+    -- RND variables
+    self.RND_learn_start                           = args.RND_learn_start
+    self.RND_learn_end                             = args.RND_learn_end
 
     -- Variables related to image compare and node creation / selection
     self.ee_learn_start                            = args.ee_learn_start
@@ -327,11 +332,13 @@ function nql:__init(args)
 
     if self.gpu and self.gpu >= 0 then
         self.network:cuda()
-        self.image_compare_network:cuda()
+        self.RND_P_network:cuda()
+        self.RND_T_network:cuda()
         self.tensor_type = torch.CudaTensor
     else
         self.network:float()
-        self.image_compare_network:float()
+        self.RND_P_network:float()
+        self.RND_T_network:float()
         self.tensor_type = torch.FloatTensor
     end
 
@@ -374,27 +381,19 @@ function nql:__init(args)
     self.r_max = 1
 
     self.w, self.dw = self.network:getParameters()
-    self.image_compare_w, self.image_compare_dw = self.image_compare_network:getParameters()
     self.RND_w, self.RND_dw = self.RND_P_network:getParameters()
 
     self.dw:zero()
-    self.image_compare_dw:zero()
     self.RND_dw:zero()
 
     self.deltas = self.dw:clone():fill(0)
-    self.image_compare_deltas = self.image_compare_dw:clone():fill(0)
 
     self.tmp = self.dw:clone():fill(0)
     self.g = self.dw:clone():fill(0)
     self.g2 = self.dw:clone():fill(0)
 
-    self.image_compare_tmp = self.image_compare_dw:clone():fill(0)
-    self.image_compare_g = self.image_compare_dw:clone():fill(0)
-    self.image_compare_g2 = self.image_compare_dw:clone():fill(0)
-
     if self.target_q then
         self.target_network = self.network:clone()
-        self.target_image_compare_network = self.image_compare_network:clone()
     end
 
     self.config_adam = {}
@@ -953,6 +952,7 @@ function nql:merge_distance_net_states(args)
         return torch.cat(args.s1, args.s2, 2):float()
     end
 end
+
 
 
 function nql:file_exists(filename)
@@ -1964,7 +1964,6 @@ function nql:perceive(reward, rawstate, terminal, testing, testing_ep, first_scr
 
     if self.target_q and self.numSteps % self.target_q == 1 then
         self.target_network = self.network:clone()
-        self.target_image_compare_network = self.image_compare_network:clone()
     end
 
     -- Display screen, along with some debugging info
@@ -2165,14 +2164,15 @@ end
 function nql:RND_update()
     assert(self.transitions:size() > self.minibatch_size)
 
-    s = self.transitions:sample_RND(self.minibatch_size)
+    local s,s2 = self.transitions:sample_RND(self.minibatch_size)
 
     net = self.RND_P_network
     s:reshape(self.minibatch_size, 1, 84,  84)
+    s2:reshape(self.minibatch_size, 1, 84,  84)
+    local net_input = self:merge_distance_net_states{s1=s, s2=s2}
     
-    targ = self.RND_T_network:forward(s):clone():float()
-    pred = self.RND_P_network:forward(s):clone():float()
-
+    targ = self.RND_T_network:forward(net_input):clone():float()
+    pred = self.RND_P_network:forward(net_input):clone():float()
     -- compute linearly annealed learning rate
     local t = math.max(0, self.numSteps - self.step_count_when_learning_began)
     self.lr_image_compare = (self.lr_start_image_compare - self.lr_end_image_compare) * (self.lr_endt_image_compare - t) / self.lr_endt_image_compare + self.lr_end_image_compare
@@ -2181,8 +2181,8 @@ function nql:RND_update()
     self.config_adam.learningRate = self.lr_image_compare
     self.config_adam.momentum = self.mom_image_compare
     
-    local w = self.image_compare_w
-    local dw = self.image_compare_dw
+    local w = self.RND_w
+    local dw = self.RND_dw
 
     -- add weight cost to gradient
     function feval(params)
@@ -2198,7 +2198,7 @@ function nql:RND_update()
         end
 
         -- get new gradient
-        net:backward(s, dloss_doutputs)
+        net:backward(net_input, dloss_doutputs)
 
         return loss, dw
     end
@@ -2209,8 +2209,8 @@ end
 function RND_calc_novelty_between_two_states(from_state, to_state)
     local net_input = torch.FloatTensor(1, 2, 84, 84):fill(0)
 
-    net_input[i][1]:copy(from_state)
-    net_input[i][2]:copy(to_state)
+    net_input[1][1]:copy(from_state)
+    net_input[1][2]:copy(to_state)
 
     if self.gpu and self.gpu >= 0 then
         net_input = net_input:cuda()
