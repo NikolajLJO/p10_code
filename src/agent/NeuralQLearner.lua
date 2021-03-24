@@ -296,7 +296,7 @@ function nql:__init(args)
         -- try to load saved agent
         print('Loading Image Compare Network from ' .. "convnet_atari3_TRND")
         self:log('Loading Image Compare Network from ' .. "convnet_atari3_TRND")
-        self.RND_P_network = torch.load("convnet_atari3_TRND")
+        self.RND_T_network = torch.load("convnet_atari3_TRND")
     else
         print('Creating Image Compare Network from ' .. "convnet_atari3_TRND")
         self.RND_T_network = err
@@ -1048,7 +1048,7 @@ function nql:get_self_directions(args)
     image.save(self.logfilePath .. "dummy2.png", img)
     --]]
 
-    local net_output = self.RND_calc_novelty(net_input)
+    local net_output = self:RND_calc_novelty(net_input)
 
     return net_output
 end
@@ -1077,7 +1077,7 @@ function nql:get_novelty_to_and_from_state(args)
         net_input = net_input:float()
     end
 
-    local net_output = self.RND_calc_novelty(net_input)
+    local net_output = self:RND_calc_novelty(net_input)
 
     local directions_to_current_state = {}
     for node_num = 1, #self.nodes do
@@ -1085,7 +1085,7 @@ function nql:get_novelty_to_and_from_state(args)
         directions_to_current_state[node_num] = {}
 
         for i = 1, net_output[node_num]:size(1) do
-            directions_to_current_state[node_num][i] = net_output[node_num][i]
+            directions_to_current_state[node_num] = net_output[node_num]
         end
     end
 
@@ -1096,7 +1096,7 @@ function nql:get_novelty_to_and_from_state(args)
         directions_from_current_state[node_num] = {}
 
         for i = 1, net_output[output_idx]:size(1) do
-            directions_from_current_state[node_num][i] = net_output[output_idx][i]
+            directions_from_current_state[node_num] = net_output[output_idx]
         end
     end
 
