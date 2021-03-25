@@ -61,8 +61,6 @@ function node:add_directions_to_node(args)
     local to_node = args.to_node
     local directions = args.directions
 
-    local directions_mag = self:calculate_directions_mag(directions)
-
     if not self.directions_to_node[to_node] then
         self.initial_directions_mag[to_node] = directions
         self.distance_scale[to_node] = 1
@@ -111,7 +109,7 @@ function node:refresh_directions_to_nodes(args)
             local target = targ:forward(net_input[i])
             novelty[i] = criterion:forward(prediction, target)
         end
-        
+
         print(novelty)
         for i = 1, #nodes do
             self:add_directions_to_node{to_node=i, directions=novelty[i]}
