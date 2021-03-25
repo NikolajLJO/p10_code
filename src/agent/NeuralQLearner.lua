@@ -1076,9 +1076,11 @@ function nql:get_novelty_to_and_from_state(args)
     else
         net_input = net_input:float()
     end
-
-    local net_output = self:RND_calc_novelty(net_input)
-
+    
+    local net_output = {}
+    for i=1, #net_input do
+        net_out = putself:RND_calc_novelty(net_input[i])
+    end
     local directions_to_current_state = {}
     for node_num = 1, #self.nodes do
 
