@@ -1086,7 +1086,7 @@ function nql:get_novelty_to_and_from_state(args)
 
         directions_to_current_state[node_num] = {}
 
-        for i = 1, net_output[node_num]:size(1) do
+        for i = 1, #net_output do
             directions_to_current_state[node_num] = net_output[node_num]
         end
     end
@@ -1097,7 +1097,7 @@ function nql:get_novelty_to_and_from_state(args)
         local output_idx = node_num + #self.nodes
         directions_from_current_state[node_num] = {}
 
-        for i = 1, net_output[output_idx]:size(1) do
+        for i = 1, #net_output do
             directions_from_current_state[node_num] = net_output[output_idx]
         end
     end
