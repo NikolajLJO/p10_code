@@ -1172,7 +1172,7 @@ function nql:update_nodes(args)
     for node_num = 1, #self.nodes do
         --lars rnd kan finde denne udregning ( the calculation is changed)
         --local direction_diff = self.nodes[node_num]:get_direction_diff_to{directions_to_current_state=directions_to_current_state[node_num]}
-        local novelty = self.RND_calc_novelty_between_two_states(self.nodes[node_num].s, s)
+        local novelty = self:RND_calc_novelty_between_two_states(from=self.nodes[node_num].s, to=s)
         
         --print("first direction_diff at node " .. node_num .. " = " .. (direction_diff[1] or -99))
         --print(" dir diff is so long: " .. #direction_diff)
@@ -2208,9 +2208,10 @@ function nql:RND_update()
     optim.adam(feval, w, self.config_adam)
 end
 
-function nql:RND_calc_novelty_between_two_states(from_state, to_state)
+function nql:RND_calc_novelty_between_two_states(args)
     local net_input = torch.FloatTensor(1, 2, 84, 84):fill(0)
-    print(to_state)
+    from_state = args.from
+    to_state = args.to
     net_input[1][1]:copy(from_state)
     net_input[1][2]:copy(to_state)
 
@@ -2220,5 +2221,5 @@ function nql:RND_calc_novelty_between_two_states(from_state, to_state)
         net_input = net_input:float()
     end
 
-    return self.RND_calc_novelty(net_input)
+    return self:RND_calc_novelty(net_input)
 end
