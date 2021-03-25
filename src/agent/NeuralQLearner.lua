@@ -1176,10 +1176,8 @@ function nql:update_nodes(args)
         
         --print("first direction_diff at node " .. node_num .. " = " .. (direction_diff[1] or -99))
         --print(" dir diff is so long: " .. #direction_diff)
-        for j = 1, #direction_diff do
-            if novelty > max_discrepancies[j] then
-                max_discrepancies[j] = novelty
-            end
+        if novelty > max_discrepancies[node_num] then
+            max_discrepancies[node_num] = novelty
         end
     end
 
@@ -1197,10 +1195,8 @@ function nql:update_nodes(args)
         --print("first direction_diff at node " .. node_num .. " = " .. (direction_diff[1] or -99))
         --print(" dir diff is so long: " .. #direction_diff)
 
-        for j = 1, #direction_diff do
-            if novelty > max_discrepancies[j] then
-                max_discrepancies[j] = novelty
-            end
+        if novelty > max_discrepancies[node_num] then
+            max_discrepancies[node_num] = novelty
         end
     end
 
