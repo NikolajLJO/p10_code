@@ -111,10 +111,7 @@ function node:refresh_directions_to_nodes(args)
             local target = targ:forward(net_input[i])
             novelty[i] = criterion:forward(prediction, target)
         end
-
         
-        
-        local 
         print(novelty)
         for i = 1, #nodes do
             self:add_directions_to_node{to_node=i, directions=novelty[i]}
