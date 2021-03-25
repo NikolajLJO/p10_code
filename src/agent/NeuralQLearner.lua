@@ -1258,7 +1258,7 @@ function nql:update_nodes(args)
     if self.best_pending_node_info and not self.bg_visited then
         local cand_max_disc = -math.huge
         for node_num = 1, #self.nodes do
-            local direction_diff = self:get_subgoal_diff{s = s, pending_s = self.best_pending_node_info.s}
+            local direction_diff = self:get_subgoal_diff{s = s, pending_s = self.best_pending_node_info.node.s}
 
             for j = 1, #direction_diff do
 
