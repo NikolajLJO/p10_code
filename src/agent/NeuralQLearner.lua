@@ -1466,9 +1466,6 @@ function nql:add_new_node()
     -- Update directions for all nodes
     --lars RND update dist med novelty (usikker men jeg tror den er der)
     -- Existing nodes to new node
-    for i = 1, #self.nodes - 1 do
-        self.nodes[i]:add_directions_to_node{to_node=new_node.idx, directions=self.best_pending_node_info.directions_to_current_state[i]}
-    end
 
     new_node:refresh_directions_to_nodes{nodes=self.nodes, pred=self.RND_P_network, targ=self.RND_T_network, gpu=self.gpu}
 
