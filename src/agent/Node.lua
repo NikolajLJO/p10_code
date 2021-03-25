@@ -108,8 +108,8 @@ function node:refresh_directions_to_nodes(args)
         end
 
         local criterion = nn.MSECriterion()
-        local prediction = net:forward(next_state)
-        local target = targ:forward(next_state)
+        local prediction = net:forward(net_input)
+        local target = targ:forward(net_input)
         local novelty = criterion:forward(prediction, target)
 
         for i = 1, #nodes do
