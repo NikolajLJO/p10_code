@@ -1176,9 +1176,10 @@ function nql:update_nodes(args)
         
         --print("first direction_diff at node " .. node_num .. " = " .. (direction_diff[1] or -99))
         --print(" dir diff is so long: " .. #direction_diff)
-
-        if novelty > max_discrepancies[j] then
-            max_discrepancies[j] = novelty
+        for j = 1, #direction_diff do
+            if novelty > max_discrepancies[j] then
+                max_discrepancies[j] = novelty
+            end
         end
     end
 
@@ -1191,13 +1192,15 @@ function nql:update_nodes(args)
     for node_num = 1, #self.nodes do
         --lars rnd kan finde denne udregning (been here done that)
         --local direction_diff = self.nodes[node_num]:get_direction_diff_to{directions_to_current_state=directions_to_current_state[node_num]}
-        local novelty = self.RND_calc_novelty_between_two_states(s, self.nodes[node_num].s)
+        local novelty = self.RND_calc_novelty_between_two_states(from=s, to=self.nodes[node_num].s)
         
         --print("first direction_diff at node " .. node_num .. " = " .. (direction_diff[1] or -99))
         --print(" dir diff is so long: " .. #direction_diff)
 
-        if novelty > max_discrepancies[j] then
-            max_discrepancies[j] = novelty
+        for j = 1, #direction_diff do
+            if novelty > max_discrepancies[j] then
+                max_discrepancies[j] = novelty
+            end
         end
     end
 
@@ -1373,9 +1376,9 @@ function nql:get_subgoal_diff(args)
 
     local direction_difference = {}
 
-    direction_difference[1] = RND_calc_novelty_between_two_states{current_state, candidate_state}
+    direction_difference[1] = RND_calc_novelty_between_two_states{from=current_state, to=candidate_state}
     
-    direction_difference[2] = RND_calc_novelty_between_two_states{candidate_state, current_state}
+    direction_difference[2] = RND_calc_novelty_between_two_states{from=candidate_state, to=current_state}
 
     return direction_difference
 end
