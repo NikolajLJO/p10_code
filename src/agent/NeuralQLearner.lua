@@ -1172,7 +1172,7 @@ function nql:update_nodes(args)
     for node_num = 1, #self.nodes do
         --lars rnd kan finde denne udregning ( the calculation is changed)
         --local direction_diff = self.nodes[node_num]:get_direction_diff_to{directions_to_current_state=directions_to_current_state[node_num]}
-        local novelty = self:RND_calc_novelty_between_two_states(from=self.nodes[node_num].s, to=s)
+        local novelty = self:RND_calc_novelty_between_two_states{from=self.nodes[node_num].s, to=s}
         
         --print("first direction_diff at node " .. node_num .. " = " .. (direction_diff[1] or -99))
         --print(" dir diff is so long: " .. #direction_diff)
