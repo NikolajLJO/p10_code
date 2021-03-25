@@ -101,22 +101,23 @@ function node:refresh_directions_to_nodes(args)
         else
             net_input = net_input:float()
         end
-
+        
+        local novelty = {}
+        local criterion = nn.MSECriterion()
         for i = 1, #nodes do
             net_input[i][1]:copy(self.s)
             net_input[i][2]:copy(nodes[i].s)
+            local prediction = net:forward(net_input[i])
+            local target = targ:forward(net_input[i])
+            novelty[i] = criterion:forward(prediction, target)
         end
 
-        local criterion = nn.MSECriterion()
-        local prediction = net:forward(net_input)
-        local target = targ:forward(net_input)
-        local novelty = criterion:forward(prediction, target)
+        
+        
+        local 
         print(novelty)
         for i = 1, #nodes do
-            local directions = {}
-            
-            directions[j] = novelty[i]
-            self:add_directions_to_node{to_node=i, directions=directions}
+            self:add_directions_to_node{to_node=i, directions=novelty[i]}
         end
     end
 end
