@@ -2209,8 +2209,8 @@ end
 
 function nql:RND_calc_novelty_between_two_states(args)
     local net_input = torch.FloatTensor(1, 2, 84, 84):fill(0)
-    from_state = args.from
-    to_state = args.to
+    local from_state = args.from
+    local to_state = args.to
     net_input[1][1]:copy(from_state)
     net_input[1][2]:copy(to_state)
 
