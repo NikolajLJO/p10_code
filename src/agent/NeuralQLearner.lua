@@ -1372,9 +1372,9 @@ function nql:get_subgoal_diff(args)
 
     local direction_difference = {}
 
-    direction_difference[1] = RND_calc_novelty_between_two_states{from=current_state, to=candidate_state}
+    direction_difference[1] = self:RND_calc_novelty_between_two_states{from=current_state, to=candidate_state}
     
-    direction_difference[2] = RND_calc_novelty_between_two_states{from=candidate_state, to=current_state}
+    direction_difference[2] = self:RND_calc_novelty_between_two_states{from=candidate_state, to=current_state}
 
     return direction_difference
 end
