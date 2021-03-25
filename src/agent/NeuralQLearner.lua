@@ -1078,7 +1078,7 @@ function nql:get_novelty_to_and_from_state(args)
     end
     
     local net_output = {}
-    for i=1, #net_input do
+    for i=1, net_input:size(1) do
         net_out = putself:RND_calc_novelty(net_input[i])
     end
     local directions_to_current_state = {}
