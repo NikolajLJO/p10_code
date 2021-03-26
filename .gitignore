@@ -20,3 +20,4 @@ README.md
 libale.so
 src/agent/libalewrap.so
 *.t7
+src/agent/logs
