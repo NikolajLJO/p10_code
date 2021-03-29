@@ -33,6 +33,13 @@ class Qnet(torch.nn.Module):
         state = functional.relu(self.lay1(state.view(state.shape[0], -1)))
         qvalues = self.lay2(state)
         return qvalues
+    
+    def backpropagate(self, prediction, target):
+        self.optimizer.zero_grad()
+        loss = self.loss(prediction, target)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.parameters(), 1)
+        self.optimizer.step()
 
 class EEnet(torch.nn.Module):
     def __init__(self):
@@ -61,3 +68,10 @@ class EEnet(torch.nn.Module):
         state = functional.relu(self.lay1(state.view(state.shape[0], -1)))
         EEvalues = self.lay2(state)
         return EEvalues
+    
+    def backpropagate(self, prediction, target):
+        self.optimizer.zero_grad()
+        loss = self.loss(prediction, target)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.parameters(), 1)
+        self.optimizer.step()
