@@ -15,6 +15,7 @@ class Agent:
         self.visited = []
         self.NQ = nq
         self.NE = ne
+        
         self.epsilon = 0
         self.slope = -(1 - 0.05) / 1000000
         self.intercept = 1
@@ -121,7 +122,6 @@ class Agent:
             self.visited.append(current_partition)
 
         return visited, self.visited, min_distance
-
     def e_greedy_action_choice(self, state):
         policy = self.Qnet(state)
         if np.random.rand() > self.epsilon:

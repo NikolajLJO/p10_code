@@ -13,7 +13,8 @@ k = 10
 '''
 args1 = gamename
 args2 = trænigsperiode
-args3 = update frequency
+args3 = network update frequency
+args4 = partition update frequency
 '''
 
 
@@ -46,9 +47,9 @@ def mainloop(args):
 
         if distance > dmax:
             partition_candidate = state_prime
-            dmax = distance
-
-        replay_memory.save(state, action, visited, reward, terminating, state_prime, visited_prime)
+            Dmax = distance
+        
+        replay_memory.save(state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime)
 
         if i % int(args[4]) == 0 and partition_candidate is not None:
             partition_memory.append(partition_candidate)
