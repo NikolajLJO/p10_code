@@ -127,7 +127,7 @@ class Agent:
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0]).item()
         else:
-            action = np.random.randint(1, self.action_space)
+            action = np.random.randint(1, self.action_space.n)
 
         self.epsilon = self.slope * self.total_steps + self.intercept
 

@@ -6,6 +6,7 @@ import sys
 import multiprocessing as mp
 
 
+
 T_add = 10
 batch_size = 32
 k = 10
@@ -24,7 +25,7 @@ def mainloop(args):
     reward = np.NINF
     dmax = np.NINF
 
-    game_actions, agent, opt, env = setup(args[1])
+    game_actions, replay_memory, agent, opt, env = setup(args[1])
 
     state = env.reset()
     state_prime = None
@@ -47,20 +48,20 @@ def mainloop(args):
             partition_candidate = state_prime
             dmax = distance
 
-        #replay_memory.save(state, action, visited, reward, terminating, state_prime, visited_prime)
+        replay_memory.save(state, action, visited, reward, terminating, state_prime, visited_prime)
 
-        if i % args[4] == 0 and partition_candidate is not None:
+        if i % int(args[4]) == 0 and partition_candidate is not None:
             partition_memory.append(partition_candidate)
             dmax = 0
 
         state = state_prime
 
-        if i % args[3] == 0:
+        if i % int(args[3]) == 0:
             agent.update(replay_memory)
 
 
 def calculate_auxiliary_reward(policy, aidx):
-    aux = [0]*policy.size[0]
+    aux = [0]*policy.size()[0]
     policy = policy.squeeze(0)
     for i in range(len(aux)):
         if aidx == i:
