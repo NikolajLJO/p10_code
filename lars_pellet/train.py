@@ -22,7 +22,8 @@ k = 10
 '''
 args1 = gamename
 args2 = trænigsperiode
-args3 = update frequency
+args3 = network update frequency
+args4 = partition update frequency
 '''
 def mainloop(args):
     partition_memory = []
@@ -34,7 +35,7 @@ def mainloop(args):
 
     state = env.reset()
 
-    for i in range(args[2]):
+    for i in range(int(args[2])):
         action, policy = agent.find_action(state)
 
         auxiliary_reward = Calculate_auxiliary_reward(policy, action)
@@ -52,15 +53,15 @@ def mainloop(args):
             partition_candidate = state_prime
             Dmax = distance
         
-        replay_memory.save(state, action, visited, reward, terminating, state_prime, visited_prime)
+        replay_memory.save(state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime)
 
-        if i % args[4] == 0 and partition_candidate is not None:
+        if i % int(args[4]) == 0 and partition_candidate is not None:
             partition_memory.append(partition_candidate)
             Dmax=0
 
         state = state_prime
 
-        if i % args[3] == 0:
+        if i % int(args[3]) == 0:
             agent.update(replay_memory)
 
 def Calculate_auxiliary_reward(policy, aidx):

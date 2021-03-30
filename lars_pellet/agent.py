@@ -12,10 +12,10 @@ class Agent:
         self.visited = []
         self.NQ = nq
         self.NE = ne
-
     
+
     def find_action(self, state):
-        action, policy = e_greedy_action_choice(state)
+        action, policy = self.e_greedy_action_choice(state)
         return action, policy
     
     def update(replay_memory):
@@ -92,9 +92,9 @@ class Agent:
             for i in range(len(states)):
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))
             #Update Em(st; st+k􀀀1) towards targmixed
-            self.EEnet.backpropagate(EEagent(torch.cat(merged)), targ_mix)
+            self.EEnet.backpropagate(   EEagent(torch.cat(merged)), targ_mix)
 
-    def find_current_partition(state, partition_memory):
+    def find_current_partition(self, state, partition_memory):
         min_distance = np.Inf
         for partition in partition_memory:
             distance = self.distance_prime(state, partition, partition_memory)
@@ -103,12 +103,12 @@ class Agent:
                 current_partition = partition
         
         visited = self.visited
-        if current_partition not in self.visited
+        if current_partition not in self.visited:
             self.visited.append(current_partition)
         
         return visited, self.visited, min_distance
     
-    def e_greedy_action_choice(self, state, epsilon):
+    def e_greedy_action_choice(self, state):
         policy = self.Qnet(state)
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0]).item()
