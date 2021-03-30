@@ -7,6 +7,8 @@ from Qnetwork import Qnet, EEnet
 from environment import create_atari_env
 from init import setup
 import sys
+import multiprocessing as mp
+
 
 slope = -(1 - 0.05) / 1000000
 intercept = 1
@@ -38,7 +40,7 @@ def mainloop(args):
         else:
             state = env.reset()
             agent.visited = []
-        
+
         visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
         
         if distance > Dmax:
@@ -110,4 +112,14 @@ def updatepartitions(R, vitited_partitions):
     return R
 
 if __name__ == "__main__":
-    mainloop(sys.argv)
+    mp.set_start_method('spawn')
+    with Pool(processes=4) as pool:
+
+
+        que = mp.Queue()
+        process = mp.Process(target = mainloop, args=(sys.argv,))
+        for _ in range(3):
+
+
+
+

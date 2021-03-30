@@ -2,6 +2,8 @@
 from environment import create_atari_env
 from agent import Agent
 from memory import ReplayMemory
+from multiprocessing import Pool
+
 
 def setup(env_name):
 
