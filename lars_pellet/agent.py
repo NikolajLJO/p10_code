@@ -89,7 +89,7 @@ class Agent:
             for i in range(len(smid)):
                 # targone-step   ^rt + Em(st+1; st+k􀀀1)
                 targ_onesteps.append(
-                    torch.tensor(auxreward[i][0]).unsqueeze(0)
+                    torch.tensor(auxreward[i][0])
                     + self.EE_discount
                     * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
