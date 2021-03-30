@@ -13,7 +13,7 @@ class ReplayMemory:
         self.EE_TIME_SEP_CONSTANT_M = 100
     
     def save(self, episoede_buffer):
-        for i, transition in enumerate(episode_buffer)
+        for i, transition in enumerate(episode_buffer):
             transition.append(len(episoede_buffer)-i)
             if len(self.memory) < self.MAX_MEMORY_SIZE:
                 self.memory.append(transition)
