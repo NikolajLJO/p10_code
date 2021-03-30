@@ -29,10 +29,17 @@ args3 = update frequency
 def mainloop(args):
     partition_memory = []
     partition_candidate = None
+    terminating = False
+    total_score = 0
+    Dmax = np.NINF
     game_actions, agent, replay_memory, opt, env = setup(args[1])
 
+    state = env.reset()
+
     for i in range(args[2]):
-        action = agent.find_action(state)
+        action, policy = agent.find_action(state)
+
+        auxiliary_reward = Calculate_auxiliary_reward(policy, action)
 
         if not terminating:
             state_prime, reward, terminating, info = env.step(action)
@@ -49,7 +56,7 @@ def mainloop(args):
         
         replay_memory.save(state, action, visited, reward, terminating, state_prime, visited_prime)
 
-        if i % args[4] == 0 and partition_candidate not None:
+        if i % args[4] == 0 and partition_candidate is not None:
             partition_memory.append(partition_candidate)
             Dmax=0
 
@@ -58,8 +65,8 @@ def mainloop(args):
         if i % args[3] == 0:
             agent.update(replay_memory)
 
-def Calculateauxiliaryreward(policy, aidx):
-    aux = [0]*18
+def Calculate_auxiliary_reward(policy, aidx):
+    aux = [0]*policy.size[0]
     policy = policy.squeeze(0)
     for i in range(len(aux)):
         if aidx == i:
@@ -92,16 +99,6 @@ def sampleEEminibatch(memory, batch_size, memory_replace_pointer):
             resbatch.append([element[1][0], memory[element[0] + i][0], memory[element[0]+1][0], auxs])
 
     return resbatch
-
-def distance_normalisation_calculation(action_usage):
-    res = 0
-    for action in action_usage.squeeze(0):
-        res = action.item()**2
-    return math.sqrt(res)
-
-def distance(EEagent, s1, s2, dfactor):
-    return max(distance_normalisation_calculation(EEagent(merge_states_for_comparason(dfactor, s1)) - EEagent(merge_states_for_comparason(dfactor, s2))),
-               distance_normalisation_calculation(EEagent(merge_states_for_comparason(s1, dfactor)) - EEagent(merge_states_for_comparason(s2, dfactor))))
 
 def updatepartitions(R, vitited_partitions):
     for i, r in enumerate(R):
