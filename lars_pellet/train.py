@@ -45,10 +45,11 @@ def mainloop(args):
             visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
             episode_buffer.append([state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime])
         else:
-            state = env.reset()
+            state_prime = env.reset()
             terminating = False
             agent.visited = []
             replay_memory.save(episode_buffer)
+            episode_buffer.clear()
             print("step: " + str(i) + " total_score: " + str(total_score))
             total_score = 0
             
@@ -88,25 +89,6 @@ def partitiondeterminarion(ee_network, s_n, r):
             mindist[0] = dist
             mindist[1] = s_pi
     return mindist[1]
-
-
-def sample_ee_minibatch(memory, batch_size, memory_replace_pointer):
-    resbatch = []
-    batch = sample(list(enumerate(memory)), batch_size)
-
-    # this loop takes the elements in the batch and goes k elements forward to give the
-    # auxilaray calculations on what actions has been used between state s_0 and state s_0+k
-    for element in batch:
-        if len(memory) >= element[0] + k and (
-                memory_replace_pointer < element[0] or memory_replace_pointer >= element[0] + k):
-            auxs = [element[1][3]]
-            for i in range(1, k):
-                aux = memory[element[0] + i][3]
-                auxs.append(aux)
-                resbatch.append([element[1][0], memory[element[0] + i][0], memory[element[0] + 1][0], auxs])
-
-    return resbatch
-
 
 def updatepartitions(r, vitited_partitions):
     for i, r in enumerate(r):

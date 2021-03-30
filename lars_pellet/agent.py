@@ -42,10 +42,10 @@ class Agent:
             batch = replay_memory.sample()
             pellet_rewards = []
 
-            states, visited, action, _, reward, s_primes, visited_prime = zip(*batch)
+            states, action, visited, _, reward, terminating, s_primes, visited_prime, _ = zip(*batch)
             states = torch.cat(states)
-            action = torch.cat(action).long()
-            reward = torch.cat(reward)
+            action = torch.tensor(action).long().unsqueeze(0)
+            reward = torch.tensor(reward)
             s_primes = torch.cat(s_primes)
 
             # if v 6= v0 then
@@ -91,7 +91,7 @@ class Agent:
                 targ_onesteps.append(
                     torch.tensor(auxreward[i][0]).unsqueeze(0)
                     + self.EE_discount
-                    * self.targetEEnet(self.merge_states_for_comparason(smid[i], s_primes[i])))
+                    * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
             targ_mc = torch.zeros(len(auxreward), 18)
             # targMC Pk􀀀1 i=0 i^rt+i
