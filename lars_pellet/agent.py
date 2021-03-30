@@ -15,7 +15,7 @@ class Agent:
     
     def find_action(self, state):
         #TODO have partitioning happen here
-        action = torch.argmax(self.Qnet(state)[0]).item()
+        action = e_greedy_action_choice(state)
         return action, #prev_visited
     
     def update(replay_memory):
@@ -98,9 +98,20 @@ class Agent:
         #TODO find nuværrende partition
         #join visited og nuværrende
         raise NotImplementedError
+    
+    def e_greedy_action_choice(self, state, epsilon):
+        if np.random.rand() > self.epsilon:
+            action = torch.argmax(self.Qnet(state)[0]).item()
+        else:
+            action = np.random.randint(1, selt.action_space)
+        
+        self.epsilon = slope * total_steps + intercept
+
+        return action
 
 def calc_pellet_reward(visits):
     return ee_beta / math.sqrt(max(1, visits))
 
 def merge_states_for_comparason(s1,s2):
     return torch.stack([s1,s2], dim=2).squeeze(0)
+
