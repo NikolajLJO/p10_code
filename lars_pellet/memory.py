@@ -15,18 +15,11 @@ class ReplayMemory():
         if len(memory) < memory_size:
             self.memory.append([state, action, reward, terminating, state_prime])
         else:
-            memory[memory_replace_pointer] = transition
-            self.memory_replace_pointer = (self.memory_replace_pointer + 1) % memory_size
+            memory[memory_refrence_pointer] = [state, action, reward, terminating, state_prime]
+            self.memory_refrence_pointer = (self.memory_refrence_pointer + 1) % memory_size
 
     def sample(self):
         return = self.memory.sample(self.replay_batch_size)
 
     def sampleEEminibatch():
         raise NotImplementedError
-
-
-    else:
-        memory[memory_replace_pointer] = transition
-        memory_replace_pointer = (memory_replace_pointer + 1) % memory_size
-    
-    return memory, memory_replace_pointer
