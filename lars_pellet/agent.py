@@ -142,10 +142,9 @@ class Agent:
         return max_distance
 
     def distance(self, s1, s2, dfactor):
-        return max(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(
-            merge_states_for_comparason(dfactor, s2))),
-                   abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(
-                       merge_states_for_comparason(s2, dfactor))))
+        return max(
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
 
 
 def calc_pellet_reward(self, visits):
