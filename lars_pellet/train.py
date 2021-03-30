@@ -19,16 +19,18 @@ args4 = partition update frequency
 
 
 def mainloop(args):
-    partition_memory = []
+    
     partition_candidate = None
     terminating = False
     total_score = 0
     reward = np.NINF
     dmax = np.NINF
+    episode_buffer = []
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
 
     state = env.reset()
+    partition_memory = [state]
     state_prime = None
 
     for i in range(int(args[2])):
@@ -39,9 +41,11 @@ def mainloop(args):
         if not terminating:
             state_prime, reward, terminating, info = env.step(action)
             total_score += reward
+            episode_buffer.append([state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime]]
         else:
             state = env.reset()
             agent.visited = []
+            replay_memory.save(episode_buffer)
 
         visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
 
@@ -49,8 +53,6 @@ def mainloop(args):
             partition_candidate = state_prime
             Dmax = distance
         
-        replay_memory.save(state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime)
-
         if i % int(args[4]) == 0 and partition_candidate is not None:
             partition_memory.append(partition_candidate)
             dmax = 0
