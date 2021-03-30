@@ -45,6 +45,7 @@ def mainloop(args):
             episode_buffer.append([state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime])
         else:
             state = env.reset()
+            terminating = False
             agent.visited = []
             replay_memory.save(episode_buffer)
             print("step: " + str(i) + " total_score: " + str(total_score))
@@ -64,6 +65,9 @@ def mainloop(args):
 
         if i % int(args[3]) == 0:
             agent.update(replay_memory)
+        
+        if i % 1000 == 0:
+            agent.update_targets()
 
 
 def calculate_auxiliary_reward(policy, aidx):

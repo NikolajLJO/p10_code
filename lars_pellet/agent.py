@@ -15,7 +15,7 @@ class Agent:
         self.visited = []
         self.NQ = nq
         self.NE = ne
-        
+
         self.epsilon = 0
         self.slope = -(1 - 0.05) / 1000000
         self.intercept = 1
@@ -145,7 +145,10 @@ class Agent:
         return max(
             torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
             torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
-
+    
+    def update_targets(self):
+        self.targetQnet = copy.deepcopy(self.Qnet)
+        self.targetEEnet = copy.deepcopy(self.EEnet)
 
 def calc_pellet_reward(self, visits):
     return self.ee_beta / math.sqrt(max(1, visits))
