@@ -56,17 +56,6 @@ def mainloop(args):
         if i % args[3] == 0:
             agent.update(replay_memory)
 
-def e_greedy_action_choice(agent, state, epsilon):
-    Qs = agent(state)
-    if np.random.rand() > epsilon:
-        action = qs.max(1)[1].view(1, 1).type(torch.int8)
-    else:
-        action = torch.tensor([[randrange(18)]], dtype=torch.int8)
-     
-    epsilon = slope * total_steps + intercept
-
-    return action, Qs, epsilon
-
 def Calculateauxiliaryreward(policy, aidx):
     aux = [0]*18
     policy = policy.squeeze(0)

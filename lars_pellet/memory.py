@@ -13,7 +13,7 @@ class ReplayMemory():
         self.memory.append([state, action, reward, terminating, state_prime])
 
     def sample(self):
-        raise NotImplementedError
+        return = self.memory.sample(self.replay_batch_size)
 
     def sampleEEminibatch():
         raise NotImplementedError
