@@ -47,7 +47,7 @@ def mainloop(args):
 
         if distance > dmax:
             partition_candidate = state_prime
-            Dmax = distance
+            dmax = distance
         
         replay_memory.save(state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime)
 
