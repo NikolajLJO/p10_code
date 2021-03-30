@@ -47,8 +47,8 @@ def mainloop(args):
             state = env.reset()
             agent.visited = []
             replay_memory.save(episode_buffer)
+            print("step: " + str(i) + " total_score: " + str(total_score))
             total_score = 0
-            print(total_score)
 
         visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
 
