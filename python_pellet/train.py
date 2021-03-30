@@ -19,16 +19,18 @@ args4 = partition update frequency
 
 
 def mainloop(args):
-    partition_memory = []
+    
     partition_candidate = None
     terminating = False
     total_score = 0
     reward = np.NINF
     dmax = np.NINF
+    episode_buffer = []
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
 
     state = env.reset()
+    partition_memory = [state]
     state_prime = None
 
     for i in range(int(args[2])):
@@ -39,18 +41,22 @@ def mainloop(args):
         if not terminating:
             state_prime, reward, terminating, info = env.step(action)
             total_score += reward
+            reward = max(min(reward,1),-1)
+            visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
+            episode_buffer.append([state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime])
         else:
-            state = env.reset()
+            state_prime = env.reset()
+            terminating = False
             agent.visited = []
-
-        visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
-
+            replay_memory.save(episode_buffer)
+            episode_buffer.clear()
+            print("step: " + str(i) + " total_score: " + str(total_score))
+            total_score = 0
+            
         if distance > dmax:
             partition_candidate = state_prime
             dmax = distance
         
-        replay_memory.save(state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime)
-
         if i % int(args[4]) == 0 and partition_candidate is not None:
             partition_memory.append(partition_candidate)
             dmax = 0
@@ -59,10 +65,13 @@ def mainloop(args):
 
         if i % int(args[3]) == 0:
             agent.update(replay_memory)
+        
+        if i % 1000 == 0:
+            agent.update_targets()
 
 
 def calculate_auxiliary_reward(policy, aidx):
-    aux = [0]*policy.size()[0]
+    aux = [0]*(policy.size()[1])
     policy = policy.squeeze(0)
     for i in range(len(aux)):
         if aidx == i:
@@ -80,25 +89,6 @@ def partitiondeterminarion(ee_network, s_n, r):
             mindist[0] = dist
             mindist[1] = s_pi
     return mindist[1]
-
-
-def sample_ee_minibatch(memory, batch_size, memory_replace_pointer):
-    resbatch = []
-    batch = sample(list(enumerate(memory)), batch_size)
-
-    # this loop takes the elements in the batch and goes k elements forward to give the
-    # auxilaray calculations on what actions has been used between state s_0 and state s_0+k
-    for element in batch:
-        if len(memory) >= element[0] + k and (
-                memory_replace_pointer < element[0] or memory_replace_pointer >= element[0] + k):
-            auxs = [element[1][3]]
-            for i in range(1, k):
-                aux = memory[element[0] + i][3]
-                auxs.append(aux)
-                resbatch.append([element[1][0], memory[element[0] + i][0], memory[element[0] + 1][0], auxs])
-
-    return resbatch
-
 
 def updatepartitions(r, vitited_partitions):
     for i, r in enumerate(r):

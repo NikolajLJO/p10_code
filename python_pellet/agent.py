@@ -15,7 +15,7 @@ class Agent:
         self.visited = []
         self.NQ = nq
         self.NE = ne
-        
+
         self.epsilon = 0
         self.slope = -(1 - 0.05) / 1000000
         self.intercept = 1
@@ -42,10 +42,10 @@ class Agent:
             batch = replay_memory.sample()
             pellet_rewards = []
 
-            states, visited, action, _, reward, s_primes, visited_prime = zip(*batch)
+            states, action, visited, _, reward, terminating, s_primes, visited_prime, _ = zip(*batch)
             states = torch.cat(states)
-            action = torch.cat(action).long()
-            reward = torch.cat(reward)
+            action = torch.tensor(action).long().unsqueeze(0)
+            reward = torch.tensor(reward)
             s_primes = torch.cat(s_primes)
 
             # if v 6= v0 then
@@ -89,9 +89,9 @@ class Agent:
             for i in range(len(smid)):
                 # targone-step   ^rt + Em(st+1; st+k􀀀1)
                 targ_onesteps.append(
-                    torch.tensor(auxreward[i][0]).unsqueeze(0)
+                    torch.tensor(auxreward[i][0])
                     + self.EE_discount
-                    * self.targetEEnet(self.merge_states_for_comparason(smid[i], s_primes[i])))
+                    * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
             targ_mc = torch.zeros(len(auxreward), 18)
             # targMC Pk􀀀1 i=0 i^rt+i
@@ -118,7 +118,9 @@ class Agent:
                 current_partition = partition
 
         visited = self.visited
-        if current_partition not in self.visited:
+        
+        if is_tesor_in_list(current_partition, self.visited):
+
             self.visited.append(current_partition)
 
         return visited, self.visited, min_distance
@@ -145,7 +147,10 @@ class Agent:
         return max(
             torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
             torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
-
+    
+    def update_targets(self):
+        self.targetQnet = copy.deepcopy(self.Qnet)
+        self.targetEEnet = copy.deepcopy(self.EEnet)
 
 def calc_pellet_reward(self, visits):
     return self.ee_beta / math.sqrt(max(1, visits))
@@ -153,3 +158,9 @@ def calc_pellet_reward(self, visits):
 
 def merge_states_for_comparason(s1, s2):
     return torch.stack([s1, s2], dim=2).squeeze(0)
+
+def is_tesor_in_list(mtensor, mlist):
+    for element in mlist:
+        if torch.equal(mtensor, element):
+            return True
+    return False
