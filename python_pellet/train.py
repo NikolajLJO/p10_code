@@ -4,6 +4,10 @@ from random import sample
 from init import setup
 import sys
 import multiprocessing as mp
+import os
+from pathlib import Path
+import datetime
+import logging
 
 
 
@@ -18,7 +22,21 @@ args4 = partition update frequency
 '''
 
 
+def get_writer():
+    _, writer = os.pipe()
+    return os.fdopen(writer, 'w')
+
+
 def mainloop(args):
+    path = Path(__file__).parent
+    Path(path / 'logs').mkdir(parents=True, exist_ok=True)
+    now = datetime.datetime.now()
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(message)s',
+                        filename=(str(path) + "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute) + "-log.txt"),
+                        filemode='w')
+    logger = get_writer()
+    sys.stdout = logger
     
     partition_candidate = None
     terminating = False
@@ -33,7 +51,7 @@ def mainloop(args):
     partition_memory = [state]
     state_prime = None
 
-    for i in range(int(args[2])):
+    for i in range(1, int(args[2])):
         action, policy = agent.find_action(state)
 
         auxiliary_reward = calculate_auxiliary_reward(policy, action)
@@ -50,7 +68,7 @@ def mainloop(args):
             agent.visited = []
             replay_memory.save(episode_buffer)
             episode_buffer.clear()
-            print("step: " + str(i) + " total_score: " + str(total_score))
+            logging.info("step: " + str(i) + " total_score: " + str(total_score))
             total_score = 0
             
         if distance > dmax:
