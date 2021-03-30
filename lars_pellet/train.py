@@ -42,6 +42,7 @@ def mainloop(args):
             state_prime, reward, terminating, info = env.step(action)
             total_score += reward
             reward = max(min(reward,1),-1)
+            visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
             episode_buffer.append([state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime])
         else:
             state = env.reset()
@@ -50,9 +51,7 @@ def mainloop(args):
             replay_memory.save(episode_buffer)
             print("step: " + str(i) + " total_score: " + str(total_score))
             total_score = 0
-
-        visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
-
+            
         if distance > dmax:
             partition_candidate = state_prime
             dmax = distance

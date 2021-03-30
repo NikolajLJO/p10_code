@@ -118,7 +118,9 @@ class Agent:
                 current_partition = partition
 
         visited = self.visited
-        if current_partition not in self.visited:
+        
+        if is_tesor_in_list(current_partition, self.visited):
+
             self.visited.append(current_partition)
 
         return visited, self.visited, min_distance
@@ -156,3 +158,9 @@ def calc_pellet_reward(self, visits):
 
 def merge_states_for_comparason(s1, s2):
     return torch.stack([s1, s2], dim=2).squeeze(0)
+
+def is_tesor_in_list(mtensor, mlist):
+    for element in mlist:
+        if torch.equal(mtensor, element):
+            return True
+    return False

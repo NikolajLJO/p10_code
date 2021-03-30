@@ -2,7 +2,7 @@
 The class includes the replay memory and
 functions to query it.
 '''
-
+import random
 
 class ReplayMemory:
     def __init__(self, batch_size=32, max_memory_size=10000):
@@ -22,7 +22,7 @@ class ReplayMemory:
             self.memory_refrence_pointer = (self.memory_refrence_pointer + 1) %  self.MAX_MEMORY_SIZE
 
     def sample(self):
-        return self.memory.sample(self.replay_batch_size)
+        return random.sample(self.memory, self.replay_batch_size)
 
     def sampleEEminibatch(self):
         batch = []
