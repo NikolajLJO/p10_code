@@ -75,17 +75,6 @@ def partitiondeterminarion(EEagent, s_n, R):
             mindist[1] = s_pi
     return mindist[1]
 
-def store_transition(s, vitited_partitions, a, auxreward,reward, s_n, vitited_partitions_new, memory, memory_size, memory_replace_pointer):
-    transition = [s, vitited_partitions, a, auxreward, torch.tensor([reward]), s_n, vitited_partitions_new]
-    if len(memory) < memory_size:
-        memory.append(transition)
-    else:
-        memory[memory_replace_pointer] = transition
-        memory_replace_pointer = (memory_replace_pointer + 1) % memory_size
-    
-    return memory, memory_replace_pointer
-
-
 def sampleEEminibatch(memory, batch_size, memory_replace_pointer):
     resbatch = []
     batch = sample(list(enumerate(memory)), batch_size)
@@ -101,13 +90,6 @@ def sampleEEminibatch(memory, batch_size, memory_replace_pointer):
             resbatch.append([element[1][0], memory[element[0] + i][0], memory[element[0]+1][0], auxs])
 
     return resbatch
-
-def backpropagate(predictions, targets, agent):
-    agent.optimizer.zero_grad()
-    loss = agent.loss(predictions, targets)
-    loss.backward()
-    torch.nn.utils.clip_grad_norm_(agent.parameters(), 1)
-    agent.optimizer.step()
 
 def distance_normalisation_calculation(action_usage):
     res = 0
