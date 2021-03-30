@@ -4,14 +4,15 @@ import numpy as np
 import torch
 from collections import deque
 from gym.spaces.box import Box
-#from skimage.color import rgb2gray
+# from skimage.color import rgb2gray
 from cv2 import resize
-#from skimage.transform import resize
-#from scipy.misc import imresize as resize
+# from skimage.transform import resize
+# from scipy.misc import imresize as resize
 import random
 
 
 def create_atari_env(env_id):
+
     env = gym.make(env_id)
     env = EpisodicLifeEnv(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
