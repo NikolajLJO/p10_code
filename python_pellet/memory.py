@@ -20,7 +20,7 @@ class ReplayMemory:
                 self.memory.append(transition)
             else:
                 self.memory[self.memory_refrence_pointer] = transition
-            self.memory_refrence_pointer = (self.memory_refrence_pointer + 1) %  self.MAX_MEMORY_SIZE
+            self.memory_refrence_pointer = (self.memory_refrence_pointer + 1) % self.MAX_MEMORY_SIZE
 
     def sample(self):
         return random.sample(self.memory, self.batch_size)
