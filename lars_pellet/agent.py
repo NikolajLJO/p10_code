@@ -15,9 +15,8 @@ class Agent:
 
     
     def find_action(self, state):
-        #TODO have partitioning happen here
-        action = e_greedy_action_choice(state)
-        return action, #prev_visited
+        action, policy = e_greedy_action_choice(state)
+        return action, policy
     
     def update(replay_memory):
         QLEARN(replay_memory)
@@ -110,14 +109,15 @@ class Agent:
         return visited, self.visited, min_distance
     
     def e_greedy_action_choice(self, state, epsilon):
+        policy = self.Qnet(state)
         if np.random.rand() > self.epsilon:
-            action = torch.argmax(self.Qnet(state)[0]).item()
+            action = torch.argmax(policy[0]).item()
         else:
             action = np.random.randint(1, selt.action_space)
         
         self.epsilon = slope * total_steps + intercept
 
-        return action
+        return action, policy
     
     def distance_prime(self, s1, s2, partition_memory):
         max_distance = np.NINF

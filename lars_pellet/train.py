@@ -35,7 +35,9 @@ def mainloop(args):
     state = env.reset()
 
     for i in range(args[2]):
-        action = agent.find_action(state)
+        action, policy = agent.find_action(state)
+
+        auxiliary_reward = Calculate_auxiliary_reward(policy, action)
 
         if not terminating:
             state_prime, reward, terminating, info = env.step(action)
@@ -61,8 +63,8 @@ def mainloop(args):
         if i % args[3] == 0:
             agent.update(replay_memory)
 
-def Calculateauxiliaryreward(policy, aidx):
-    aux = [0]*18
+def Calculate_auxiliary_reward(policy, aidx):
+    aux = [0]*policy.size[0]
     policy = policy.squeeze(0)
     for i in range(len(aux)):
         if aidx == i:
