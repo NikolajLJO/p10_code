@@ -71,7 +71,7 @@ def mainloop(args):
 
 
 def calculate_auxiliary_reward(policy, aidx):
-    aux = [0]*policy.size()[0]
+    aux = [0]*(policy.size()[1])
     policy = policy.squeeze(0)
     for i in range(len(aux)):
         if aidx == i:

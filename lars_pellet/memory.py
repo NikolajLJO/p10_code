@@ -28,8 +28,10 @@ class ReplayMemory:
     def sample_ee_minibatch(self):
         batch = []
         for i in range(self.batch_size):
-            state_index = np.random.randint(0, (len(self.memory)-1))
-            offset = np.random.randint(1, self.memory[state_index][-1])
+            state_index = np.random.randint(0, (len(self.memory)))
+            while self.memory[state_index][-1] == 0:
+                state_index = np.random.randint(0, (len(self.memory)))
+            offset = np.random.randint(0, self.memory[state_index][-1])
             offset = min(offset, self.EE_TIME_SEP_CONSTANT_M)
             
             state_prime_index = state_index + offset % self.MAX_MEMORY_SIZE
