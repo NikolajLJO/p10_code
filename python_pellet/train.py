@@ -27,8 +27,11 @@ def get_writer():
     return os.fdopen(writer, 'w')
 
 def use_gpu(agent):
-    agent.Qnet.cuda()
-    agent.EEnet.cuda()
+    if torch.cuda.is_available():
+        agent.Qnet.cuda()
+        agent.EEnet.cuda()
+    else:
+        print("GPU not available. Using CPU.")
 
 
 
@@ -52,8 +55,8 @@ def mainloop(args):
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
     
-    if torch.cuda.is_available():
-        use_gpu(agent)
+    
+    use_gpu(agent)
     
 
     state = env.reset()
