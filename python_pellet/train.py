@@ -119,8 +119,7 @@ if __name__ == "__main__":
     thread_count = 4
     with mp.Pool(processes=thread_count) as pool:
         que = mp.Queue()
-        process_list = [mp.Process(target=mainloop, args=(sys.argv, x)) for x in range(1, thread_count)]
+        process_list = [mp.Process(target=mainloop, args=(sys.argv, x)) for x in range(thread_count)]
 
         for process in process_list:
             process.start()
-
