@@ -26,6 +26,11 @@ def get_writer():
     _, writer = os.pipe()
     return os.fdopen(writer, 'w')
 
+def use_gpu(agent):
+    agent.Qnet.cuda()
+    agent.EEnet.cuda()
+
+
 
 def mainloop(args):
     path = Path(__file__).parent
@@ -46,6 +51,10 @@ def mainloop(args):
     episode_buffer = []
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
+    
+    if torch.cuda.is_available():
+        use_gpu(agent)
+    
 
     state = env.reset()
     partition_memory = [[state,0]]
