@@ -56,7 +56,7 @@ class Agent:
             # end if
             
             for i in range(replay_memory.batch_size):
-                if (len(visited[i]) == 0 and len(visited_prime[i]) > 0) or not torch.equal(visited[i][-1][0],visited_prime[i][-1][0]):
+                if len(visited[i]) < len(visited_prime[i]):
                     # TODO correct parameter here for calc_pellet_reward
                     pellet_rewards.append(self.calc_pellet_reward(visited_prime[i][-1][1]))
                 else:
