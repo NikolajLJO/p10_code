@@ -119,7 +119,7 @@ class Agent:
 
         visited = copy.deepcopy(self.visited)
         
-        if not is_tesor_in_list(current_partition, self.visited):
+        if not is_tensor_in_list(current_partition, self.visited):
             self.visited.append(current_partition)
 
         return visited, self.visited, min_distance
