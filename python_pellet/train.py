@@ -48,7 +48,7 @@ def mainloop(args):
     game_actions, replay_memory, agent, opt, env = setup(args[1])
 
     state = env.reset()
-    partition_memory = [state]
+    partition_memory = [[state,0]]
     state_prime = None
 
     for i in range(1, int(args[2])):
@@ -65,6 +65,7 @@ def mainloop(args):
         else:
             state_prime = env.reset()
             terminating = False
+            update_partitions(agent.visited,partition_memory)
             agent.visited = []
             replay_memory.save(episode_buffer)
             episode_buffer.clear()
@@ -76,7 +77,7 @@ def mainloop(args):
             dmax = distance
         
         if i % int(args[4]) == 0 and partition_candidate is not None:
-            partition_memory.append(partition_candidate)
+            partition_memory.append([partition_candidate, 0])
             dmax = 0
 
         state = state_prime
@@ -108,13 +109,12 @@ def partitiondeterminarion(ee_network, s_n, r):
             mindist[1] = s_pi
     return mindist[1]
 
-def updatepartitions(r, vitited_partitions):
-    for i, r in enumerate(r):
-        for vitited_partition in vitited_partitions:
-            if torch.equal(r[0], vitited_partition[0]):
-                r[i] = (r[0], r[1] + 1)
+def update_partitions(visited_partitions, partition_memory):
+    for visited in visited_partitions:
+        for i, partition in enumerate(partition_memory):
+            if torch.equal(visited[0],partition[0]):
+                partition_memory[i][1] += 1
                 break
-    return r
 
 
 if __name__ == "__main__":
