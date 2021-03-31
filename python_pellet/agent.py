@@ -124,6 +124,7 @@ class Agent:
             self.visited.append(current_partition)
 
         return visited, self.visited, min_distance
+
     def e_greedy_action_choice(self, state):
         policy = self.Qnet(state)
         if np.random.rand() > self.epsilon:
@@ -152,12 +153,14 @@ class Agent:
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.targetEEnet = copy.deepcopy(self.EEnet)
 
+
 def calc_pellet_reward(self, visits):
     return self.ee_beta / math.sqrt(max(1, visits))
 
 
 def merge_states_for_comparason(s1, s2):
     return torch.stack([s1, s2], dim=2).squeeze(0)
+
 
 def is_tesor_in_list(mtensor, mlist):
     for element in mlist:

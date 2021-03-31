@@ -1,9 +1,6 @@
-'''
-The class includes the replay memory and
-functions to query it.
-'''
 import random
 import numpy as np
+
 
 class ReplayMemory:
     def __init__(self, batch_size=32, max_memory_size=10000):
@@ -40,6 +37,9 @@ class ReplayMemory:
             for j in range(offset):
                 auxiliary_reward = self.memory[state_index + j % self.MAX_MEMORY_SIZE][3]
                 aux.append(auxiliary_reward)
-            batch.append([self.memory[state_index][0],self.memory[state_prime_index][0], self.memory[state_index][-3], aux])
+            batch.append([self.memory[state_index][0],
+                          self.memory[state_prime_index][0],
+                          self.memory[state_index][-3],
+                          aux])
 
         return batch

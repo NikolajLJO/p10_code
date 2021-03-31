@@ -2,13 +2,8 @@ from __future__ import division
 import gym
 import numpy as np
 import torch
-from collections import deque
 from gym.spaces.box import Box
-# from skimage.color import rgb2gray
 from cv2 import resize
-# from skimage.transform import resize
-# from scipy.misc import imresize as resize
-import random
 
 
 def create_atari_env(env_id):
@@ -98,7 +93,7 @@ class EpisodicLifeEnv(gym.Wrapper):
         # check current lives, make loss of life terminal,
         # then update lives to handle bonus lives
         lives = self.env.unwrapped.ale.lives()
-        if lives < self.lives and lives > 0:
+        if self.lives > lives > 0:
             # for Qbert sometimes we stay in lives == 0 condtion for a few frames
             # so its important to keep lives > 0, so that we only reset once
             # the environment advertises done.

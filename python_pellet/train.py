@@ -10,10 +10,6 @@ import datetime
 import logging
 
 
-
-T_add = 10
-batch_size = 32
-k = 10
 '''
 args1 = gamename
 args2 = trænigsperiode
@@ -31,9 +27,10 @@ def mainloop(args):
     path = Path(__file__).parent
     Path(path / 'logs').mkdir(parents=True, exist_ok=True)
     now = datetime.datetime.now()
+    now_but_text = "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute)
     logging.basicConfig(level=logging.DEBUG,
                         format='%(message)s',
-                        filename=(str(path) + "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute) + "-log.txt"),
+                        filename=(str(path) + now_but_text + "-log.txt"),
                         filemode='w')
     logger = get_writer()
     sys.stdout = logger
@@ -41,15 +38,14 @@ def mainloop(args):
     partition_candidate = None
     terminating = False
     total_score = 0
-    reward = np.NINF
     dmax = np.NINF
+    distance = np.NINF
     episode_buffer = []
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
 
     state = env.reset()
     partition_memory = [state]
-    state_prime = None
 
     for i in range(1, int(args[2])):
         action, policy = agent.find_action(state)
@@ -107,6 +103,7 @@ def partitiondeterminarion(ee_network, s_n, r):
             mindist[0] = dist
             mindist[1] = s_pi
     return mindist[1]
+
 
 def updatepartitions(r, vitited_partitions):
     for i, r in enumerate(r):
