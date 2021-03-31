@@ -22,7 +22,6 @@ class Agent:
         self.total_steps = 0
         self.Q_discount = 0.99
         self.EE_discount = 0.99
-        self.ee_beta = 1
         self.action_space = action_space
 
     def find_action(self, state):
@@ -42,11 +41,13 @@ class Agent:
             batch = replay_memory.sample()
             pellet_rewards = []
 
-            states, action, visited, _, reward, terminating, s_primes, visited_prime, _ = zip(*batch)
+            states, action, visited, reward, terminating, s_primes, visited_prime, targ_mc = zip(*batch)
             states = torch.cat(states)
             action = torch.tensor(action).long().unsqueeze(0)
             reward = torch.tensor(reward)
             s_primes = torch.cat(s_primes)
+            terminating = torch.tensor(terminating).long()
+            targ_mc = torch.tensor(targ_mc)
 
             # if v 6= v0 then
             # r+  pellet reward for the partition visited
@@ -58,13 +59,13 @@ class Agent:
             for i in range(replay_memory.batch_size):
                 if len(visited[i]) < len(visited_prime[i]):
                     # TODO correct parameter here for calc_pellet_reward
-                    pellet_rewards.append(self.calc_pellet_reward(visited_prime[i][-1][1]))
+                    pellet_rewards.append(replay_memory.calc_pellet_reward(visited_prime[i][-1][1]))
                 else:
                     pellet_rewards.append(0)
             pellet_rewards = torch.tensor(pellet_rewards)
 
             # targone-step   r + r+ + maxa Q(s0; v0; a)
-            targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach()
+            targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
 
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
@@ -73,9 +74,8 @@ class Agent:
             # targMC   R + R+
             # targmixed   (1 􀀀 Q)targone-step + QtargMC
             # Update Q(s; v; a) towards targmixed
-            targ_mc = reward + pellet_rewards
             targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
-            self.Qnet.backpropagate(predictions, targ_mix)
+            self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(0))
 
     def eelearn(self, replay_memory):
         if len(replay_memory.memory) > replay_memory.batch_size:
@@ -150,9 +150,6 @@ class Agent:
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.targetEEnet = copy.deepcopy(self.EEnet)
-
-    def calc_pellet_reward(self, visits):
-        return self.ee_beta / math.sqrt(max(1, visits))
 
 
 def merge_states_for_comparason(s1, s2):
