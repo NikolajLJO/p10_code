@@ -23,14 +23,14 @@ def get_writer():
     return os.fdopen(writer, 'w')
 
 
-def mainloop(args):
+def mainloop(args, process_itterator):
     path = Path(__file__).parent
     Path(path / 'logs').mkdir(parents=True, exist_ok=True)
     now = datetime.datetime.now()
     now_but_text = "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute)
     logging.basicConfig(level=logging.DEBUG,
                         format='%(message)s',
-                        filename=(str(path) + now_but_text + "-log.txt"),
+                        filename=(str(path) + now_but_text + "p" + str(process_itterator) + "-log.txt"),
                         filemode='w')
     logger = get_writer()
     sys.stdout = logger
@@ -55,7 +55,7 @@ def mainloop(args):
         if not terminating:
             state_prime, reward, terminating, info = env.step(action)
             total_score += reward
-            reward = max(min(reward,1),-1)
+            reward = max(min(reward, 1), -1)
             visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
             episode_buffer.append([state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime])
         else:
@@ -116,8 +116,11 @@ def updatepartitions(r, vitited_partitions):
 
 if __name__ == "__main__":
     mp.set_start_method('spawn')
-    with mp.Pool(processes=4) as pool:
+    thread_count = 4
+    with mp.Pool(processes=thread_count) as pool:
         que = mp.Queue()
-        process = mp.Process(target=mainloop, args=(sys.argv,))
+        process_list = [mp.Process(target=mainloop, args=(sys.argv, x)) for x in range(1, thread_count)]
 
-    mainloop(sys.argv)
+        for process in process_list:
+            process.start()
+
