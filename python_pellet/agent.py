@@ -158,7 +158,7 @@ class Agent:
 def merge_states_for_comparason(s1, s2):
     return torch.stack([s1, s2], dim=2).squeeze(0)
 
-def is_tesor_in_list(mtensor, mlist):
+def is_tensor_in_list(mtensor, mlist):
     for element in mlist:
         if torch.equal(mtensor[0], element[0]):
             return True
