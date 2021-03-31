@@ -3,7 +3,7 @@ import numpy as np
 
 
 class ReplayMemory:
-    def __init__(self, batch_size=32, max_memory_size=10000):
+    def __init__(self, batch_size=32, max_memory_size=100000):
         self.memory = []
         self.batch_size = batch_size
         self.memory_refrence_pointer = 0
@@ -31,11 +31,11 @@ class ReplayMemory:
             offset = np.random.randint(1, self.memory[state_index][-1])
             offset = min(offset, self.EE_TIME_SEP_CONSTANT_M)
             
-            state_prime_index = state_index + offset % self.MAX_MEMORY_SIZE
+            state_prime_index = (state_index + offset) % self.MAX_MEMORY_SIZE
 
             aux = []
             for j in range(offset):
-                auxiliary_reward = self.memory[state_index + j % self.MAX_MEMORY_SIZE][3]
+                auxiliary_reward = self.memory[(state_index + j) % self.MAX_MEMORY_SIZE][3]
                 aux.append(auxiliary_reward)
             batch.append([self.memory[state_index][0],
                           self.memory[state_prime_index][0],

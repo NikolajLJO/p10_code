@@ -56,9 +56,9 @@ class Agent:
             # end if
 
             for i in range(replay_memory.batch_size):
-                if visited[i] is not visited_prime[i]:
+                if (len(visited[i]) == 0 and len(visited_prime[i]) > 0) or not torch.equal(visited[i][-1][0],visited_prime[i][-1][0]):
                     # TODO correct parameter here for calc_pellet_reward
-                    pellet_rewards.append(calc_pellet_reward(visited_prime[i][-1][1], 1))
+                    pellet_rewards.append(self.calc_pellet_reward(visited_prime[i][-1][1]))
                 else:
                     pellet_rewards.append(0)
             pellet_rewards = torch.tensor(pellet_rewards)
@@ -112,15 +112,14 @@ class Agent:
         current_partition = None
         min_distance = np.Inf
         for partition in partition_memory:
-            distance = self.distance_prime(state, partition, partition_memory)
+            distance = self.distance_prime(state, partition[0], partition_memory)
             if distance < min_distance:
                 min_distance = distance
                 current_partition = partition
 
-        visited = self.visited
+        visited = copy.deepcopy(self.visited)
         
-        if is_tesor_in_list(current_partition, self.visited):
-
+        if not is_tesor_in_list(current_partition, self.visited):
             self.visited.append(current_partition)
 
         return visited, self.visited, min_distance
@@ -139,7 +138,7 @@ class Agent:
     def distance_prime(self, s1, s2, partition_memory):
         max_distance = np.NINF
         for partition in partition_memory:
-            distance = self.distance(s1, s2, partition)
+            distance = self.distance(s1, s2, partition[0])
             if distance > max_distance:
                 max_distance = distance
         return max_distance
@@ -164,6 +163,6 @@ def merge_states_for_comparason(s1, s2):
 
 def is_tesor_in_list(mtensor, mlist):
     for element in mlist:
-        if torch.equal(mtensor, element):
+        if torch.equal(mtensor[0], element[0]):
             return True
     return False
