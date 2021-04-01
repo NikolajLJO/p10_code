@@ -23,6 +23,11 @@ class Agent:
         self.Q_discount = 0.99
         self.EE_discount = 0.99
         self.action_space = action_space
+        #self.cuda = torch.device('cuda')     # Default CUDA device
+
+    def cast_to_gpu(tensors):
+        for tensor in tensors:
+            tensor = tensor.cuda()
 
     def find_action(self, state):
         action, policy = self.e_greedy_action_choice(state)
@@ -48,6 +53,8 @@ class Agent:
             s_primes = torch.cat(s_primes)
             terminating = torch.tensor(terminating).long()
             targ_mc = torch.tensor(targ_mc)
+
+            cast_to_gpu([states,action,reward,s_primes,terminating,targ_mc])
 
             # if v 6= v0 then
             # r+  pellet reward for the partition visited
@@ -93,20 +100,20 @@ class Agent:
                     + self.EE_discount
                     * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
-            targ_mc = torch.zeros(len(auxreward), 18)
+            targ_mc = torch.zeros(len(auxreward), 18).cuda()
             # targMC Pk􀀀1 i=0 i^rt+i
             for i, setauxreward in enumerate(auxreward):
                 for j, r in enumerate(setauxreward):
-                    targ_mc[i] = targ_mc[i] + self.EE_discount ** (j + 1) * torch.tensor(r).unsqueeze(0)
+                    targ_mc[i] = targ_mc[i] + self.EE_discount ** (j + 1) * torch.tensor(r).unsqueeze(0).cuda()
 
             # targmixed   (1 􀀀 E)targone-step + EtargMC
-            targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
+            targ_mix = (1 - self.NE) * torch.cat(targ_onesteps).cuda() + self.NE * targ_mc
 
             merged = []
             for i in range(len(states)):
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))
             # Update Em(st; st+k􀀀1) towards targmixed
-            self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
+            self.EEnet.backpropagate(self.EEnet(torch.cat(merged).cuda()), targ_mix)
 
     def find_current_partition(self, state, partition_memory):
         current_partition = None
