@@ -23,11 +23,15 @@ class Agent:
         self.Q_discount = 0.99
         self.EE_discount = 0.99
         self.action_space = action_space
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        else:
+            self.device = torch.device('cpu')
         #self.cuda = torch.device('cuda')     # Default CUDA device
 
     def cast_to_gpu(self, tensors):
         for tensor in tensors:
-            tensor = tensor.cuda()
+            tensor = tensor.to(device=self.device)
 
     def find_action(self, state):
         action, policy = self.e_greedy_action_choice(state)
@@ -100,20 +104,20 @@ class Agent:
                     + self.EE_discount
                     * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
-            targ_mc = torch.zeros(len(auxreward), 18).cuda()
+            targ_mc = torch.zeros(len(auxreward), 18).to(device=self.device)
             # targMC Pk􀀀1 i=0 i^rt+i
             for i, setauxreward in enumerate(auxreward):
                 for j, r in enumerate(setauxreward):
-                    targ_mc[i] = targ_mc[i] + self.EE_discount ** (j + 1) * torch.tensor(r).unsqueeze(0).cuda()
+                    targ_mc[i] = targ_mc[i] + self.EE_discount ** (j + 1) * torch.tensor(r).unsqueeze(0).to(device=self.device)
 
             # targmixed   (1 􀀀 E)targone-step + EtargMC
-            targ_mix = (1 - self.NE) * torch.cat(targ_onesteps).cuda() + self.NE * targ_mc
+            targ_mix = (1 - self.NE) * torch.cat(targ_onesteps).to(device=self.device) + self.NE * targ_mc
 
             merged = []
             for i in range(len(states)):
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))
             # Update Em(st; st+k􀀀1) towards targmixed
-            self.EEnet.backpropagate(self.EEnet(torch.cat(merged).cuda()), targ_mix)
+            self.EEnet.backpropagate(self.EEnet(torch.cat(merged).to(device=self.device)), targ_mix)
 
     def find_current_partition(self, state, partition_memory):
         current_partition = None
