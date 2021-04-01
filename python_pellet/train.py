@@ -21,11 +21,14 @@ args3 = network update frequency
 args4 = partition update frequency
 '''
 
+# Device is not used since the tensors are casted in agent.py
+'''
 if torch.cuda.is_available():
     device = torch.device('cuda')
 else:
     device = torch.device('cpu')
-    
+'''    
+
 def get_writer():
     _, writer = os.pipe()
     return os.fdopen(writer, 'w')
