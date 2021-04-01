@@ -36,7 +36,6 @@ def use_gpu(agent):
 
 
 def mainloop(args):
-    print("Hello.")
     path = Path(__file__).parent
     Path(path / 'logs').mkdir(parents=True, exist_ok=True)
     now = datetime.datetime.now()

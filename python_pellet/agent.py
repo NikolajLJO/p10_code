@@ -25,7 +25,7 @@ class Agent:
         self.action_space = action_space
         #self.cuda = torch.device('cuda')     # Default CUDA device
 
-    def cast_to_gpu(tensors):
+    def cast_to_gpu(self, tensors):
         for tensor in tensors:
             tensor = tensor.cuda()
 
@@ -54,7 +54,7 @@ class Agent:
             terminating = torch.tensor(terminating).long()
             targ_mc = torch.tensor(targ_mc)
 
-            cast_to_gpu([states,action,reward,s_primes,terminating,targ_mc])
+            self.cast_to_gpu([states,action,reward,s_primes,terminating,targ_mc])
 
             # if v 6= v0 then
             # r+  pellet reward for the partition visited
