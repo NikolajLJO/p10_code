@@ -10,10 +10,7 @@ import datetime
 import logging
 
 
-
-T_add = 10
-batch_size = 32
-k = 10
+MAX_PARTITIONS = 100
 '''
 args1 = gamename
 args2 = trænigsperiode
@@ -80,6 +77,8 @@ def mainloop(args):
         if i % int(args[4]) == 0 and partition_candidate is not None:
             partition_memory.append([partition_candidate, 0])
             dmax = 0
+            if len(partition_memory) > MAX_PARTITIONS:
+                partition_memory[-MAX_PARTITIONS:]
 
         state = state_prime
 
@@ -87,10 +86,12 @@ def mainloop(args):
             agent.update(replay_memory)
         
         if i % 10000 == 0:
-            agent.update_targets(path)
+            agent.update_targets()
             
         if i % 500000 == 0:
             agent.save_networks(path, i)
+    
+    agent.save_networks(path, i)
 
 
 def calculate_auxiliary_reward(policy, aidx):
