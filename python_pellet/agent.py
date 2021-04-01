@@ -19,7 +19,6 @@ class Agent:
         self.epsilon = 0
         self.slope = -(1 - 0.05) / 1000000
         self.intercept = 1
-        self.total_steps = 0
         self.Q_discount = 0.99
         self.EE_discount = 0.99
         self.action_space = action_space
@@ -33,8 +32,8 @@ class Agent:
         for tensor in tensors:
             tensor = tensor.to(device=self.device)
 
-    def find_action(self, state):
-        action, policy = self.e_greedy_action_choice(state)
+    def find_action(self, state, step):
+        action, policy = self.e_greedy_action_choice(state, step)
         return action, policy
 
     def update(self, replay_memory):
@@ -134,14 +133,15 @@ class Agent:
             self.visited.append(current_partition)
 
         return visited, self.visited, min_distance
-    def e_greedy_action_choice(self, state):
+
+    def e_greedy_action_choice(self, state, step):
         policy = self.Qnet(state)
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0]).item()
         else:
             action = np.random.randint(1, self.action_space.n)
 
-        self.epsilon = self.slope * self.total_steps + self.intercept
+        self.epsilon = self.slope * step + self.intercept
 
         return action, policy
 
@@ -161,6 +161,10 @@ class Agent:
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.targetEEnet = copy.deepcopy(self.EEnet)
+    
+    def save_networks(self, path,step):
+        torch.save(self.Qnet.state_dict(), str(path) + "/logs/" + "Qagent_"+ step +".p")
+        torch.save(self.EEnet.state_dict(), str(path) + "/logs/" + "EEagent_"+ step +".p")
 
 
 def merge_states_for_comparason(s1, s2):

@@ -161,4 +161,6 @@ dmypy.json
 cython_debug/
 
 */.vscode
-/python_pellet/logs
+*/.vscode
+
+python_pellet/logs
