@@ -47,12 +47,13 @@ def mainloop(args):
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
 
+    
     state = env.reset()
     partition_memory = [[state,0]]
     state_prime = None
 
     for i in range(1, int(args[2])):
-        action, policy = agent.find_action(state)
+        action, policy = agent.find_action(state, i)
 
         auxiliary_reward = calculate_auxiliary_reward(policy, action)
 
@@ -72,7 +73,7 @@ def mainloop(args):
             logging.info("step: " + str(i) + " total_score: " + str(total_score))
             total_score = 0
             
-        if distance > dmax:
+        if distance > dmax and i >= start_making_partitions:
             partition_candidate = state_prime
             dmax = distance
         
@@ -82,11 +83,14 @@ def mainloop(args):
 
         state = state_prime
 
-        if i % int(args[3]) == 0:
+        if i % int(args[3]) == 0 and i >= 50000:
             agent.update(replay_memory)
         
-        if i % 1000 == 0:
-            agent.update_targets()
+        if i % 10000 == 0:
+            agent.update_targets(path)
+            
+        if i % 500000 == 0:
+            agent.save_networks(path, i)
 
 
 def calculate_auxiliary_reward(policy, aidx):
