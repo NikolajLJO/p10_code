@@ -13,7 +13,7 @@ import logging
 MAX_PARTITIONS = 100
 '''
 args1 = gamename
-args2 = trænigsperiode
+args2 = traenigsperiode
 args3 = network update frequency
 args4 = partition update frequency
 '''
