@@ -7,7 +7,7 @@ import numpy as np
 
 
 class Agent:
-    def __init__(self, action_space, nq=0.99, ne=0.95):
+    def __init__(self, action_space, nq=0.1, ne=0.1):
         self.Qnet = Qnet()
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.EEnet = EEnet()

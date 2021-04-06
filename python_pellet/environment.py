@@ -5,8 +5,8 @@ import torch
 from collections import deque
 from gym.spaces.box import Box
 # from skimage.color import rgb2gray
-from cv2 import resize
-# from skimage.transform import resize
+#from cv2 import resize
+from skimage.transform import resize
 # from scipy.misc import imresize as resize
 import random
 

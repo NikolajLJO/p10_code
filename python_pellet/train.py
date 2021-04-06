@@ -10,13 +10,14 @@ import datetime
 import logging
 
 
-
-T_add = 10
-batch_size = 32
-k = 10
+MAX_PARTITIONS = 100
+start_making_partitions = 50000
+initial_memory_fill = 50000
+update_targets_frequency 10000
+save_networks_frequency = 500000
 '''
 args1 = gamename
-args2 = trænigsperiode
+args2 = traenigsperiode
 args3 = network update frequency
 args4 = partition update frequency
 '''
@@ -95,17 +96,21 @@ def mainloop(args):
         if i % int(args[4]) == 0 and partition_candidate is not None:
             partition_memory.append([partition_candidate, 0])
             dmax = 0
+            if len(partition_memory) > MAX_PARTITIONS:
+                partition_memory[-MAX_PARTITIONS:]
 
         state = state_prime
 
-        if i % int(args[3]) == 0 and i >= 50000:
+        if i % int(args[3]) == 0 and i >= initial_memory_fill:
             agent.update(replay_memory)
         
-        if i % 10000 == 0:
-            agent.update_targets(path)
+        if i % update_targets_frequency == 0:
+            agent.update_targets()
             
-        if i % 500000 == 0:
+        if i % save_networks_frequency == 0:
             agent.save_networks(path, i)
+    
+    agent.save_networks(path, i)
 
 
 def calculate_auxiliary_reward(policy, aidx):
@@ -137,6 +142,7 @@ def update_partitions(visited_partitions, partition_memory):
 
 
 if __name__ == "__main__":
+    print("start")
     mp.set_start_method('spawn')
     with mp.Pool(processes=4) as pool:
         que = mp.Queue()
