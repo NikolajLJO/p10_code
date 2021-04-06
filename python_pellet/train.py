@@ -22,13 +22,13 @@ args3 = network update frequency
 args4 = partition update frequency
 '''
 
-# Device is not used since the tensors are casted in agent.py
-'''
+
+
 if torch.cuda.is_available():
-    device = torch.device('cuda')
+    DEVICE = torch.device('cuda')
 else:
-    device = torch.device('cpu')
-'''    
+    DEVICE = torch.device('cpu')
+    
 
 def get_writer():
     _, writer = os.pipe()
@@ -64,7 +64,7 @@ def mainloop(args):
     
 
     
-    state = env.reset()
+    state = env.reset().to(device=DEVICE)
     partition_memory = [[state,0]]
     state_prime = None
 
@@ -143,9 +143,9 @@ def update_partitions(visited_partitions, partition_memory):
 
 if __name__ == "__main__":
     print("start")
-    mp.set_start_method('spawn')
+    '''mp.set_start_method('spawn')
     with mp.Pool(processes=4) as pool:
         que = mp.Queue()
         process = mp.Process(target=mainloop, args=(sys.argv,))
-
+'''
     mainloop(sys.argv)
