@@ -7,7 +7,7 @@ import numpy as np
 import math
 
 class ReplayMemory:
-    def __init__(self, batch_size=32, max_memory_size=100000):
+    def __init__(self, batch_size=32, max_memory_size=100):
         self.memory = []
         self.batch_size = batch_size
         self.memory_refrence_pointer = 0
@@ -31,7 +31,7 @@ class ReplayMemory:
             state_index = np.random.randint(0, (len(self.memory)))
             index = state_index
             terminating = self.memory[state_index][5]
-            mc_reward = self.memory[state_index + self.memory[state_index][8]-1][4]
+            mc_reward = self.memory[(state_index + self.memory[state_index][8]-1) % self.MAX_MEMORY_SIZE][4]
             j = 0
             while not terminating:
                 transition = self.memory[index]
