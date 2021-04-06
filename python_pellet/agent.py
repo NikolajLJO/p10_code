@@ -52,11 +52,11 @@ class Agent:
 
             states, action, visited, reward, terminating, s_primes, visited_prime, targ_mc = zip(*batch)
             states = torch.cat(states)
-            action = torch.tensor(action).long().unsqueeze(0)
-            reward = torch.tensor(reward)
+            action = torch.cat(action).long().unsqueeze(1)
+            reward = torch.cat(reward)
             s_primes = torch.cat(s_primes)
-            terminating = torch.tensor(terminating).long()
-            targ_mc = torch.tensor(targ_mc)
+            terminating = torch.cat(terminating).long()
+            targ_mc = torch.cat(targ_mc)
 
             #self.cast_to_device([states,action,reward,s_primes,terminating,targ_mc])
 
@@ -73,7 +73,7 @@ class Agent:
                     pellet_rewards.append(replay_memory.calc_pellet_reward(visited_prime[i][-1][1]))
                 else:
                     pellet_rewards.append(0)
-            pellet_rewards = torch.tensor(pellet_rewards)
+            pellet_rewards = torch.tensor(pellet_rewards, device=self.device)
 
             # targone-step   r + r+ + maxa Q(s0; v0; a)
             targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
@@ -140,11 +140,11 @@ class Agent:
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0])
         else:
-            action = torch.tensor(np.random.randint(1, self.action_space.n))
+            action = torch.tensor(np.random.randint(1, self.action_space.n), device=self.device)
 
         self.epsilon = self.slope * step + self.intercept
 
-        return action, policy
+        return action.unsqueeze(0), policy
 
     def distance_prime(self, s1, s2, partition_memory):
         max_distance = np.NINF

@@ -54,7 +54,7 @@ def mainloop(args):
     for i in range(1, int(args[2])):
         action, policy = agent.find_action(state, i)
 
-        auxiliary_reward = calculate_auxiliary_reward(policy, action.item())
+        auxiliary_reward = torch.tensor(calculate_auxiliary_reward(policy, action.item()), device=agent.device)
 
         if not terminating:
             state_prime, reward, terminating, info = env.step(action.item())
@@ -63,8 +63,8 @@ def mainloop(args):
             state_prime = state_prime.to(agent.device)
             visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
             episode_buffer.append([state, action, visited, auxiliary_reward, 
-                                   torch.tensor(reward, device=agent.device), 
-                                   torch.tensor(terminating, device=agent.device), 
+                                   torch.tensor(reward, device=agent.device).unsqueeze(0), 
+                                   torch.tensor(terminating, device=agent.device).unsqueeze(0), 
                                    state_prime, 
                                    visited_prime])
         else:
