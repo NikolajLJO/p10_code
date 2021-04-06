@@ -86,7 +86,7 @@ class Agent:
             # targmixed   (1 􀀀 Q)targone-step + QtargMC
             # Update Q(s; v; a) towards targmixed
             targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
-            self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(0))
+            self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
 
     def eelearn(self, replay_memory):
         if len(replay_memory.memory) > replay_memory.batch_size:
@@ -100,7 +100,7 @@ class Agent:
             for i in range(len(smid)):
                 # targone-step   ^rt + Em(st+1; st+k􀀀1)
                 targ_onesteps.append(
-                    torch.tensor(auxreward[i][0])
+                    auxreward[i][0]
                     + self.EE_discount
                     * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
@@ -108,10 +108,10 @@ class Agent:
             # targMC Pk􀀀1 i=0 i^rt+i
             for i, setauxreward in enumerate(auxreward):
                 for j, r in enumerate(setauxreward):
-                    targ_mc[i] = targ_mc[i] + self.EE_discount ** (j + 1) * torch.tensor(r).unsqueeze(0).to(device=self.device)
+                    targ_mc[i] = targ_mc[i] + (self.EE_discount ** (j + 1)) * r.unsqueeze(0)
 
             # targmixed   (1 􀀀 E)targone-step + EtargMC
-            targ_mix = (1 - self.NE) * torch.cat(targ_onesteps).to(device=self.device) + self.NE * targ_mc
+            targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
 
             merged = []
             for i in range(len(states)):
