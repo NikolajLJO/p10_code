@@ -29,6 +29,7 @@ class Network(torch.nn.Module):
         self.loss = torch.nn.SmoothL1Loss()
 
     def forward(self, state):
+        state = state.float() / 255
         state = functional.relu(self.conv_1(state))
         state = functional.relu(self.conv_2(state))
         state = functional.relu(self.conv_3(state))
