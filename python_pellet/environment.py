@@ -3,6 +3,10 @@ import gym
 import numpy as np
 import torch
 from gym.spaces.box import Box
+# from skimage.color import rgb2gray
+#from cv2 import resize
+# from scipy.misc import imresize as resize
+import random
 from cv2 import resize
 
 
