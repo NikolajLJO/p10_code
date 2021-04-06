@@ -38,7 +38,7 @@ class Agent:
             targ_onesteps = []
 
             # Sample random minibatch of transitions
-            # {s; v; a; r; s ; v´} from replay memory
+            # {s; v; a; r; s ; v´} from replay memoryfe
             batch = replay_memory.sample()
             pellet_rewards = []
 

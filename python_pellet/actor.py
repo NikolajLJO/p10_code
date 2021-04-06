@@ -31,8 +31,6 @@ class Actor:
         game_actions, agent, opt, env = setup(args[1])
 
         state = env.reset()
-        # TODO get global partition memory here
-        partition_que.get()
         local_partition_memory = [[state, 0]]
 
         for i in range(1, int(args[2])):
@@ -41,7 +39,6 @@ class Actor:
             auxiliary_reward = self.calculate_auxiliary_reward(policy, action)
 
             if not terminating:
-                # TODO get from memory replay here instead
                 state_prime, reward, terminating, info = env.step(action)
                 total_score += reward
                 reward = max(min(reward, 1), -1)
@@ -53,8 +50,7 @@ class Actor:
                 terminating = False
                 self.update_partitions(agent.visited, local_partition_memory)
                 agent.visited = []
-                # TODO add to global memory here
-                replay_memory.save(episode_buffer)
+                replay_que.put(episode_buffer)
                 episode_buffer.clear()
                 logging.info("step: " + str(i) + " total_score: " + str(total_score))
                 total_score = 0

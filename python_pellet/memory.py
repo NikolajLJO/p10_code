@@ -19,8 +19,12 @@ class ReplayMemory:
                 self.memory[self.memory_refrence_pointer] = transition
             self.memory_refrence_pointer = (self.memory_refrence_pointer + 1) % self.MAX_MEMORY_SIZE
 
-    def sample(self):
-        return random.sample(self.memory, self.batch_size)
+    def sample(self, other_size=None):
+        if other_size is not None:
+            [self.memory.pop(random)
+            return random.sample(self.memory, other_size)
+        else:
+            return random.sample(self.memory, self.batch_size)
 
     def sample_ee_minibatch(self):
         batch = []
