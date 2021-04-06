@@ -13,7 +13,7 @@ import logging
 MAX_PARTITIONS = 100
 start_making_partitions = 50000
 initial_memory_fill = 50000
-update_targets_frequency 10000
+update_targets_frequency = 10000
 save_networks_frequency = 500000
 '''
 args1 = gamename
