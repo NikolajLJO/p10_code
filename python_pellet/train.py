@@ -20,24 +20,12 @@ args1 = gamename
 args2 = traenigsperiode
 args3 = network update frequency
 args4 = partition update frequency
-'''
-
-
-
-if torch.cuda.is_available():
-    DEVICE = torch.device('cuda')
-else:
-    DEVICE = torch.device('cpu')
-    
+''' 
 
 def get_writer():
     _, writer = os.pipe()
     return os.fdopen(writer, 'w')
 
-def use_gpu(agent):
-    if torch.cuda.is_available():
-        agent.Qnet.cuda()
-        agent.EEnet.cuda()
 
 def mainloop(args):
     path = Path(__file__).parent
@@ -59,28 +47,29 @@ def mainloop(args):
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
     
-    
-    use_gpu(agent)
-    
-
-    
-    state = env.reset().to(device=DEVICE)
+    state = env.reset().to(agent.device)
     partition_memory = [[state,0]]
     state_prime = None
 
     for i in range(1, int(args[2])):
         action, policy = agent.find_action(state, i)
 
-        auxiliary_reward = calculate_auxiliary_reward(policy, action)
+        auxiliary_reward = calculate_auxiliary_reward(policy, action.item())
 
         if not terminating:
-            state_prime, reward, terminating, info = env.step(action)
+            state_prime, reward, terminating, info = env.step(action.item())
             total_score += reward
             reward = max(min(reward,1),-1)
+            state_prime = state_prime.to(agent.device)
             visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
-            episode_buffer.append([state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime])
+            episode_buffer.append([state, action, visited, auxiliary_reward, 
+                                   torch.tensor(reward, device=agent.device), 
+                                   torch.tensor(terminating, device=agent.device), 
+                                   state_prime, 
+                                   visited_prime])
         else:
             state_prime = env.reset()
+            state_prime = state_prime.to(agent.device)
             terminating = False
             update_partitions(agent.visited,partition_memory)
             agent.visited = []

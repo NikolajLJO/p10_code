@@ -8,9 +8,13 @@ import numpy as np
 
 class Agent:
     def __init__(self, action_space, nq=0.1, ne=0.1):
-        self.Qnet = Qnet()
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        else:
+            self.device = torch.device('cpu')
+        self.Qnet = Qnet().to(self.device)
         self.targetQnet = copy.deepcopy(self.Qnet)
-        self.EEnet = EEnet()
+        self.EEnet = EEnet().to(self.device)
         self.targetEEnet = copy.deepcopy(self.EEnet)
         self.visited = []
         self.NQ = nq
@@ -22,10 +26,7 @@ class Agent:
         self.Q_discount = 0.99
         self.EE_discount = 0.99
         self.action_space = action_space
-        if torch.cuda.is_available():
-            self.device = torch.device('cuda')
-        else:
-            self.device = torch.device('cpu')
+        
         #self.cuda = torch.device('cuda')     # Default CUDA device
 
     def cast_to_device(self, tensors):
@@ -57,7 +58,7 @@ class Agent:
             terminating = torch.tensor(terminating).long()
             targ_mc = torch.tensor(targ_mc)
 
-            self.cast_to_device([states,action,reward,s_primes,terminating,targ_mc])
+            #self.cast_to_device([states,action,reward,s_primes,terminating,targ_mc])
 
             # if v 6= v0 then
             # r+  pellet reward for the partition visited
@@ -137,9 +138,9 @@ class Agent:
     def e_greedy_action_choice(self, state, step):
         policy = self.Qnet(state)
         if np.random.rand() > self.epsilon:
-            action = torch.argmax(policy[0]).item()
+            action = torch.argmax(policy[0])
         else:
-            action = np.random.randint(1, self.action_space.n)
+            action = torch.tensor(np.random.randint(1, self.action_space.n))
 
         self.epsilon = self.slope * step + self.intercept
 
