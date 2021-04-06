@@ -1,5 +1,9 @@
-import random
+import tools
+from pathlib import Path
+import datetime
+import logging
 import numpy as np
+import sys
 import math
 
 
@@ -33,7 +37,10 @@ class ReplayMemory:
             state_index = np.random.randint(0, (len(self.memory)))
             index = state_index
             terminating = self.memory[state_index][5]
-            mc_reward = self.memory[(state_index + self.memory[state_index][8]-1) % self.MAX_MEMORY_SIZE][4]
+            try:
+                mc_reward = self.memory[(state_index + self.memory[state_index][8]-1) % self.MAX_MEMORY_SIZE][4]
+            except IndexError:
+                logging.info("state_index: " + str(state_index) + " memLen: " + str(len(self.memory)) + " [8]: " + str(self.memory[state_index][8]))
             j = 0
             while not terminating:
                 transition = self.memory[index]
@@ -42,11 +49,15 @@ class ReplayMemory:
                     mc_reward = mc_reward + pellet_reward * (self.pellet_discount ** j)
                 index += 1
                 j += 1
-                terminating = self.memory[index][5]
-            batch.append([self.memory.pop(state_index)[0], self.memory.pop(state_index)[1],
-                          self.memory.pop(state_index)[2], self.memory.pop(state_index)[4],
-                          self.memory.pop(state_index)[5], self.memory.pop(state_index)[6],
-                          self.memory.pop(state_index)[7], mc_reward])
+                try:
+                    terminating = self.memory[index][5]
+                except IndexError:
+                    logging.info("index: " + str(state_index) + " memLen: " + str(len(self.memory)))
+            element = self.memory.pop(state_index)
+            batch.append([element[0], element[1],
+                          element[2], element[4],
+                          element[5], element[6],
+                          element[7], mc_reward])
 
         return batch
 

@@ -53,7 +53,6 @@ class Learner:
 
             # when rpelay memory is almost empty, wait until the que has a full memory size
             while learner_replay_que.qsize() < self.learner_que_max_size:
-                logging.info("waiting for que to fill: " + str(learner_replay_que.qsize()))
                 pass
 
             # then when it does, update it

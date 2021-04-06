@@ -10,7 +10,7 @@ if __name__ == "__main__":
     mp.set_start_method('spawn')
     thread_count = 4
     replay_memory = ReplayMemory()
-    learner_que_max_size = 100000
+    learner_que_max_size = 1000
     args = sys.argv
     with mp.Pool(processes=thread_count) as pool:
         replay_que = mp.Queue()
