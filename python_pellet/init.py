@@ -17,6 +17,5 @@ def setup_env(env_name):
     return create_atari_env(env_name)
 
 
-def setup_agent(env_name):
-    env = setup_env(env_name)
-    return Agent(env.action_space)
+def setup_agent(action_space):
+    return Agent(action_space)

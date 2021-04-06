@@ -31,33 +31,35 @@ class Learner:
         self.partition_memory = []
         self.replay_memory = ReplayMemory()
         self. learner_que_max_size = learner_que_max_size
-        self.learner_replay_que = learner_replay_que
         self.replay_que = replay_que
         self.partition_que = partition_que
         self.update_memory_break_point = self.learner_que_max_size / 10
 
-        self.learn()
+        self.learn(learner_replay_que)
 
-    def learn(self):
+    def learn(self, learner_replay_que):
+        logging.info("Started")
         i = 0
         while True:
             i += 1
 
-            # if replay memory que
-            if self.learner_que_max_size > self.learner_replay_que.qsize():
-                pass
-            else:
-                for _ in range(self.learner_que_max_size):
-                    transition = self.learner_replay_que.get()
-                    self.replay_memory.memory.append(transition)
-
-
+            # while we have more than 10% replay memory, learn
             while len(self.replay_memory.memory) >= self.update_memory_break_point:
+                self.agent.update(self.replay_memory)
+                logging.info("learned!")
+                if i % 1000 == 0:
+                    self.agent.update_targets()
+                    i = 0
 
+            # when rpelay memory is almost empty, wait until the que has a full memory size
+            while learner_replay_que.qsize() < self.learner_que_max_size:
+                logging.info("waiting for que to fill: " + str(learner_replay_que.qsize()))
+                pass
 
-            if i % 1000 == 0:
-                agent.update_targets()
-                # TODO update partition memory
-                i = 0
+            # then when it does, update it
+            for _ in range(self.learner_que_max_size):
+                logging.info("added trans to memory")
+                transition = learner_replay_que.get()
+                self.replay_memory.memory.append(transition)
 
-
+            logging.info("i updated my memory que")

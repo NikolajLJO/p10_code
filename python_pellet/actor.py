@@ -6,6 +6,7 @@ import numpy as np
 import sys
 from init import setup
 import torch
+import copy
 
 
 class Actor:
@@ -34,7 +35,7 @@ class Actor:
         local_partition_memory = [[state, 0]]
 
         for i in range(1, int(args[2])):
-            action, policy = agent.find_action(state)
+            action, policy = agent.find_action(state, i)
 
             auxiliary_reward = self.calculate_auxiliary_reward(policy, action)
 
@@ -50,7 +51,7 @@ class Actor:
                 terminating = False
                 self.update_partitions(agent.visited, local_partition_memory)
                 agent.visited = []
-                replay_que.put(episode_buffer)
+                replay_que.put(copy.deepcopy(episode_buffer))
                 episode_buffer.clear()
                 logging.info("step: " + str(i) + " total_score: " + str(total_score))
                 total_score = 0
