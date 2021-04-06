@@ -108,7 +108,7 @@ class Agent:
             # targMC Pk􀀀1 i=0 i^rt+i
             for i, setauxreward in enumerate(auxreward):
                 for j, r in enumerate(setauxreward):
-                    targ_mc[i] = targ_mc[i] + (self.EE_discount ** (j + 1)) * r.unsqueeze(0)
+                    targ_mc[i] = targ_mc[i] + (self.EE_discount ** (j + 1)) * r.unsqueeze(0).detach()
 
             # targmixed   (1 􀀀 E)targone-step + EtargMC
             targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
