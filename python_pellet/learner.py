@@ -38,7 +38,7 @@ class Learner:
         self.learn(learner_replay_que)
 
     def learn(self, learner_replay_que):
-        logging.info("Started")
+
         i = 0
         while True:
             i += 1
@@ -46,7 +46,7 @@ class Learner:
             # while we have more than 10% replay memory, learn
             while len(self.replay_memory.memory) >= self.update_memory_break_point:
                 self.agent.update(self.replay_memory)
-                logging.info("learned!")
+
                 if i % 1000 == 0:
                     self.agent.update_targets()
                     i = 0
@@ -57,8 +57,7 @@ class Learner:
 
             # then when it does, update it
             for _ in range(self.learner_que_max_size):
-                logging.info("added trans to memory")
                 transition = learner_replay_que.get()
                 self.replay_memory.memory.append(transition)
 
-            logging.info("i updated my memory que")
+

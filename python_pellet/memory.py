@@ -19,7 +19,25 @@ class ReplayMemory:
 
     def save(self, episode_buffer):
         for i, transition in enumerate(episode_buffer):
-            transition.append(len(episode_buffer)-i)
+            state_index = i
+            mc_reward = 0
+            terminating = episode_buffer[state_index][5]
+            try:
+                t = (len(episode_buffer) - 1)
+                mc_reward = episode_buffer[t][4]
+            except IndexError:
+                logging.info("state_index: " + str(state_index) + " mem: " + str(len(episode_buffer)) + " total:" + str(t))
+            j = 0
+            while not terminating:
+                if len(episode_buffer[2]) < len(episode_buffer[7]):
+                    pellet_reward = self.calc_pellet_reward(episode_buffer[7][-1][1])
+                    mc_reward = mc_reward + pellet_reward * (self.pellet_discount ** j)
+                state_index += 1
+                j += 1
+                terminating = episode_buffer[state_index][5]
+
+            transition.append(mc_reward)
+
             if len(self.memory) < self.MAX_MEMORY_SIZE:
                 self.memory.append(transition)
             else:
@@ -35,29 +53,20 @@ class ReplayMemory:
 
         for i in range(batch_size):
             state_index = np.random.randint(0, (len(self.memory)))
-            index = state_index
-            terminating = self.memory[state_index][5]
-            try:
-                mc_reward = self.memory[(state_index + self.memory[state_index][8]-1) % self.MAX_MEMORY_SIZE][4]
-            except IndexError:
-                logging.info("state_index: " + str(state_index) + " memLen: " + str(len(self.memory)) + " [8]: " + str(self.memory[state_index][8]))
-            j = 0
-            while not terminating:
-                transition = self.memory[index]
-                if len(transition[2]) < len(transition[7]):
-                    pellet_reward = self.calc_pellet_reward(transition[7][-1][1])
-                    mc_reward = mc_reward + pellet_reward * (self.pellet_discount ** j)
-                index += 1
-                j += 1
-                try:
-                    terminating = self.memory[index][5]
-                except IndexError:
-                    logging.info("index: " + str(state_index) + " memLen: " + str(len(self.memory)))
+
             element = self.memory.pop(state_index)
-            batch.append([element[0], element[1],
+            logging.info("element pop len: " + str(len(element)))
+            try:
+                logging.info(state_index)
+                batch.append([element[0], element[1],
                           element[2], element[4],
                           element[5], element[6],
-                          element[7], mc_reward])
+                          element[7], element[8]])  # TODO ASK LARS HERE WHY NOT ALL ELEMENTS
+            except IndexError:
+                logging.info("index error statee_index: " + str(state_index))
+                logging.info("mem size: " + str(len(self.memory)))
+                logging.info("Is Term: " + str(element[5]))
+                exit()
 
         return batch
 

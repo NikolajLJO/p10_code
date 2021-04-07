@@ -24,22 +24,23 @@ class MemoryManager:
         self.manage(learner_replay_que, learner_que_max_size, replay_que, partition_que)
 
     def manage(self, learner_replay_que, learner_que_max_size, replay_que, partition_que):
-        logging.info("Started")
+
         while True:
             if not replay_que.empty():
-                logging.info("Rque not empty")
+
                 optional_replay = replay_que.get()
                 self.replay_memory.save(optional_replay)
 
             if not partition_que.empty():
-                logging.info("Pque not empty" + str(replay_que.qsize()))
+
                 optional_partition = partition_que.get()
                 self.partition_memory.append(optional_partition)
 
             if not learner_replay_que.full() and len(self.replay_memory.memory) > learner_que_max_size:
-                logging.info("filling que: " + str(learner_replay_que.qsize()))
+
                 self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
 
     def fill_learner_replay_que(self, learner_replay_que, learner_que_max_size):
         batch = self.replay_memory.sample(forced_batch_size=learner_que_max_size)
-        learner_replay_que.put(batch)
+        for item in batch:
+            learner_replay_que.put(item)
