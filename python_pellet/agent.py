@@ -10,8 +10,10 @@ class Agent:
     def __init__(self, nq=0.1, ne=0.1):
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
+            print("cuda")
         else:
             self.device = torch.device('cpu')
+            print("cpu")
         self.Qnet = Qnet().to(self.device)
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.EEnet = EEnet().to(self.device)
