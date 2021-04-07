@@ -15,30 +15,31 @@ resize = transforms.Compose([transforms.ToPILImage(),
                              transforms.Resize((84, 84)),
                              transforms.Grayscale(num_output_channels=1)])
 
-def create_atari_env(env_id):
+def create_atari_env(env_id, device):
 
     env = gym.make(env_id)
     env = EpisodicLifeEnv(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
-    env = AtariRescale(env)
+    env = AtariRescale(env, device)
     return env
 
 
-def process_frame(frame):
+def process_frame(frame, device):
     frame = frame[34:34 + 160, :160]
     frame = np.array(resize(frame))
-    frame = torch.tensor(frame, dtype=torch.uint8).unsqueeze(0)
+    frame = torch.tensor(frame, dtype=torch.uint8, device=device).unsqueeze(0)
     return frame
 
 
 class AtariRescale(gym.ObservationWrapper):
-    def __init__(self, env):
+    def __init__(self, env, device):
         gym.ObservationWrapper.__init__(self, env)
         self.observation_space = Box(0.0, 1.0, [1, 1, 84, 84])
+        self.device = device
 
     def observation(self, observation):
-        return process_frame(observation).unsqueeze(0)
+        return process_frame(observation, self.device).unsqueeze(0)
 
 
 class NormalizedEnv(gym.ObservationWrapper):

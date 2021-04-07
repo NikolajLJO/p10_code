@@ -47,9 +47,10 @@ def mainloop(args):
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
     
-    state = env.reset().to(agent.device)
+    state = env.reset()
     partition_memory = [[state,0]]
     state_prime = None
+    now = datetime.datetime.now()
 
     for i in range(1, int(args[2])):
         action, policy = agent.find_action(state, i)
@@ -60,7 +61,6 @@ def mainloop(args):
             state_prime, reward, terminating, info = env.step(action.item())
             total_score += reward
             reward = max(min(reward,1),-1)
-            state_prime = state_prime.to(agent.device)
             visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
             episode_buffer.append([state, action, visited, auxiliary_reward, 
                                    torch.tensor(reward, device=agent.device).unsqueeze(0), 
@@ -69,13 +69,13 @@ def mainloop(args):
                                    visited_prime])
         else:
             state_prime = env.reset()
-            state_prime = state_prime.to(agent.device)
             terminating = False
             update_partitions(agent.visited,partition_memory)
             agent.visited = []
             replay_memory.save(episode_buffer)
             episode_buffer.clear()
-            logging.info("step: " + str(i) + " total_score: " + str(total_score))
+            logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(datetime.datetime.now()-now))
+            now = datetime.datetime.now()
             total_score = 0
             
         if distance > dmax and i >= start_making_partitions:

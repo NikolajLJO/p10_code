@@ -7,7 +7,7 @@ import numpy as np
 
 
 class Agent:
-    def __init__(self, action_space, nq=0.1, ne=0.1):
+    def __init__(self, nq=0.1, ne=0.1):
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
         else:
@@ -25,7 +25,7 @@ class Agent:
         self.intercept = 1
         self.Q_discount = 0.99
         self.EE_discount = 0.99
-        self.action_space = action_space
+        self.action_space = 0
         
         #self.cuda = torch.device('cuda')     # Default CUDA device
 
@@ -69,7 +69,6 @@ class Agent:
             
             for i in range(replay_memory.batch_size):
                 if len(visited[i]) < len(visited_prime[i]):
-                    # TODO correct parameter here for calc_pellet_reward
                     pellet_rewards.append(replay_memory.calc_pellet_reward(visited_prime[i][-1][1]))
                 else:
                     pellet_rewards.append(0)

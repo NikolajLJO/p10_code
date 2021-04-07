@@ -6,10 +6,11 @@ from multiprocessing import Pool
 
 
 def setup(env_name):
-
-    env = create_atari_env(env_name)
+    
+    agent = Agent()
+    env = create_atari_env(env_name, agent.device)
     action_space = env.action_space
-    agent = Agent(action_space=action_space)
+    agent.action_space = action_space
     replay_memory = ReplayMemory()
     opt = 1
     
