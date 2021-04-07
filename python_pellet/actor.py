@@ -51,7 +51,7 @@ class Actor:
                 terminating = False
                 self.update_partitions(agent.visited, local_partition_memory)
                 agent.visited = []
-                replay_que.put(copy.deepcopy(episode_buffer))
+                replay_que.put(episode_buffer)
                 episode_buffer.clear()
                 logging.info("step: " + str(i) + " total_score: " + str(total_score))
                 total_score = 0

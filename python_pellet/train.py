@@ -36,6 +36,6 @@ if __name__ == "__main__":
                              i,
                              replay_que,
                              partition_que))
-            for i in range(1)]
+            for i in range(4)]
         for process in actor_list:
             process.start()

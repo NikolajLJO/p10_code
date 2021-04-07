@@ -8,7 +8,7 @@ import math
 
 
 class ReplayMemory:
-    def __init__(self, batch_size=32, max_memory_size=100000):
+    def __init__(self, batch_size=32, max_memory_size=10000):
         self.memory = []
         self.batch_size = batch_size
         self.memory_refrence_pointer = 0
@@ -22,11 +22,8 @@ class ReplayMemory:
             state_index = i
             mc_reward = 0
             terminating = episode_buffer[state_index][5]
-            try:
-                t = (len(episode_buffer) - 1)
-                mc_reward = episode_buffer[t][4]
-            except IndexError:
-                logging.info("state_index: " + str(state_index) + " mem: " + str(len(episode_buffer)) + " total:" + str(t))
+            t = (len(episode_buffer) - 1)
+            mc_reward = episode_buffer[t][4]
             j = 0
             while not terminating:
                 if len(episode_buffer[2]) < len(episode_buffer[7]):
@@ -51,22 +48,30 @@ class ReplayMemory:
         else:
             batch_size = self.batch_size
 
-        for i in range(batch_size):
+        for i in range(0, batch_size):
             state_index = np.random.randint(0, (len(self.memory)))
 
             element = self.memory.pop(state_index)
+            logging.info("batch_size: " + str(batch_size))
             logging.info("element pop len: " + str(len(element)))
             try:
-                logging.info(state_index)
                 batch.append([element[0], element[1],
                           element[2], element[4],
                           element[5], element[6],
                           element[7], element[8]])  # TODO ASK LARS HERE WHY NOT ALL ELEMENTS
-            except IndexError:
+            except IndexError as err:
+                logging.info(err)
                 logging.info("index error statee_index: " + str(state_index))
                 logging.info("mem size: " + str(len(self.memory)))
-                logging.info("Is Term: " + str(element[5]))
-                exit()
+                logging.info("Is 1: " + str(element[0]))
+                logging.info("Is 2: " + str(element[1]))
+                logging.info("Is 3: " + str(element[2]))
+                logging.info("Is 4: " + str(element[3]))
+                logging.info("Is 5: " + str(element[4]))
+                logging.info("Is 6: " + str(element[5]))
+                logging.info("Is 7: " + str(element[6]))
+                logging.info("Is 8: " + str(element[7]))
+
 
         return batch
 
