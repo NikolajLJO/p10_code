@@ -165,8 +165,8 @@ class Agent:
         self.targetEEnet = copy.deepcopy(self.EEnet)
     
     def save_networks(self, path,step):
-        torch.save(self.Qnet.state_dict(), str(path) + "/logs/" + "Qagent_"+ step +".p")
-        torch.save(self.EEnet.state_dict(), str(path) + "/logs/" + "EEagent_"+ step +".p")
+        torch.save(self.Qnet.state_dict(), str(path) + "/logs/" + "Qagent_"+ str(step) +".p")
+        torch.save(self.EEnet.state_dict(), str(path) + "/logs/" + "EEagent_"+ str(step) +".p")
 
 
 def merge_states_for_comparason(s1, s2):
