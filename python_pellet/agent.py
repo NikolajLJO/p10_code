@@ -4,6 +4,7 @@ from Qnetwork import Qnet, EEnet
 import copy
 import torch
 import numpy as np
+import logging
 
 
 class Agent:
@@ -34,80 +35,91 @@ class Agent:
         self.eelearn(replay_memory)
 
     def qlearn(self, replay_memory):
+        logging.info("qlearn entered ")
         if len(replay_memory.memory) > replay_memory.batch_size:
-            targ_onesteps = []
-
             # Sample random minibatch of transitions
             # {s; v; a; r; s ; v´} from replay memoryfe
             batch = replay_memory.sample()
+            logging.info("Sampled")
             pellet_rewards = []
-
-            states, action, visited, reward, terminating, s_primes, visited_prime, targ_mc = zip(*batch)
+            states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc = zip(*batch)
+            logging.info("zipped")
             states = torch.cat(states)
+            logging.info("cat")
             action = torch.tensor(action).long().unsqueeze(0)
+            logging.info("unsquezze")
             reward = torch.tensor(reward)
+            logging.info("tesnorize")
             s_primes = torch.cat(s_primes)
+            logging.info("cat2")
             terminating = torch.tensor(terminating).long()
+            logging.info("tensorlong")
             targ_mc = torch.tensor(targ_mc)
-
-            # if v 6= v0 then
-            # r+  pellet reward for the partition visited
-            # (i.e. the single partition in v0 n v)
-            # else
-            # r+   0
-            # end if
+            logging.info("tensor targ_mc")
 
             for i in range(replay_memory.batch_size):
+                logging.info("batch size loop")
                 if len(visited[i]) < len(visited_prime[i]):
+                    logging.info("gave pellet reward")
                     # TODO correct parameter here for calc_pellet_reward
-                    pellet_rewards.append(self.calc_pellet_reward(visited_prime[i][-1][1]))
+                    pellet_rewards.append(calc_pellet_reward(self.ee_beta, visited_prime[i][-1][1]))
                 else:
+                    logging.info("gave 0 pellet reward")
                     pellet_rewards.append(0)
+            logging.info("done batch size loop")
             pellet_rewards = torch.tensor(pellet_rewards)
 
-            # targone-step   r + r+ + maxa Q(s0; v0; a)
+            logging.info("tensor pellet rewards")
             targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
-
+            logging.info("got targ onesteps")
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
             predictions = self.Qnet(states).gather(1, action)
+            logging.info("got predictions")
 
-            # targMC   R + R+
-            # targmixed   (1 􀀀 Q)targone-step + QtargMC
-            # Update Q(s; v; a) towards targmixed
             targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
+            logging.info("got targ mix")
             self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(0))
+            logging.info("propegated PogU")
 
     def eelearn(self, replay_memory):
+        logging.info("eelearn entered ")
         if len(replay_memory.memory) > replay_memory.batch_size:
+            logging.info("entered if")
             # Sample a minibatch of state pairs and interleaving
-            # auxiliary rewards fst; st+k; f^rt ; : : : ; ^rt+k􀀀1gg
-            # from the replay memory with k < m
+            # auxiliary rewards
             batch = replay_memory.sample_ee_minibatch()
-
+            logging.info("got batch")
             states, s_primes, smid, auxreward = zip(*batch)
+            logging.info("zipped")
             targ_onesteps = []
+            logging.info("smid: " + str(smid))
             for i in range(len(smid)):
-                # targone-step   ^rt + Em(st+1; st+k􀀀1)
+                logging.info("smid loop")
                 targ_onesteps.append(
                     torch.tensor(auxreward[i][0])
                     + self.EE_discount
                     * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
+                logging.info("appended to onesteps")
 
             targ_mc = torch.zeros(len(auxreward), 18)
-            # targMC Pk􀀀1 i=0 i^rt+i
+            logging.info("targ_mc set")
             for i, setauxreward in enumerate(auxreward):
+                logging.info("entered aux reward loop ")
                 for j, r in enumerate(setauxreward):
+                    logging.info("entered inner")
                     targ_mc[i] = targ_mc[i] + self.EE_discount ** (j + 1) * torch.tensor(r).unsqueeze(0)
-
-            # targmixed   (1 􀀀 E)targone-step + EtargMC
+            logging.info("got out of loop")
             targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
+            logging.info("got targ_mix")
 
             merged = []
             for i in range(len(states)):
+                logging.info("entered states loop")
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))
-            # Update Em(st; st+k􀀀1) towards targmixed
+                logging.info("appended")
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
+            logging.info("propgated pogU")
 
     def find_current_partition(self, state, partition_memory):
         current_partition = None
@@ -153,17 +165,18 @@ class Agent:
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.targetEEnet = copy.deepcopy(self.EEnet)
 
-    def save_networks(self, path,step):
-        torch.save(self.Qnet.state_dict(), str(path) + "/logs/" + "Qagent_"+ step +".p")
-        torch.save(self.EEnet.state_dict(), str(path) + "/logs/" + "EEagent_"+ step +".p")
+    def save_networks(self, path, step):
+        torch.save(self.Qnet.state_dict(), str(path) + "/logs/" + "Qagent_" + str(step) + ".p")
+        torch.save(self.EEnet.state_dict(), str(path) + "/logs/" + "EEagent_" + str(step) + ".p")
 
 
-def calc_pellet_reward(self, visits):
-    return self.ee_beta / math.sqrt(max(1, visits))
+def calc_pellet_reward(ee_beta, visits):
+    return ee_beta / math.sqrt(max(1, visits))
 
 
 def merge_states_for_comparason(s1, s2):
     return torch.stack([s1, s2], dim=2).squeeze(0)
+
 
 def is_tensor_in_list(mtensor, mlist):
     for element in mlist:

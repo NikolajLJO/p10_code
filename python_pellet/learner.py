@@ -11,7 +11,8 @@ import torch
 
 
 class Learner:
-    def __init__(self, args, replay_que, partition_que, learner_replay_que, learner_que_max_size):
+    def __init__(self, args, learner_replay_que, learner_que_max_size, q_network_que, e_network_que, q_t_network_que, e_t_network_que):
+
         path = Path(__file__).parent
         Path(path / 'logs').mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()
@@ -23,6 +24,10 @@ class Learner:
         logger = tools.get_writer()
         sys.stdout = logger
 
+        self.e_t_network_que = e_t_network_que
+        self.q_t_network_que = q_t_network_que
+        self.e_network_que = e_network_que
+        self.q_network_que = q_network_que
         self.partition_candidate = None
         self.terminating = False
         self.dmax = np.NINF
@@ -31,33 +36,40 @@ class Learner:
         self.partition_memory = []
         self.replay_memory = ReplayMemory()
         self. learner_que_max_size = learner_que_max_size
-        self.replay_que = replay_que
-        self.partition_que = partition_que
         self.update_memory_break_point = self.learner_que_max_size / 10
 
         self.learn(learner_replay_que)
 
     def learn(self, learner_replay_que):
-
         i = 0
         while True:
-            i += 1
+            logging.info("Started with empty memory")
+
+            # when rpelay memory is almost empty, wait until the que has a full memory size
+            while learner_replay_que.qsize() < int(self.learner_que_max_size * 0.9):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+                pass
+
+            # then when it does, update it
+            for _ in range(int(self.learner_que_max_size * 0.75)):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+                transition = learner_replay_que.get()
+                self.replay_memory.memory.append(transition)
+
+            logging.info("Refilled memory")
 
             # while we have more than 10% replay memory, learn
             while len(self.replay_memory.memory) >= self.update_memory_break_point:
                 self.agent.update(self.replay_memory)
+                logging.info("learned! ")
 
-                if i % 1000 == 0:
-                    self.agent.update_targets()
-                    i = 0
+            logging.info("I processed 90% of que")
 
-            # when rpelay memory is almost empty, wait until the que has a full memory size
-            while learner_replay_que.qsize() < self.learner_que_max_size:
-                pass
-
-            # then when it does, update it
-            for _ in range(self.learner_que_max_size):
-                transition = learner_replay_que.get()
-                self.replay_memory.memory.append(transition)
+            self.q_network_que.put(self.agent.Qnet.state_dict())
+            self.e_network_que.put(self.agent.Qnet.state_dict())
+            self.q_t_network_que.put(self.agent.Qnet.state_dict())
+            self.e_t_network_que.put(self.agent.Qnet.state_dict())
+            logging.info("Pushed networks")
 
 
+
+
+            i += 1
