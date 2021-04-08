@@ -11,8 +11,8 @@ import logging
 
 
 MAX_PARTITIONS = 100
-start_making_partitions = 50000
-initial_memory_fill = 50000
+start_making_partitions = 0
+initial_memory_fill = 100000
 update_targets_frequency = 10000
 save_networks_frequency = 500000
 '''
@@ -74,7 +74,7 @@ def mainloop(args):
             agent.visited = []
             replay_memory.save(episode_buffer)
             episode_buffer.clear()
-            logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(datetime.datetime.now()-now))
+            logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(datetime.datetime.now()-now) + " partitions: " + str(len(partition_memory)))
             now = datetime.datetime.now()
             total_score = 0
             

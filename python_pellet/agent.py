@@ -123,11 +123,10 @@ class Agent:
     def find_current_partition(self, state, partition_memory):
         current_partition = None
         min_distance = np.Inf
-        for partition in partition_memory:
-            distance = self.distance_prime(state, partition[0], partition_memory)
-            if distance < min_distance:
-                min_distance = distance
-                current_partition = partition
+        max_distances = [max([self.distance(state, partition1[0], partition2[0]) for partition2 in partition_memory]) for partition1 in partition_memory]
+        
+        min_distance = min(max_distances)
+        current_partition = partition_memory[max_distances.index(min_distance)]
 
         visited = copy.deepcopy(self.visited)
         
@@ -146,14 +145,6 @@ class Agent:
         self.epsilon = self.slope * step + self.intercept
 
         return action.unsqueeze(0), policy
-
-    def distance_prime(self, s1, s2, partition_memory):
-        max_distance = np.NINF
-        for partition in partition_memory:
-            distance = self.distance(s1, s2, partition[0])
-            if distance > max_distance:
-                max_distance = distance
-        return max_distance
 
     def distance(self, s1, s2, dfactor):
         return max(
