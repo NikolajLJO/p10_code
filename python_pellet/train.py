@@ -86,7 +86,7 @@ def mainloop(args):
             partition_memory.append([partition_candidate, 0])
             dmax = 0
             if len(partition_memory) > MAX_PARTITIONS:
-                partition_memory[-MAX_PARTITIONS:]
+                partition_memory = partition_memory[-MAX_PARTITIONS:]
 
         state = state_prime
 
