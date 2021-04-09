@@ -1,6 +1,8 @@
 import sys
 import multiprocessing as mp
 
+
+
 from actor import Actor
 from learner import Learner
 from memory_manager import MemoryManager
@@ -8,7 +10,8 @@ from memory import ReplayMemory
 
 if __name__ == "__main__":
     mp.set_start_method('spawn')
-    thread_count = 4
+    thread_count = 6
+    actor_count = 2
     replay_memory = ReplayMemory()
     learner_que_max_size = 1000
     learner_ee_que_max_size = 1000
@@ -40,7 +43,8 @@ if __name__ == "__main__":
                                    q_t_network_que,
                                    e_t_network_que,
                                    learner_ee_que,
-                                   learner_ee_que_max_size))
+                                   learner_ee_que_max_size,
+                                   actor_count))
         learner.start()
         actor_list = [
             mp.Process(target=Actor,
@@ -52,6 +56,8 @@ if __name__ == "__main__":
                              e_network_que,
                              q_t_network_que,
                              e_t_network_que))
-            for i in range(2)]
+            for i in range(actor_count)]
         for process in actor_list:
             process.start()
+
+    actor_list[0].join()

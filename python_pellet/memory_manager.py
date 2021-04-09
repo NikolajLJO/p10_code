@@ -4,6 +4,7 @@ import datetime
 import logging
 import sys
 import copy
+import traceback
 
 from memory import ReplayMemory
 
@@ -48,10 +49,7 @@ class MemoryManager:
                 self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
                 logging.info("refilled learner replay mem @ |" + str(datetime.datetime.now()) + "| with |" + str(learner_que_max_size) + "| elements")
 
-            logging.info(len(self.replay_memory.memory))
-
             if (not learner_ee_que.full()) and len(self.replay_memory.memory) > learner_ee_que_max_size:
-                logging.info("que?")
                 self.fill_learner_ee_que(learner_ee_que, learner_ee_que_max_size)
                 logging.info("refilled learner ee mem @ |" + str(datetime.datetime.now()) + "| with |" + str(learner_ee_que_max_size) + "| elements")
 
@@ -61,7 +59,10 @@ class MemoryManager:
             learner_replay_que.put(copy.deepcopy(item))
 
     def fill_learner_ee_que(self, learner_ee_que, learner_ee_que_max_size):
-        batch = self.replay_memory.sample_ee_minibatch(forced_batch_size=learner_ee_que_max_size)
-        logging.info("got batch")
+        try:
+            batch = self.replay_memory.sample_ee_minibatch(forced_batch_size=learner_ee_que_max_size)
+        except Exception as err:
+            logging.info(err)
+            logging.error(traceback.format_exc())
         for item in batch:
             learner_ee_que.put(copy.deepcopy(item))

@@ -11,7 +11,7 @@ import torch
 
 
 class Learner:
-    def __init__(self, args, learner_replay_que, learner_que_max_size, q_network_que, e_network_que, q_t_network_que, e_t_network_que, learner_ee_que, learner_ee_que_max_size):
+    def __init__(self, args, learner_replay_que, learner_que_max_size, q_network_que, e_network_que, q_t_network_que, e_t_network_que, learner_ee_que, learner_ee_que_max_size, actor_count):
 
         path = Path(__file__).parent
         Path(path / 'logs').mkdir(parents=True, exist_ok=True)
@@ -41,9 +41,9 @@ class Learner:
         self.update_memory_break_point = self.learner_que_max_size / 10
         self.update_ee_memory_break_point = self.learner_ee_que_max_size / 10
 
-        self.learn(learner_replay_que, learner_ee_que)
+        self.learn(learner_replay_que, learner_ee_que, actor_count)
 
-    def learn(self, learner_replay_que, learner_ee_que):
+    def learn(self, learner_replay_que, learner_ee_que, actor_count):
         i = 0
         logging.info("Started with empty memory")
         while True:
@@ -64,9 +64,7 @@ class Learner:
 
             if not learner_ee_que.empty():
                 for _ in range(int(self.learner_ee_que_max_size * 0.75)):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
-                    logging.info("in")
                     transition = learner_ee_que.get()
-                    logging.info("got")
                     self.ee_memory.append(transition)
                 logging.info("Refilled ee memory")
 
@@ -77,10 +75,11 @@ class Learner:
 
             logging.info("I processed 90% of que")
 
-            self.q_network_que.put(self.agent.Qnet.state_dict())
-            self.e_network_que.put(self.agent.Qnet.state_dict())
-            self.q_t_network_que.put(self.agent.Qnet.state_dict())
-            self.e_t_network_que.put(self.agent.Qnet.state_dict())
+            for _ in range(actor_count):
+                self.q_network_que.put(self.agent.Qnet.state_dict())
+                self.e_network_que.put(self.agent.Qnet.state_dict())
+                self.q_t_network_que.put(self.agent.Qnet.state_dict())
+                self.e_t_network_que.put(self.agent.Qnet.state_dict())
             logging.info("Pushed networks")
 
 

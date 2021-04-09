@@ -77,7 +77,8 @@ class Actor:
                 dmax = 0
 
             state = state_prime
-            self.check_ques_for_updates()
+            if i % 1000 == 0:  # TODO this should prob be some better mere defined value
+                self.check_ques_for_updates()
             # TODO update partition memory
 
     @staticmethod
@@ -115,22 +116,22 @@ class Actor:
             for name, single_param in self.agent.Qnet.state_dict().items():
                 single_param = parameters[name]
                 self.agent.Qnet.state_dict()[name].copy_(single_param)
-                logging.info("updated q network")
-        if not self.q_t_network_que:
+            logging.info("updated q network")
+        if not self.q_t_network_que.empty():
             parameters = self.q_t_network_que.get()
             for name, single_param in self.agent.targetQnet.state_dict().items():
                 single_param = parameters[name]
                 self.agent.targetQnet.state_dict()[name].copy_(single_param)
-                logging.info("updated q_t network")
-        if not self.e_network_que:
+            logging.info("updated q_t network")
+        if not self.e_network_que.empty():
             parameters = self.e_network_que.get()
             for name, single_param in self.agent.EEnet.state_dict().items():
                 single_param = parameters[name]
                 self.agent.EEnet.state_dict()[name].copy_(single_param)
-                logging.info("updated e network")
-        if not self.e_t_network_que:
+            logging.info("updated e network")
+        if not self.e_t_network_que.empty():
             parameters = self.e_t_network_que.get()
             for name, single_param in self.agent.targetEEnet.state_dict().items():
                 single_param = parameters[name]
                 self.agent.targetEEnet.state_dict()[name].copy_(single_param)
-                logging.info("updated e_t network")
+            logging.info("updated e_t network")

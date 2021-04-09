@@ -66,43 +66,29 @@ class Agent:
             self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(0))
 
     def eelearn(self, ee_memory):
-        logging.info("eelearn entered ")
         if len(ee_memory) > 32:
-            logging.info("entered if")
             # Sample a minibatch of state pairs and interleaving
             # auxiliary rewards
             batch = random.sample(ee_memory, 32)
-            logging.info("got batch")
             states, s_primes, smid, auxreward = zip(*batch)
-            logging.info("zipped")
             targ_onesteps = []
-            logging.info("smid: " + str(smid))
             for i in range(len(smid)):
-                logging.info("smid loop")
                 targ_onesteps.append(
                     torch.tensor(auxreward[i][0])
                     + self.EE_discount
                     * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
-                logging.info("appended to onesteps")
 
             targ_mc = torch.zeros(len(auxreward), 18)
-            logging.info("targ_mc set")
             for i, setauxreward in enumerate(auxreward):
-                logging.info("entered aux reward loop ")
                 for j, r in enumerate(setauxreward):
-                    logging.info("entered inner")
                     targ_mc[i] = targ_mc[i] + self.EE_discount ** (j + 1) * torch.tensor(r).unsqueeze(0)
-            logging.info("got out of loop")
             targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
-            logging.info("got targ_mix")
 
             merged = []
             for i in range(len(states)):
-                logging.info("entered states loop")
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))
-                logging.info("appended")
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
-            logging.info("propgated pogU")
+
 
     def find_current_partition(self, state, partition_memory):
         current_partition = None

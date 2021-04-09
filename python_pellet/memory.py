@@ -19,6 +19,7 @@ class ReplayMemory:
         self.ee_beta = 1
 
     def save(self, episode_buffer):
+        y = 0
         for i, transition in enumerate(episode_buffer):
             state_index = i
             mc_reward = 0
@@ -35,7 +36,8 @@ class ReplayMemory:
                 terminating = episode_buffer[state_index][5]
 
             transition.append(mc_reward)
-            transition.append(len(episode_buffer))
+            transition.append(len(episode_buffer)-y)
+            y += 1
 
             if len(self.memory) < self.MAX_MEMORY_SIZE:
                 self.memory.append(transition)
@@ -52,7 +54,7 @@ class ReplayMemory:
 
         for i in range(0, batch_size):
             state_index = np.random.randint(0, (len(self.memory)))
-            if forced_batch_size is not None:
+            if forced_batch_size is None:
                 element = self.memory.pop(state_index)
             else:
                 element = self.memory[state_index]
@@ -67,7 +69,6 @@ class ReplayMemory:
             batch_size = self.batch_size
 
         for i in range(batch_size):
-
             state_index = np.random.randint(0, (len(self.memory)))
             while self.memory[state_index][-1] <= 2:
                 state_index = np.random.randint(0, (len(self.memory)))
@@ -76,12 +77,12 @@ class ReplayMemory:
             state_prime_index = (state_index + offset) % self.MAX_MEMORY_SIZE
 
             aux = []
-            for j in range(offset):
-                auxiliary_reward = self.memory[(state_index + j) % self.MAX_MEMORY_SIZE][3]
+            for j in range(0, offset):
+                auxiliary_reward = self.memory[((state_index + j) % self.MAX_MEMORY_SIZE)][3]
                 aux.append(auxiliary_reward)
             batch.append([self.memory[state_index][0],
                           self.memory[state_prime_index][0],
-                          self.memory[state_index][-3],
+                          self.memory[state_index][-4],
                           aux])
 
         return batch
