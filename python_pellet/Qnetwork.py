@@ -48,11 +48,8 @@ class Qnet(torch.nn.Module):
 class EEnet(torch.nn.Module):
     def __init__(self):
         super(EEnet, self).__init__()
-        # conv_3_channels needs replacement if conv layer setup changes
-        self.conv_1 = torch.nn.Conv2d(1, 16, 8, stride=4)
-        self.conv_2 = torch.nn.Conv2d(16, 16, 4, stride=2)
-        self.conv_3 = torch.nn.Conv2d(16, 16, 3, stride=1)
         
+        # conv_3_channels needs replacement if conv layer setup changes
         self.conv_net = torch.nn.Sequential(torch.nn.Conv2d(1, 16, 8, stride=4),
                                             torch.nn.ReLU(),
                                             torch.nn.Conv2d(16, 16, 4, stride=2),
@@ -65,9 +62,11 @@ class EEnet(torch.nn.Module):
         height, width = conv2d_size_out(height, width, 2, 4)
         height, width = conv2d_size_out(height, width, 1, 3)
 
-        self.layer_node_count = int(height * width * 64)
-        self.lay1 = torch.nn.Linear(self.layer_node_count, 512)
-        self.lay2 = torch.nn.Linear(512, 18)
+        layer_node_count = int(height * width * 16)
+
+        self.liniar_net = torch.nn.Sequential(torch.nn.Linear(layer_node_count*2, 128),
+                                              torch.nn.ReLU(),
+                                              torch.nn.Linear(128, 18))
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=0.0001)
         self.loss = torch.nn.SmoothL1Loss()
@@ -75,13 +74,17 @@ class EEnet(torch.nn.Module):
     def forward(self, state):
         state = state.float() / 255
         state1, state2 = torch.split(state, 1, 1)
+        state1 = self.conv_net(state1)
         state2 = self.conv_net(state2)
-        state1 = functional.relu(self.conv_1(state1))
-        state1 = functional.relu(self.conv_2(state1))
-        state1 = functional.relu(self.conv_3(state1))
-        state = functional.relu(self.lay1(state.view(state.shape[0], -1)))
-        qvalues = self.lay2(state)
-        return qvalues
+        
+        sub = state1-state2
+        mean = (state1+state2)/2
+        state1 = sub.view(sub.shape[0], -1)
+        state2 = mean.view(mean.shape[0], -1)
+        state = torch.cat([state1, state2], 1)
+
+        output = self.liniar_net(state)
+        return output
 
     def backpropagate(self, prediction, target):
         self.optimizer.zero_grad()
