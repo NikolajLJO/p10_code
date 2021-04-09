@@ -5,6 +5,7 @@ import copy
 import torch
 import numpy as np
 import logging
+import random
 
 
 class Agent:
@@ -30,65 +31,47 @@ class Agent:
         action, policy = self.e_greedy_action_choice(state, step)
         return action, policy
 
-    def update(self, replay_memory):
+    def update(self, replay_memory, ee_memory):
         self.qlearn(replay_memory)
-        self.eelearn(replay_memory)
+        self.eelearn(ee_memory)
 
     def qlearn(self, replay_memory):
-        logging.info("qlearn entered ")
         if len(replay_memory.memory) > replay_memory.batch_size:
             # Sample random minibatch of transitions
             # {s; v; a; r; s ; v´} from replay memoryfe
             batch = replay_memory.sample()
-            logging.info("Sampled")
             pellet_rewards = []
-            states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc = zip(*batch)
-            logging.info("zipped")
+            states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
             states = torch.cat(states)
-            logging.info("cat")
             action = torch.tensor(action).long().unsqueeze(0)
-            logging.info("unsquezze")
             reward = torch.tensor(reward)
-            logging.info("tesnorize")
             s_primes = torch.cat(s_primes)
-            logging.info("cat2")
             terminating = torch.tensor(terminating).long()
-            logging.info("tensorlong")
             targ_mc = torch.tensor(targ_mc)
-            logging.info("tensor targ_mc")
 
             for i in range(replay_memory.batch_size):
-                logging.info("batch size loop")
                 if len(visited[i]) < len(visited_prime[i]):
-                    logging.info("gave pellet reward")
                     # TODO correct parameter here for calc_pellet_reward
                     pellet_rewards.append(calc_pellet_reward(self.ee_beta, visited_prime[i][-1][1]))
                 else:
-                    logging.info("gave 0 pellet reward")
                     pellet_rewards.append(0)
-            logging.info("done batch size loop")
             pellet_rewards = torch.tensor(pellet_rewards)
 
-            logging.info("tensor pellet rewards")
             targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
-            logging.info("got targ onesteps")
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
             predictions = self.Qnet(states).gather(1, action)
-            logging.info("got predictions")
 
             targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
-            logging.info("got targ mix")
             self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(0))
-            logging.info("propegated PogU")
 
-    def eelearn(self, replay_memory):
+    def eelearn(self, ee_memory):
         logging.info("eelearn entered ")
-        if len(replay_memory.memory) > replay_memory.batch_size:
+        if len(ee_memory) > 32:
             logging.info("entered if")
             # Sample a minibatch of state pairs and interleaving
             # auxiliary rewards
-            batch = replay_memory.sample_ee_minibatch()
+            batch = random.sample(ee_memory, 32)
             logging.info("got batch")
             states, s_primes, smid, auxreward = zip(*batch)
             logging.info("zipped")

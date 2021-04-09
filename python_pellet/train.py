@@ -11,6 +11,7 @@ if __name__ == "__main__":
     thread_count = 4
     replay_memory = ReplayMemory()
     learner_que_max_size = 1000
+    learner_ee_que_max_size = 1000
     args = sys.argv
     with mp.Pool(processes=thread_count) as pool:
         replay_que = mp.Queue()
@@ -19,13 +20,16 @@ if __name__ == "__main__":
         e_network_que = mp.Queue()
         q_t_network_que = mp.Queue()
         e_t_network_que = mp.Queue()
+        learner_ee_que = mp.Queue(maxsize=learner_ee_que_max_size)
         learner_replay_que = mp.Queue(maxsize=learner_que_max_size)
 
         manager = mp.Process(target=MemoryManager,
                              args=(replay_que,
                                    partition_que,
                                    learner_replay_que,
-                                   learner_que_max_size))
+                                   learner_que_max_size,
+                                   learner_ee_que,
+                                   learner_ee_que_max_size))
         manager.start()
         learner = mp.Process(target=Learner,
                              args=(args,
@@ -34,7 +38,9 @@ if __name__ == "__main__":
                                    q_network_que,
                                    e_network_que,
                                    q_t_network_que,
-                                   e_t_network_que))
+                                   e_t_network_que,
+                                   learner_ee_que,
+                                   learner_ee_que_max_size))
         learner.start()
         actor_list = [
             mp.Process(target=Actor,
@@ -46,6 +52,6 @@ if __name__ == "__main__":
                              e_network_que,
                              q_t_network_que,
                              e_t_network_que))
-            for i in range(1)]
+            for i in range(2)]
         for process in actor_list:
             process.start()

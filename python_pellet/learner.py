@@ -11,7 +11,7 @@ import torch
 
 
 class Learner:
-    def __init__(self, args, learner_replay_que, learner_que_max_size, q_network_que, e_network_que, q_t_network_que, e_t_network_que):
+    def __init__(self, args, learner_replay_que, learner_que_max_size, q_network_que, e_network_que, q_t_network_que, e_t_network_que, learner_ee_que, learner_ee_que_max_size):
 
         path = Path(__file__).parent
         Path(path / 'logs').mkdir(parents=True, exist_ok=True)
@@ -35,15 +35,18 @@ class Learner:
         self.agent = setup_agent(args[1])
         self.partition_memory = []
         self.replay_memory = ReplayMemory()
+        self.ee_memory = []
         self. learner_que_max_size = learner_que_max_size
+        self.learner_ee_que_max_size = learner_ee_que_max_size
         self.update_memory_break_point = self.learner_que_max_size / 10
+        self.update_ee_memory_break_point = self.learner_ee_que_max_size / 10
 
-        self.learn(learner_replay_que)
+        self.learn(learner_replay_que, learner_ee_que)
 
-    def learn(self, learner_replay_que):
+    def learn(self, learner_replay_que, learner_ee_que):
         i = 0
+        logging.info("Started with empty memory")
         while True:
-            logging.info("Started with empty memory")
 
             # when rpelay memory is almost empty, wait until the que has a full memory size
             while learner_replay_que.qsize() < int(self.learner_que_max_size * 0.9):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
@@ -54,12 +57,23 @@ class Learner:
                 transition = learner_replay_que.get()
                 self.replay_memory.memory.append(transition)
 
-            logging.info("Refilled memory")
+            logging.info("Refilled replay memory")
+
+            #while learner_ee_que.qsize() < int(self.learner_ee_que_max_size * 0.9):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+             #   pass
+
+            if not learner_ee_que.empty():
+                for _ in range(int(self.learner_ee_que_max_size * 0.75)):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+                    logging.info("in")
+                    transition = learner_ee_que.get()
+                    logging.info("got")
+                    self.ee_memory.append(transition)
+                logging.info("Refilled ee memory")
 
             # while we have more than 10% replay memory, learn
-            while len(self.replay_memory.memory) >= self.update_memory_break_point:
-                self.agent.update(self.replay_memory)
-                logging.info("learned! ")
+            while len(self.replay_memory.memory) >= self.update_memory_break_point \
+                and len(self.ee_memory) >= self.update_ee_memory_break_point:
+                self.agent.update(self.replay_memory, self.ee_memory)
 
             logging.info("I processed 90% of que")
 
