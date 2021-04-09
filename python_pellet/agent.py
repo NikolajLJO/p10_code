@@ -121,17 +121,32 @@ class Agent:
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged).to(device=self.device)), targ_mix)
 
     def find_current_partition(self, state, partition_memory):
-        max_distances = [max([self.distance(state, partition1[0], partition2[0]) for partition2 in partition_memory]) for partition1 in partition_memory]
-        
-        min_distance = min(max_distances)
-        current_partition = partition_memory[max_distances.index(min_distance)]
+        my_partition = None
+        max_dist = np.NINF
+        max_distances = []
+        max_partitions = []
+        partition_im_furtest_away_from = None
 
-        visited = copy.deepcopy(self.visited)
-        
-        if not is_tensor_in_list(current_partition, self.visited):
-            self.visited.append(current_partition)
+        # find partition we are in
+        for partition in partition_memory:
+            for _partition in partition_memory:
+                current_dist = self.distance(state, partition[0], _partition[0])
+                if current_dist > max_dist:
+                    max_dist = current_dist
+                    partition_im_furtest_away_from = partition
+            max_distances.append(max_dist)
+            max_partitions.append(partition_im_furtest_away_from)
 
-        return visited, self.visited, min_distance
+        min_dist = min(max_distances)
+        index = max_distances.index(min_dist)
+        my_partition = max_partitions[index]
+
+        # update visited partitions
+        visited_prime = copy.deepcopy(self.visited)
+        if not is_tensor_in_list(my_partition, self.visited):
+            self.visited.append(my_partition)
+
+        return self.visited, visited_prime, my_partition, min_dist
 
     def e_greedy_action_choice(self, state, step):
         policy = self.Qnet(state)
@@ -144,10 +159,10 @@ class Agent:
 
         return action.unsqueeze(0), policy
 
-    def distance(self, s1, s2, dfactor):
+    def distance(self, s1, s2, reference_point):
         return max(
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) - self.EEnet(merge_states_for_comparason(reference_point, s2)))),
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) - self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
     
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)

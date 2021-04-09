@@ -53,4 +53,6 @@ class Qnet(Network):
 class EEnet(Network):
     def __init__(self):
         super(EEnet, self).__init__()
-        self.conv_1 = torch.nn.Conv2d(2, 32, 8, stride=4)
+        self.conv_1 = torch.nn.Conv2d(2, 16, 8, stride=4)
+        self.conv_2 = torch.nn.Conv2d(16, 16, 4, stride=2)
+        self.conv_3 = torch.nn.Conv2d(16, 16, 3, stride=1)

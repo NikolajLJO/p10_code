@@ -51,6 +51,8 @@ def mainloop(args):
     partition_memory = [[state,0]]
     state_prime = None
     now = datetime.datetime.now()
+    my_partition = None
+    min_dist = np.Inf
 
     for i in range(1, int(args[2])):
         action, policy = agent.find_action(state, i)
@@ -61,7 +63,7 @@ def mainloop(args):
             state_prime, reward, terminating, info = env.step(action.item())
             total_score += reward
             reward = max(min(reward,1),-1)
-            visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
+            visited, visited_prime, my_partition, min_dist = agent.find_current_partition(state_prime, partition_memory)
             episode_buffer.append([state, action, visited, auxiliary_reward, 
                                    torch.tensor(reward, device=agent.device).unsqueeze(0), 
                                    torch.tensor(terminating, device=agent.device).unsqueeze(0), 
@@ -77,10 +79,10 @@ def mainloop(args):
             logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(datetime.datetime.now()-now) + " partitions: " + str(len(partition_memory)))
             now = datetime.datetime.now()
             total_score = 0
-            
-        if distance > dmax and i >= start_making_partitions:
+
+        if min_dist > dmax and i >= start_making_partitions and my_partition is not None:
             partition_candidate = state_prime
-            dmax = distance
+            dmax = min_dist
         
         if i % int(args[4]) == 0 and partition_candidate is not None:
             partition_memory.append([partition_candidate, 0])
