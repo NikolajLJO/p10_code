@@ -11,10 +11,16 @@ import logging
 
 
 MAX_PARTITIONS = 100
-start_making_partitions = 0
-initial_memory_fill = 100000
+start_making_partitions = 2000000
+partition_add_time_mult = 1.2
+start_eelearn = 100000
+end_eelearn = 2000000
+
+start_qlearn = 2250000 
 update_targets_frequency = 10000
 save_networks_frequency = 500000
+
+
 '''
 args1 = gamename
 args2 = traenigsperiode
@@ -46,6 +52,8 @@ def mainloop(args):
     episode_buffer = []
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
+    add_partition_freq = int(args[4])
+    update_freq = int(args[3])
     
     state = env.reset()
     partition_memory = [[state,0]]
@@ -82,16 +90,22 @@ def mainloop(args):
             partition_candidate = state_prime
             dmax = distance
         
-        if i % int(args[4]) == 0 and partition_candidate is not None:
+        if i % add_partition_freq == 0 and partition_candidate is not None:
             partition_memory.append([partition_candidate, 0])
             dmax = 0
             if len(partition_memory) > MAX_PARTITIONS:
                 partition_memory = partition_memory[-MAX_PARTITIONS:]
+            add_partition_freq = add_partition_freq * partition_add_time_mult
+            
+
 
         state = state_prime
 
-        if i % int(args[3]) == 0 and i >= initial_memory_fill:
-            agent.update(replay_memory)
+        if i % update_freq == 0 and i >= start_qlearn:
+            agent.qlearn(replay_memory)
+        
+        if i % update_freq == 0 and i >= start_eelearn:
+            agent.eelearn(replay_memory)
         
         if i % update_targets_frequency == 0:
             agent.update_targets()

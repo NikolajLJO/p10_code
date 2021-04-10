@@ -25,7 +25,7 @@ class Qnet(torch.nn.Module):
         self.lay1 = torch.nn.Linear(self.layer_node_count, 512)
         self.lay2 = torch.nn.Linear(512, 18)
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=0.0001)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=0.00025)
         self.loss = torch.nn.SmoothL1Loss()
 
     def forward(self, state):
@@ -68,7 +68,7 @@ class EEnet(torch.nn.Module):
                                               torch.nn.ReLU(),
                                               torch.nn.Linear(128, 18))
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=0.0001)
+        self.optimizer = torch.optim.Adam(self.parameters(), lr=0.0000625)
         self.loss = torch.nn.SmoothL1Loss()
 
     def forward(self, state):
