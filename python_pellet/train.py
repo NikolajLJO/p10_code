@@ -14,7 +14,7 @@ from agent import merge_states_for_comparason
 MAX_PARTITIONS = 100
 start_making_partitions = 2000000
 partition_add_time_mult = 1.2
-start_eelearn = 100000
+start_eelearn = 250000
 end_eelearn = 2000000
 
 start_qlearn = 2250000 
