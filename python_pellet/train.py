@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import datetime
 import logging
+from agent import merge_states_for_comparason
 
 
 MAX_PARTITIONS = 100
@@ -56,7 +57,7 @@ def mainloop(args):
     update_freq = int(args[3])
     
     state = env.reset()
-    partition_memory = [[state,0]]
+    partition_memory = [[state, 0, [agent.EEnet(merge_states_for_comparason(state, state)).detach()]]]
     state_prime = None
     now = datetime.datetime.now()
 
@@ -91,11 +92,12 @@ def mainloop(args):
             dmax = distance
         
         if i % add_partition_freq == 0 and partition_candidate is not None:
-            partition_memory.append([partition_candidate, 0])
+            dist = calculate_distance_to_states(partition_candidate, partition_memory, agent.EEnet)
+            partition_memory.append([partition_candidate, 0, dist])
+            
             dmax = 0
-            if len(partition_memory) > MAX_PARTITIONS:
-                partition_memory = partition_memory[-MAX_PARTITIONS:]
-            add_partition_freq = add_partition_freq * partition_add_time_mult
+            partition_memory = partition_memory[-MAX_PARTITIONS:]
+            add_partition_freq = int(add_partition_freq * partition_add_time_mult)
             
 
 
@@ -114,6 +116,16 @@ def mainloop(args):
             agent.save_networks(path, i)
     
     agent.save_networks(path, i)
+
+def calculate_distance_to_states(partition_candidate, partition_memory, eenet):
+    distances_from_cand_to_partition = []
+    for partition in partition_memory[1-MAX_PARTITIONS:]:
+        distances_from_cand_to_partition.append(eenet(merge_states_for_comparason(partition_candidate, partition[0])).detach())
+        partition[2].append(eenet(merge_states_for_comparason(partition[0], partition_candidate)).detach())
+        partition[2] = partition[2][-MAX_PARTITIONS:]
+    distances_from_cand_to_partition.append(eenet(merge_states_for_comparason(partition_candidate, partition_candidate)).detach())
+    distances_from_cand_to_partition = distances_from_cand_to_partition[-MAX_PARTITIONS:]
+    return distances_from_cand_to_partition
 
 
 def calculate_auxiliary_reward(policy, aidx):

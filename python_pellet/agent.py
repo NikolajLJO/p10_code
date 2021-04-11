@@ -121,10 +121,17 @@ class Agent:
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged).to(device=self.device)), targ_mix)
 
     def find_current_partition(self, state, partition_memory):
-        max_distances = [self.distance(state, partition1[0], partition_memory[0][0]) for partition1 in partition_memory]
-        
-        min_distance = min(max_distances)
-        current_partition = partition_memory[max_distances.index(min_distance)]
+        min_distance = np.inf
+        current_partition = None
+        for i, partition in enumerate(partition_memory):
+            maxdist = np.NINF
+            for j, partition2 in enumerate(partition_memory):
+                mdist = self.distance(state, partition2[0], partition[2][j], partition2[2][i] )
+                if mdist > maxdist:
+                    maxdist = mdist
+            if maxdist < min_distance:
+                min_distance = maxdist
+                current_partition = partition
 
         visited = copy.deepcopy(self.visited)
         
@@ -144,10 +151,10 @@ class Agent:
 
         return action.unsqueeze(0), policy
 
-    def distance(self, s1, s2, dfactor):
+    def distance(self, s1, refrence_point, s2_rf, rf_s2):
         return max(
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(refrence_point, s1)) - rf_s2)),
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, refrence_point)) - s2_rf))).item()
     
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)
