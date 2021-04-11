@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as functional
+import copy
 
 
 def conv2d_size_out(height: int, width: int, stride: int, kernel_size: int, padding=0):
@@ -57,6 +58,7 @@ class EEnet(torch.nn.Module):
                                             torch.nn.Conv2d(16, 16, 3, stride=1),
                                             torch.nn.ReLU()
                                             )
+        self.parallel_conv_net = copy.deepcopy(self.conv_net)
 
         height, width = conv2d_size_out(84, 84, 4, 8)
         height, width = conv2d_size_out(height, width, 2, 4)
@@ -74,14 +76,11 @@ class EEnet(torch.nn.Module):
     def forward(self, state):
         state = state.float() / 255
         state1, state2 = torch.split(state, 1, 1)
-        state1 = self.conv_net(state1)
-        state2 = self.conv_net(state2)
+        state1, state2 = self.conv_net(state1), self.parallel_conv_net(state2)
         
         sub = state1-state2
         mean = (state1+state2)/2
-        state1 = sub.view(sub.shape[0], -1)
-        state2 = mean.view(mean.shape[0], -1)
-        state = torch.cat([state1, state2], 1)
+        state = torch.cat([sub.view(sub.shape[0], -1), mean.view(mean.shape[0], -1)], 1)
 
         output = self.liniar_net(state)
         return output
