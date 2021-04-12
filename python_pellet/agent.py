@@ -4,6 +4,7 @@ from Qnetwork import Qnet, EEnet
 import copy
 import torch
 import numpy as np
+import itertools
 
 
 class Agent:
@@ -124,11 +125,7 @@ class Agent:
         min_distance = np.inf
         current_partition = None
         for i, partition in enumerate(partition_memory):
-            maxdist = np.NINF
-            for j, partition2 in enumerate(partition_memory):
-                mdist = self.distance(state, partition2[0], partition[2][j], partition2[2][i] )
-                if mdist > maxdist:
-                    maxdist = mdist
+            maxdist = max(list(map(self.distancetest, itertools.repeat(state, len(partition_memory)), partition_memory, partition[2], partition[3])))
             if maxdist < min_distance:
                 min_distance = maxdist
                 current_partition = partition
@@ -153,8 +150,14 @@ class Agent:
 
     def distance(self, s1, refrence_point, s2_rf, rf_s2):
         return max(
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(refrence_point, s1)) - rf_s2)),
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, refrence_point)) - s2_rf))).item()
+            torch.sum(torch.abs(self.EEnet(merge_states_for_comparason(refrence_point, s1)) - rf_s2)),
+            torch.sum(torch.abs(self.EEnet(merge_states_for_comparason(s1, refrence_point)) - s2_rf))).item()
+    
+    
+    def distancetest(self, s1, refrence_point, s2_rf, rf_s2):
+        return max(
+            torch.sum(torch.abs(self.EEnet(merge_states_for_comparason(refrence_point[0], s1)) - rf_s2)),
+            torch.sum(torch.abs(self.EEnet(merge_states_for_comparason(s1, refrence_point[0])) - s2_rf))).item()
     
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)
