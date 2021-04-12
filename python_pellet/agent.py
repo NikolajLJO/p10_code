@@ -29,7 +29,12 @@ class Agent:
         self.EE_discount = 0.99
         self.action_space = 0
         
+        listt= []
+        listt.append(torch.tensor([self.EE_discount]*18, device = self.device).unsqueeze(0))
         #self.cuda = torch.device('cuda')     # Default CUDA device
+        for i in range(1,100):
+            listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device = self.device).unsqueeze(0))
+        self.EE_discounts = torch.cat(listt)
 
     def cast_to_device(self, tensors):
         for tensor in tensors:
@@ -105,11 +110,10 @@ class Agent:
                     + self.EE_discount
                     * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
-            targ_mc = torch.zeros(len(auxreward), 18).to(device=self.device)
+            targ_mc = torch.zeros(len(auxreward),18, device=self.device)
             # targMC Pk􀀀1 i=0 i^rt+i
             for i, setauxreward in enumerate(auxreward):
-                for j, r in enumerate(setauxreward):
-                    targ_mc[i] = targ_mc[i] + (self.EE_discount ** (j + 1)) * r.unsqueeze(0).detach()
+                targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)],0)
 
             # targmixed   (1 􀀀 E)targone-step + EtargMC
             targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
