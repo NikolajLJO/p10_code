@@ -21,6 +21,9 @@ libale.so
 src/agent/libalewrap.so
 *.t7
 
+src/agent/logs
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -164,3 +167,4 @@ cython_debug/
 */.vscode
 
 python_pellet/logs
+
