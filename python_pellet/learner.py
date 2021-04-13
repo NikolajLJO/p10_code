@@ -85,6 +85,7 @@ class Learner:
                 best_partition = max(unqued_partitions, key=lambda item: item[1])[0]
                 for _ in range(actor_count):
                     to_actor_partition_que.put(copy.deepcopy(best_partition))
+                logging.info("Pushed partitions")
 
             # while we have more than 10% replay memory, learn
             while len(self.replay_memory.memory) >= self.update_memory_break_point \
