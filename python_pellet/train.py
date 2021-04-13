@@ -52,7 +52,8 @@ def mainloop(args):
     dmax = np.NINF
     episode_buffer = []
 
-    game_actions, replay_memory, agent, opt, env = setup(args[1])
+    game_actions, replay_memory, agent, opt, env = set
+    up(args[1], args[5])
     add_partition_freq = int(args[4])
     update_freq = int(args[3])
     
@@ -107,7 +108,7 @@ def mainloop(args):
             agent.qlearn(replay_memory)
         
         if i % update_freq == 0 and i >= start_eelearn:
-            agent.eelearn(replay_memory)
+            agent.imagecomparelearn(replay_memory)
         
         if i % update_targets_frequency == 0:
             agent.update_targets()

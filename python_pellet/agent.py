@@ -143,23 +143,32 @@ class Agent:
             targ = self.target_RND(netinput)
 
             self.predictor_RND.backpropagate(pred, targ)
+    
+    def imagecomparelearn(replay_memory):
+        if self.use_RND:
+            self.rndlearn(replay_memory)
+        else:
+            self.eelearn(replay_memory)
 
     def find_current_partition(self, state, partition_memory):
         min_distance = np.Inf
         current_partition = None
         if self.use_RND:
-            d = self.rnd_distance
+            for i, s2 in enumerate(partition_memory):
+                max_distance = self.rnd_distance(state, s2[0])
+                if max_distance < min_distance:
+                    min_distance = max_distance
+                    current_partition = s2
         else:
-            d = self.distance
-        for i, s2 in enumerate(partition_memory):
-            max_distance = np.NINF
-            for refrence in partition_memory:
-                distance = d(state, s2[0], refrence[0])
-                if distance > max_distance:
-                    max_distance = distance
-            if max_distance < min_distance:
-                min_distance = max_distance
-                current_partition = s2
+            for i, s2 in enumerate(partition_memory):
+                max_distance = np.NINF
+                for refrence in partition_memory:
+                    distance = self.distance(state, s2[0], refrence[0])
+                    if distance > max_distance:
+                        max_distance = distance
+                if max_distance < min_distance:
+                    min_distance = max_distance
+                    current_partition = s2
 
         visited = copy.deepcopy(self.visited)
         
@@ -184,13 +193,14 @@ class Agent:
             torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
             torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
 
-    def rnd_distance(self, s1, s2, dfactor):
-        return max(self.RND_calculate_novelty(dfactor, s1)-self.RND_calculate_novelty(dfactor, s2),
-                   self.RND_calculate_novelty(s1, dfactor)-self.RND_calculate_novelty(s2, dfactor))
+    def rnd_distance(self, s1, s2):
+        return max(self.RND_calculate_novelty(s2, s1),
+                   self.RND_calculate_novelty(s1, s2))
     
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)
-        self.targetEEnet = copy.deepcopy(self.EEnet)
+        if not self.use_RND:
+            self.targetEEnet = copy.deepcopy(self.EEnet)
     
     def save_networks(self, path,step):
         torch.save(self.Qnet.state_dict(), str(path) + "/logs/" + "Qagent_"+ str(step) +".p")
