@@ -52,8 +52,7 @@ def mainloop(args):
     dmax = np.NINF
     episode_buffer = []
 
-    game_actions, replay_memory, agent, opt, env = set
-    up(args[1], args[5])
+    game_actions, replay_memory, agent, opt, env = setup(args[1], args[5])
     add_partition_freq = int(args[4])
     update_freq = int(args[3])
     
