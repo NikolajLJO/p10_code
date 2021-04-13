@@ -144,7 +144,7 @@ class Agent:
 
             self.predictor_RND.backpropagate(pred, targ)
     
-    def imagecomparelearn(replay_memory):
+    def imagecomparelearn(self, replay_memory):
         if self.use_RND:
             self.rndlearn(replay_memory)
         else:
@@ -208,8 +208,8 @@ class Agent:
     
     def RND_calculate_novelty(self, s, s2):
         netinput = merge_states_for_comparason(s, s2)
-        pred = self.predictor_RND(netinput)
-        targ = self.target_RND(netinput)
+        pred = self.EEnet(netinput)
+        targ = self.targetEEnet(netinput)
         return self.MSE(pred, targ).item()
 
 

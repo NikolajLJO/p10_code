@@ -106,7 +106,7 @@ def mainloop(args):
         if i % update_freq == 0 and i >= start_qlearn:
             agent.qlearn(replay_memory)
         
-        if i % update_freq == 0 and i >= start_eelearn:
+        if i % update_freq == 0 and i >= start_eelearn and (i < end_eelearn or args[5]):
             agent.imagecomparelearn(replay_memory)
         
         if i % update_targets_frequency == 0:
