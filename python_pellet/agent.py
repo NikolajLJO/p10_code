@@ -8,17 +8,22 @@ import itertools
 
 
 class Agent:
-    def __init__(self, nq=0.1, ne=0.1):
+    def __init__(self, nq=0.1, ne=0.1, use_RND=False):
+        
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
-            print("cuda")
         else:
             self.device = torch.device('cpu')
-            print("cpu")
+        
         self.Qnet = Qnet().to(self.device)
         self.targetQnet = copy.deepcopy(self.Qnet)
-        self.EEnet = EEnet().to(self.device)
-        self.targetEEnet = copy.deepcopy(self.EEnet)
+        if use_RND:
+            self.EEnet = EEnet().to(self.device)
+            self.targetEEnet = EEnet().to(self.device)
+        else:
+            self.EEnet = EEnet().to(self.device)
+            self.targetEEnet = copy.deepcopy(self.EEnet)
+        self.use_RND = use_RND
         self.visited = []
         self.NQ = nq
         self.NE = ne
@@ -31,10 +36,11 @@ class Agent:
         self.action_space = 0
         
         listt= []
-        listt.append(torch.tensor([self.EE_discount]*18, device = self.device).unsqueeze(0))
+        listt.append(torch.tensor([self.EE_discount]*18, device=self.device).unsqueeze(0))
         for i in range(1,100):
-            listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device = self.device).unsqueeze(0))
+            listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device=self.device).unsqueeze(0))
         self.EE_discounts = torch.cat(listt)
+        self.MSE = torch.nn.MSELoss()
 
     def cast_to_device(self, tensors):
         for tensor in tensors:
@@ -124,18 +130,36 @@ class Agent:
             # Update Em(st; st+k􀀀1) towards targmixed
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged).to(device=self.device)), targ_mix)
 
+    def rndlearn(self, replay_memory):
+        if len(replay_memory.memory) > replay_memory.batch_size:
+            batch = replay_memory.sample_ee_minibatch()
+            states, s_primes, _, _ = zip(*batch)
+            netinput = []
+            for i in range(len(states)):
+                netinput.append(merge_states_for_comparason(states[i], s_primes[i]))
+            
+            netinput = torch.cat(netinput)
+            pred = self.predictor_RND(netinput)
+            targ = self.target_RND(netinput)
+
+            self.predictor_RND.backpropagate(pred, targ)
+
     def find_current_partition(self, state, partition_memory):
         min_distance = np.Inf
         current_partition = None
-        for i, partition in enumerate(partition_memory):
+        if self.use_RND:
+            d = self.rnd_distance
+        else:
+            d = self.distance
+        for i, s2 in enumerate(partition_memory):
             max_distance = np.NINF
-            for partition in partition_memory:
-                distance = self.distance(s1, s2, partition[0])
+            for refrence in partition_memory:
+                distance = d(state, s2[0], refrence[0])
                 if distance > max_distance:
                     max_distance = distance
             if max_distance < min_distance:
                 min_distance = max_distance
-                current_partition = partition
+                current_partition = s2
 
         visited = copy.deepcopy(self.visited)
         
@@ -159,6 +183,10 @@ class Agent:
         return max(
             torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
             torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
+
+    def rnd_distance(self, s1, s2, dfactor):
+        return max(self.RND_calculate_novelty(dfactor, s1)-self.RND_calculate_novelty(dfactor, s2),
+                   self.RND_calculate_novelty(s1, dfactor)-self.RND_calculate_novelty(s2, dfactor))
     
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)
@@ -167,6 +195,12 @@ class Agent:
     def save_networks(self, path,step):
         torch.save(self.Qnet.state_dict(), str(path) + "/logs/" + "Qagent_"+ str(step) +".p")
         torch.save(self.EEnet.state_dict(), str(path) + "/logs/" + "EEagent_"+ str(step) +".p")
+    
+    def RND_calculate_novelty(self, s, s2):
+        netinput = merge_states_for_comparason(s, s2)
+        pred = self.predictor_RND(netinput)
+        targ = self.target_RND(netinput)
+        return self.MSE(pred, targ).item()
 
 
 def merge_states_for_comparason(s1, s2):
