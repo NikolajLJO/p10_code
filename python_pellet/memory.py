@@ -34,13 +34,13 @@ class ReplayMemory:
             mc_reward = self.memory[(state_index + self.memory[state_index][8]-1) % self.MAX_MEMORY_SIZE][4]
             j = 0
             while not terminating:
-                transition = self.memory[index]
+                transition = self.memory[index % self.MAX_MEMORY_SIZE]
                 if len(transition[2]) < len(transition[7]):
                     pellet_reward = self.calc_pellet_reward(transition[7][-1][1])
                     mc_reward = mc_reward + pellet_reward * (self.pellet_discount ** j)
                 index += 1
                 j += 1
-                terminating = self.memory[index][5]
+                terminating = self.memory[index % self.MAX_MEMORY_SIZE][5]
             batch.append([self.memory[state_index][0], self.memory[state_index][1], 
                           self.memory[state_index][2], self.memory[state_index][4],
                           self.memory[state_index][5], self.memory[state_index][6], 
