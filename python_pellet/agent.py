@@ -32,7 +32,6 @@ class Agent:
         
         listt= []
         listt.append(torch.tensor([self.EE_discount]*18, device = self.device).unsqueeze(0))
-        #self.cuda = torch.device('cuda')     # Default CUDA device
         for i in range(1,100):
             listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device = self.device).unsqueeze(0))
         self.EE_discounts = torch.cat(listt)
