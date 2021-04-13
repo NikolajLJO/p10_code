@@ -12,7 +12,7 @@ from agent import merge_states_for_comparason
 
 
 MAX_PARTITIONS = 100
-start_making_partitions = 2000000
+start_making_partitions = 0
 partition_add_time_mult = 1.2
 start_eelearn = 250000
 end_eelearn = 2000000
@@ -93,7 +93,7 @@ def mainloop(args):
         
         if i % add_partition_freq == 0 and partition_candidate is not None:
             dist_from, dist_to = calculate_distance_to_states(partition_candidate, partition_memory, agent.EEnet)
-            partition_memory.append([partition_candidate, 0, dist])
+            partition_memory.append([partition_candidate, 0, dist_from, dist_to])
             
             dmax = 0
             partition_memory = partition_memory[-MAX_PARTITIONS:]
@@ -133,7 +133,7 @@ def calculate_distance_to_states(partition_candidate, partition_memory, eenet):
     distances_from_cand_to_partition.append(selfdist)
     distances_from_cand_to_partition = distances_from_cand_to_partition[-MAX_PARTITIONS:]
     distances_to_cand_from_partition.append(selfdist)
-    distances_to_cand_from_partition = distances_to_cand_from_partition[-MAX_PARTITIONS]
+    distances_to_cand_from_partition = distances_to_cand_from_partition[-MAX_PARTITIONS:]
     return distances_from_cand_to_partition, distances_to_cand_from_partition
 
 

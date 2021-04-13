@@ -128,18 +128,20 @@ class Agent:
     def find_current_partition(self, state, partition_memory):
         min_distance = np.inf
         current_partition = None
+        distances = []
         for i, partition in enumerate(partition_memory):
-            maxdist = max(list(map(self.distancetest, itertools.repeat(state, len(partition_memory)), partition_memory, partition[2], partition[3])))
-            if maxdist < min_distance:
-                min_distance = maxdist
-                current_partition = partition
+            distances.append(torch.tensor(list(map(self.distancetest, itertools.repeat(state, len(partition_memory)), partition_memory, partition[2], partition[3])), device= self.device).unsqueeze(0))
+        
+        distances = torch.cat(distances)
+        distances = torch.min(torch.max(distances,1)[0],0)
+        current_partition = partition_memory[distances[1].item()]
 
         visited = copy.deepcopy(self.visited)
         
         if not is_tensor_in_list(current_partition, self.visited):
             self.visited.append(current_partition)
 
-        return visited, self.visited, min_distance
+        return visited, self.visited, distances[0].item()
 
     def e_greedy_action_choice(self, state, step):
         policy = self.Qnet(state)
@@ -159,7 +161,7 @@ class Agent:
     
     
     def distancetest(self, s1, refrence_point, s2_rf, rf_s2):
-        return max(
+        return torch.max(
             torch.sum(torch.abs(self.EEnet(merge_states_for_comparason(refrence_point[0], s1)) - rf_s2)),
             torch.sum(torch.abs(self.EEnet(merge_states_for_comparason(s1, refrence_point[0])) - s2_rf))).item()
     
