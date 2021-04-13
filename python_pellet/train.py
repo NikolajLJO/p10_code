@@ -8,13 +8,20 @@ import os
 from pathlib import Path
 import datetime
 import logging
+import time
 
 
 MAX_PARTITIONS = 100
-start_making_partitions = 50000
-initial_memory_fill = 50000
+start_making_partitions = 2000000
+partition_add_time_mult = 1.2
+start_eelearn = 250000
+end_eelearn = 2000000
+
+start_qlearn = 2250000
 update_targets_frequency = 10000
 save_networks_frequency = 500000
+
+
 '''
 args1 = gamename
 args2 = traenigsperiode
@@ -46,11 +53,13 @@ def mainloop(args):
     episode_buffer = []
 
     game_actions, replay_memory, agent, opt, env = setup(args[1])
+    add_partition_freq = int(args[4])
+    update_freq = int(args[3])
     
     state = env.reset()
-    partition_memory = [[state,0]]
+    partition_memory = [[state, 0]]
     state_prime = None
-    now = datetime.datetime.now()
+    now = time.process_time()
 
     for i in range(1, int(args[2])):
         action, policy = agent.find_action(state, i)
@@ -73,25 +82,32 @@ def mainloop(args):
             update_partitions(agent.visited,partition_memory)
             agent.visited = []
             replay_memory.save(episode_buffer)
+            episode_time = time.process_time()-now
+            logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(episode_time) + " partitions: " + str(len(partition_memory)) + " time pr. step: " + str(episode_time/len(episode_buffer)))
             episode_buffer.clear()
-            logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(datetime.datetime.now()-now))
-            now = datetime.datetime.now()
+            now = time.process_time()
             total_score = 0
             
         if distance > dmax and i >= start_making_partitions:
             partition_candidate = state_prime
             dmax = distance
         
-        if i % int(args[4]) == 0 and partition_candidate is not None:
+        if i % add_partition_freq == 0 and partition_candidate is not None:
             partition_memory.append([partition_candidate, 0])
             dmax = 0
-            if len(partition_memory) > MAX_PARTITIONS:
-                partition_memory = partition_memory[-MAX_PARTITIONS:]
+            
+            partition_memory = partition_memory[-MAX_PARTITIONS:]
+            add_partition_freq = int(add_partition_freq * partition_add_time_mult)
+            
+
 
         state = state_prime
 
-        if i % int(args[3]) == 0 and i >= initial_memory_fill:
-            agent.update(replay_memory)
+        if i % update_freq == 0 and i >= start_qlearn:
+            agent.qlearn(replay_memory)
+        
+        if i % update_freq == 0 and i >= start_eelearn:
+            agent.eelearn(replay_memory)
         
         if i % update_targets_frequency == 0:
             agent.update_targets()
@@ -100,6 +116,7 @@ def mainloop(args):
             agent.save_networks(path, i)
     
     agent.save_networks(path, i)
+
 
 
 def calculate_auxiliary_reward(policy, aidx):

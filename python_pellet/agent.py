@@ -4,6 +4,7 @@ from Qnetwork import Qnet, EEnet
 import copy
 import torch
 import numpy as np
+import itertools
 
 
 class Agent:
@@ -29,7 +30,11 @@ class Agent:
         self.EE_discount = 0.99
         self.action_space = 0
         
-        #self.cuda = torch.device('cuda')     # Default CUDA device
+        listt= []
+        listt.append(torch.tensor([self.EE_discount]*18, device = self.device).unsqueeze(0))
+        for i in range(1,100):
+            listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device = self.device).unsqueeze(0))
+        self.EE_discounts = torch.cat(listt)
 
     def cast_to_device(self, tensors):
         for tensor in tensors:
@@ -105,11 +110,10 @@ class Agent:
                     + self.EE_discount
                     * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
-            targ_mc = torch.zeros(len(auxreward), 18).to(device=self.device)
+            targ_mc = torch.zeros(len(auxreward),18, device=self.device)
             # targMC Pk􀀀1 i=0 i^rt+i
             for i, setauxreward in enumerate(auxreward):
-                for j, r in enumerate(setauxreward):
-                    targ_mc[i] = targ_mc[i] + (self.EE_discount ** (j + 1)) * r.unsqueeze(0).detach()
+                targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)],0)
 
             # targmixed   (1 􀀀 E)targone-step + EtargMC
             targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
@@ -121,12 +125,16 @@ class Agent:
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged).to(device=self.device)), targ_mix)
 
     def find_current_partition(self, state, partition_memory):
-        current_partition = None
         min_distance = np.Inf
-        for partition in partition_memory:
-            distance = self.distance_prime(state, partition[0], partition_memory)
-            if distance < min_distance:
-                min_distance = distance
+        current_partition = None
+        for i, partition in enumerate(partition_memory):
+            max_distance = np.NINF
+            for partition in partition_memory:
+                distance = self.distance(s1, s2, partition[0])
+                if distance > max_distance:
+                    max_distance = distance
+            if max_distance < min_distance:
+                min_distance = max_distance
                 current_partition = partition
 
         visited = copy.deepcopy(self.visited)
@@ -146,14 +154,6 @@ class Agent:
         self.epsilon = self.slope * step + self.intercept
 
         return action.unsqueeze(0), policy
-
-    def distance_prime(self, s1, s2, partition_memory):
-        max_distance = np.NINF
-        for partition in partition_memory:
-            distance = self.distance(s1, s2, partition[0])
-            if distance > max_distance:
-                max_distance = distance
-        return max_distance
 
     def distance(self, s1, s2, dfactor):
         return max(
