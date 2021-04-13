@@ -126,7 +126,7 @@ class Agent:
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged).to(device=self.device)), targ_mix)
 
     def find_current_partition(self, state, partition_memory):
-        min_distance = np.inf
+        min_distance = np.Inf
         current_partition = None
         for i, partition in enumerate(partition_memory):
             max_distance = np.NINF
