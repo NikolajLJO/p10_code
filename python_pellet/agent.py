@@ -156,10 +156,10 @@ class Agent:
 
         return action.unsqueeze(0), policy
 
-    def distance(self, s1, refrence_point, s2_rf, rf_s2):
+    def distance(self, s1, s2, dfactor):
         return max(
-            torch.sum(torch.abs(self.EEnet(merge_states_for_comparason(refrence_point, s1)) - rf_s2)),
-            torch.sum(torch.abs(self.EEnet(merge_states_for_comparason(s1, refrence_point)) - s2_rf))).item()
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
     
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)
