@@ -4,7 +4,6 @@ from Qnetwork import Qnet, EEnet
 import copy
 import torch
 import numpy as np
-import logging
 import random
 
 
@@ -89,7 +88,6 @@ class Agent:
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
 
-
     def find_current_partition(self, state, partition_memory):
         current_partition = None
         min_distance = np.Inf
@@ -125,10 +123,10 @@ class Agent:
                 max_distance = distance
         return max_distance
 
-    def distance(self, s1, s2, dfactor):
+    def distance(self, s1, s2, reference_point):
         return max(
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) - self.EEnet(merge_states_for_comparason(reference_point, s2)))),
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) - self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
     
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)

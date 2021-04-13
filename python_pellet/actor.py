@@ -10,17 +10,14 @@ import copy
 import time
 
 
-
-
-
-
 class Actor:
-    def __init__(self, args, process_itterator, replay_que, partition_que, q_network_que, e_network_que, q_t_network_que, e_t_network_que):
+    def __init__(self, args, process_itterator, replay_que, q_network_que, e_network_que, q_t_network_que, e_t_network_que, from_actor_partition_que, to_actor_partition_que):
+        self.to_actor_partition_que = to_actor_partition_que
         self.e_t_network_que = e_t_network_que
         self.q_t_network_que = q_t_network_que
         self.e_network_que = e_network_que
         self.q_network_que = q_network_que
-        self.partition_que = partition_que
+        self.local_partition_memory = []
         path = Path(__file__).parent
         Path(path / 'logs').mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()
@@ -42,7 +39,7 @@ class Actor:
         game_actions, self.agent, opt, env = setup(args[1])
 
         state = env.reset()
-        local_partition_memory = [[state, 0]]
+        self.local_partition_memory.append([state, 0])
 
         for i in range(1, int(args[2])):
             start = time.process_time()
@@ -53,7 +50,12 @@ class Actor:
             state_prime, reward, terminating, info = env.step(action)
             total_score += reward
             reward = int(max(min(reward, 1), -1))
-            visited, visited_prime, distance = self.agent.find_current_partition(state_prime, local_partition_memory)
+            try:
+                visited, visited_prime, distance = self.agent.find_current_partition(state_prime, self.local_partition_memory)
+            except Exception as err:
+                logging.info(err)
+                logging.info(len(self.local_partition_memory[0][0]))
+                logging.info(len(self.local_partition_memory[0][1]))
             episode_buffer.append(
                 [state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime])
             if terminating:
@@ -61,7 +63,7 @@ class Actor:
                 end = time.process_time()
                 elapsed = (end - start)
                 state_prime = env.reset()
-                self.update_partitions(self.agent.visited, local_partition_memory)
+                self.update_partitions(self.agent.visited, self.local_partition_memory)  # TODO SHOULD BE GLOBAL SHARED TOO?
                 self.agent.visited = []
                 episode_buffer.clear()
                 logging.info("step: " + str(i) + " total_score: " + str(total_score) + " Time: " + str(elapsed))
@@ -69,17 +71,14 @@ class Actor:
 
             if distance > dmax:
                 partition_candidate = state_prime
-                partition_que.put(partition_candidate)
                 dmax = distance
 
-            if i % int(args[4]) == 0 and partition_candidate is not None:
-                local_partition_memory.append([partition_candidate, 0])
-                dmax = 0
+            if i % 10000:
+                from_actor_partition_que.put(([partition_candidate, 0], dmax))
 
             state = state_prime
             if i % 1000 == 0:  # TODO this should prob be some better mere defined value
                 self.check_ques_for_updates()
-            # TODO update partition memory
 
     @staticmethod
     def calculate_auxiliary_reward(policy, aidx):
@@ -91,16 +90,6 @@ class Actor:
             else:
                 aux[i] = -policy[i].item()
         return aux
-
-    @staticmethod
-    def partitiondeterminarion(ee_network, s_n, r):
-        mindist = [np.inf, None]
-        for s_pi in r:
-            dist = ee_network.distance(ee_network, s_n, s_pi[0], r[0][0])
-            if mindist[0] > dist:
-                mindist[0] = dist
-                mindist[1] = s_pi
-        return mindist[1]
 
     @staticmethod
     def update_partitions(visited_partitions, partition_memory):
@@ -135,3 +124,9 @@ class Actor:
                 single_param = parameters[name]
                 self.agent.targetEEnet.state_dict()[name].copy_(single_param)
             logging.info("updated e_t network")
+        if not self.to_actor_partition_que.empty():
+            partition = self.to_actor_partition_que.get()
+            self.local_partition_memory.append(partition)
+            if len(self.local_partition_memory) > 100:  # TODO get self.argument here for length
+                self.local_partition_memory.pop(0)
+            logging.info("updated partition memory")
