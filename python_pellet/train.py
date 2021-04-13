@@ -13,7 +13,7 @@ import time
 
 
 MAX_PARTITIONS = 100
-start_making_partitions = 20000
+start_making_partitions = 2000000
 partition_add_time_mult = 1.2
 start_eelearn = 250000
 end_eelearn = 2000000
