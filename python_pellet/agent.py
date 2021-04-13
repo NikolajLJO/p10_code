@@ -139,10 +139,10 @@ class Agent:
                 netinput.append(merge_states_for_comparason(states[i], s_primes[i]))
             
             netinput = torch.cat(netinput)
-            pred = self.predictor_RND(netinput)
-            targ = self.target_RND(netinput)
+            pred = self.EEnet(netinput)
+            targ = self.targetEEnet(netinput)
 
-            self.predictor_RND.backpropagate(pred, targ)
+            self.EEnet.backpropagate(pred, targ)
     
     def imagecomparelearn(self, replay_memory):
         if self.use_RND:
