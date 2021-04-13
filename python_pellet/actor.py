@@ -66,7 +66,8 @@ class Actor:
                 self.update_partitions(self.agent.visited, self.local_partition_memory)  # TODO SHOULD BE GLOBAL SHARED TOO?
                 self.agent.visited = []
                 episode_buffer.clear()
-                logging.info("step: " + str(i) + " total_score: " + str(total_score) + " Time: " + str(elapsed))
+                logging.info("step: |{0}| total_score:  |{1}| Time: |{2}| Time pr step: |{3}|"
+                             .format(i, total_score, elapsed, elapsed/len(episode_buffer)))
                 total_score = 0
 
             if distance > dmax:
