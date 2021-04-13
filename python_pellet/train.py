@@ -9,10 +9,11 @@ from pathlib import Path
 import datetime
 import logging
 from agent import merge_states_for_comparason
+import time
 
 
 MAX_PARTITIONS = 100
-start_making_partitions = 2000000
+start_making_partitions = 20000
 partition_add_time_mult = 1.2
 start_eelearn = 250000
 end_eelearn = 2000000
@@ -59,7 +60,7 @@ def mainloop(args):
     state = env.reset()
     partition_memory = [[state, 0, [agent.EEnet(merge_states_for_comparason(state, state)).detach()], [agent.EEnet(merge_states_for_comparason(state, state)).detach()]]]
     state_prime = None
-    now = datetime.datetime.now()
+    now = time.process_time()
 
     for i in range(1, int(args[2])):
         action, policy = agent.find_action(state, i)
@@ -82,9 +83,10 @@ def mainloop(args):
             update_partitions(agent.visited,partition_memory)
             agent.visited = []
             replay_memory.save(episode_buffer)
+            episode_time = time.process_time()-now
+            logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(episode_time) + " partitions: " + str(len(partition_memory)) + " time pr. step: " + str(episode_time/len(episode_buffer)))
             episode_buffer.clear()
-            logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(datetime.datetime.now()-now) + " partitions: " + str(len(partition_memory)))
-            now = datetime.datetime.now()
+            now = time.process_time()
             total_score = 0
             
         if distance > dmax and i >= start_making_partitions:
