@@ -130,11 +130,10 @@ class Agent:
         current_partition = None
         distances = []
         for i, partition in enumerate(partition_memory):
-            distances.append(torch.tensor(list(map(self.distancetest, itertools.repeat(state, len(partition_memory)), partition_memory, partition[2], partition[3])), device= self.device).unsqueeze(0))
-        
-        distances = torch.cat(distances)
-        distances = torch.min(torch.max(distances,1)[0],0)
-        current_partition = partition_memory[distances[1].item()]
+             distance = self.distance_prime(state, partition[0], partition_memory)
+            if distance < min_distance:
+                min_distance = distance
+                current_partition = partition
 
         visited = copy.deepcopy(self.visited)
         
