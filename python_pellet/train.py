@@ -57,7 +57,7 @@ def mainloop(args):
     update_freq = int(args[3])
     
     state = env.reset()
-    partition_memory = [[state, 0,]]
+    partition_memory = [[state, 0]]
     state_prime = None
     now = time.process_time()
 
