@@ -8,6 +8,7 @@ from init import setup
 import torch
 import copy
 import time
+import traceback
 
 
 class Actor:
@@ -50,24 +51,26 @@ class Actor:
             state_prime, reward, terminating, info = env.step(action)
             total_score += reward
             reward = int(max(min(reward, 1), -1))
-            try:
-                visited, visited_prime, distance = self.agent.find_current_partition(state_prime, self.local_partition_memory)
-            except Exception as err:
-                logging.info(err)
-                logging.info(len(self.local_partition_memory[0][0]))
-                logging.info(len(self.local_partition_memory[0][1]))
-            episode_buffer.append(
-                [state, action, visited, auxiliary_reward, reward, terminating, state_prime, visited_prime])
+            visited, visited_prime, distance = self.agent.find_current_partition(state_prime, self.local_partition_memory)
+            episode_buffer.append([state, action, visited, auxiliary_reward,
+                                   torch.tensor(reward, device=self.agent.device).unsqueeze(0),
+                                   torch.tensor(terminating, device=self.agent.device).unsqueeze(0),
+                                   state_prime,
+                                   visited_prime])
+
             if terminating:
                 replay_que.put(copy.deepcopy(episode_buffer))
                 end = time.process_time()
                 elapsed = (end - start)
                 state_prime = env.reset()
-                self.update_partitions(self.agent.visited, self.local_partition_memory)  # TODO SHOULD BE GLOBAL SHARED TOO?
+                self.update_partitions(self.agent.visited, self.local_partition_memory)  # TODO SHOULD local_partition_memory be shared since we just have replicated data for reading? (asnwer is yes)
                 self.agent.visited = []
+                logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.2f}|"
+                             .format(str(i).rjust(7, " "),
+                                     int(total_score),
+                                     elapsed,
+                                     elapsed/len(episode_buffer)))
                 episode_buffer.clear()
-                logging.info("step: |{0}| total_score:  |{1}| Time: |{2}| Time pr step: |{3}|"
-                             .format(i, total_score, elapsed, elapsed/len(episode_buffer)))
                 total_score = 0
 
             if distance > dmax:
@@ -79,7 +82,11 @@ class Actor:
 
             state = state_prime
             if i % 1000 == 0:  # TODO this should prob be some better mere defined value
-                self.check_ques_for_updates()
+                try:
+                    self.check_ques_for_updates()
+                except Exception as err:
+                    logging.info(err)
+                    logging.info(traceback.format_exc())
 
     @staticmethod
     def calculate_auxiliary_reward(policy, aidx):

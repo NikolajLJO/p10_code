@@ -4,18 +4,18 @@ from memory import ReplayMemory
 
 
 def setup(env_name):
-
-    env = setup_env(env_name)
+    agent = setup_agent()
+    env = setup_env(env_name, agent.device)
     action_space = env.action_space
-    agent = setup_agent(action_space)
+    agent.action_space = action_space
     opt = 1
     
     return action_space, agent, opt, env
 
 
-def setup_env(env_name):
-    return create_atari_env(env_name)
+def setup_env(env_name, device):
+    return create_atari_env(env_name, device)
 
 
-def setup_agent(action_space):
-    return Agent(action_space)
+def setup_agent():
+    return Agent()

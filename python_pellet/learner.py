@@ -8,6 +8,7 @@ import numpy as np
 from memory import ReplayMemory
 import sys
 from init import setup_agent
+import traceback
 
 
 class Learner:
@@ -43,7 +44,7 @@ class Learner:
         self.terminating = False
         self.dmax = np.NINF
         self.distance = np.NINF
-        self.agent = setup_agent(args[1])
+        self.agent = setup_agent()
         self.partition_memory = []
         self.replay_memory = ReplayMemory()
         self.ee_memory = []
@@ -51,28 +52,31 @@ class Learner:
         self.learner_ee_que_max_size = learner_ee_que_max_size
         self.update_memory_break_point = self.learner_que_max_size / 10
         self.update_ee_memory_break_point = self.learner_ee_que_max_size / 10
-
-        self.learn(learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que, actor_count)
+        try:
+            self.learn(learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que, actor_count)
+        except Exception as err:
+            logging.info(err)
+            logging.info(traceback.format_exc())
 
     def learn(self, learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que,  actor_count):
         logging.info("Started with empty memory")
         while True:
             # when rpelay memory is almost empty, wait until the que has a full memory size
-            while learner_replay_que.qsize() < int(self.learner_que_max_size * 0.9):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+            while learner_replay_que.qsize() < self.learner_que_max_size:  # TODO remove this from testing using less than full mem due to uncertainty in qsize
                 pass
 
             # then when it does, update it
-            for _ in range(int(self.learner_que_max_size * 0.75)):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+            for _ in range(int(self.learner_que_max_size)):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
                 transition = learner_replay_que.get()
                 self.replay_memory.memory.append(transition)
 
             logging.info("Refilled replay memory")
 
-            while learner_ee_que.qsize() < int(self.learner_ee_que_max_size * 0.9):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+            while learner_ee_que.qsize() < self.learner_ee_que_max_size:  # TODO remove this from testing using less than full mem due to uncertainty in qsize
                 pass
 
             if not learner_ee_que.empty():
-                for _ in range(int(self.learner_ee_que_max_size * 0.75)):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+                for _ in range(int(self.learner_ee_que_max_size)):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
                     transition = learner_ee_que.get()
                     self.ee_memory.append(transition)
                 logging.info("Refilled ee memory")
@@ -96,7 +100,7 @@ class Learner:
 
             for _ in range(actor_count):
                 self.q_network_que.put(self.agent.Qnet.state_dict())
-                self.e_network_que.put(self.agent.Qnet.state_dict())
-                self.q_t_network_que.put(self.agent.Qnet.state_dict())
-                self.e_t_network_que.put(self.agent.Qnet.state_dict())
+                self.e_network_que.put(self.agent.EEnet.state_dict())
+                self.q_t_network_que.put(self.agent.targetQnet.state_dict())
+                self.e_t_network_que.put(self.agent.targetEEnet.state_dict())
             logging.info("Pushed networks")

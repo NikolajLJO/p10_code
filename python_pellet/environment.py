@@ -2,42 +2,38 @@ from __future__ import division
 import gym
 import numpy as np
 import torch
+import torchvision.transforms as transforms
 from gym.spaces.box import Box
-# from skimage.color import rgb2gray
-#from cv2 import resize
-# from scipy.misc import imresize as resize
-import random
-from cv2 import resize
 
+resize = transforms.Compose([transforms.ToPILImage(),
+                             transforms.Resize((84, 84)),
+                             transforms.Grayscale(num_output_channels=1)])
 
-def create_atari_env(env_id):
+def create_atari_env(env_id, device):
 
     env = gym.make(env_id)
     env = EpisodicLifeEnv(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
-    env = AtariRescale(env)
-    env = NormalizedEnv(env)
+    env = AtariRescale(env, device)
     return env
 
 
-def process_frame(frame):
+def process_frame(frame, device):
     frame = frame[34:34 + 160, :160]
-    frame = frame.mean(2)
-    frame = frame.astype(np.float32)
-    frame *= (1.0 / 255.0)
-    frame = resize(frame, (84, 84))
-    frame = np.reshape(frame, [1, 84, 84])
+    frame = np.array(resize(frame))
+    frame = torch.tensor(frame, dtype=torch.uint8, device=device).unsqueeze(0)
     return frame
 
 
 class AtariRescale(gym.ObservationWrapper):
-    def __init__(self, env):
+    def __init__(self, env, device):
         gym.ObservationWrapper.__init__(self, env)
-        self.observation_space = Box(0.0, 1.0, [1, 84, 84], dtype=np.uint8)
+        self.observation_space = Box(0.0, 1.0, [1, 1, 84, 84])
+        self.device = device
 
     def observation(self, observation):
-        return process_frame(observation)
+        return process_frame(observation, self.device).unsqueeze(0)
 
 
 class NormalizedEnv(gym.ObservationWrapper):

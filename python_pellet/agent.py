@@ -8,10 +8,16 @@ import random
 
 
 class Agent:
-    def __init__(self, action_space, nq=0.99, ne=0.95):
-        self.Qnet = Qnet()
+    def __init__(self, nq=0.1, ne=0.1):
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+            print("cuda")
+        else:
+            self.device = torch.device('cpu')
+            print("cpu")
+        self.Qnet = Qnet().to(self.device)
         self.targetQnet = copy.deepcopy(self.Qnet)
-        self.EEnet = EEnet()
+        self.EEnet = EEnet().to(self.device)
         self.targetEEnet = copy.deepcopy(self.EEnet)
         self.visited = []
         self.NQ = nq
@@ -23,8 +29,17 @@ class Agent:
         self.total_steps = 0
         self.Q_discount = 0.99
         self.EE_discount = 0.99
-        self.ee_beta = 1
-        self.action_space = action_space
+        self.action_space = 0
+
+        listt= []
+        listt.append(torch.tensor([self.EE_discount]*18, device = self.device).unsqueeze(0))
+        for i in range(1,100):
+            listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device = self.device).unsqueeze(0))
+        self.EE_discounts = torch.cat(listt)
+
+    def cast_to_device(self, tensors):
+        for tensor in tensors:
+            tensor = tensor.to(device=self.device)
 
     def find_action(self, state, step):
         action, policy = self.e_greedy_action_choice(state, step)
@@ -42,19 +57,19 @@ class Agent:
             pellet_rewards = []
             states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
             states = torch.cat(states)
-            action = torch.tensor(action).long().unsqueeze(0)
-            reward = torch.tensor(reward)
+            action = torch.cat(action).long().unsqueeze(1)
+            reward = torch.cat(reward)
             s_primes = torch.cat(s_primes)
-            terminating = torch.tensor(terminating).long()
-            targ_mc = torch.tensor(targ_mc)
+            terminating = torch.cat(terminating).long()
+            targ_mc = torch.cat(targ_mc)
 
             for i in range(replay_memory.batch_size):
                 if len(visited[i]) < len(visited_prime[i]):
-                    # TODO correct parameter here for calc_pellet_reward
-                    pellet_rewards.append(calc_pellet_reward(self.ee_beta, visited_prime[i][-1][1]))
+                    # TODO 1 replaced with self.ee_beta correct parameter here for calc_pellet_reward
+                    pellet_rewards.append(calc_pellet_reward(1, visited_prime[i][-1][1]))
                 else:
                     pellet_rewards.append(0)
-            pellet_rewards = torch.tensor(pellet_rewards)
+            pellet_rewards = torch.tensor(pellet_rewards, device=self.device)
 
             targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
             # Calculate extrinsic and intrinsic returns, R and R+,
@@ -62,7 +77,7 @@ class Agent:
             predictions = self.Qnet(states).gather(1, action)
 
             targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
-            self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(0))
+            self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
 
     def eelearn(self, ee_memory):
         if len(ee_memory) > 32:
@@ -107,13 +122,13 @@ class Agent:
     def e_greedy_action_choice(self, state, step):
         policy = self.Qnet(state)
         if np.random.rand() > self.epsilon:
-            action = torch.argmax(policy[0]).item()
+            action = torch.argmax(policy[0])
         else:
-            action = np.random.randint(1, self.action_space.n)
+            action = torch.tensor(np.random.randint(1, self.action_space.n), device=self.device)
 
         self.epsilon = self.slope * step + self.intercept
 
-        return action, policy
+        return action.unsqueeze(0), policy
 
     def distance_prime(self, s1, s2, partition_memory):
         max_distance = np.NINF
