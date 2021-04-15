@@ -62,21 +62,21 @@ class Learner:
         logging.info("Started with empty memory")
         while True:
             # when rpelay memory is almost empty, wait until the que has a full memory size
-            while learner_replay_que.qsize() < self.learner_que_max_size:  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+            while learner_replay_que.qsize() < self.learner_que_max_size:
                 pass
 
             # then when it does, update it
-            for _ in range(int(self.learner_que_max_size)):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+            for _ in range(int(self.learner_que_max_size)):
                 transition = learner_replay_que.get()
                 self.replay_memory.memory.append(transition)
 
             logging.info("Refilled replay memory")
 
-            while learner_ee_que.qsize() < self.learner_ee_que_max_size:  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+            while learner_ee_que.qsize() < self.learner_ee_que_max_size:
                 pass
 
             if not learner_ee_que.empty():
-                for _ in range(int(self.learner_ee_que_max_size)):  # TODO remove this from testing using less than full mem due to uncertainty in qsize
+                for _ in range(int(self.learner_ee_que_max_size)):
                     transition = learner_ee_que.get()
                     self.ee_memory.append(transition)
                 logging.info("Refilled ee memory")
