@@ -8,8 +8,8 @@ from memory import ReplayMemory
 
 if __name__ == "__main__":
     mp.set_start_method('spawn')
-    thread_count = 6
-    actor_count = 2
+    thread_count = mp.cpu_count()
+    actor_count = thread_count - 2
     replay_memory = ReplayMemory()
     learner_que_max_size = 1000
     learner_ee_que_max_size = 1000
