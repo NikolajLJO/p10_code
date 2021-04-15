@@ -78,7 +78,7 @@ class Actor:
                 dmax = distance
 
             if i % 10000:
-                from_actor_partition_que.put(([partition_candidate, 0], dmax))
+                from_actor_partition_que.put(copy.deepcopy(([partition_candidate, 0], dmax)))
 
             state = state_prime
             if i % 1000 == 0:  # TODO this should prob be some better mere defined value

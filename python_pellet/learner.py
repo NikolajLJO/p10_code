@@ -99,8 +99,8 @@ class Learner:
             logging.info("I processed 90% of que")
 
             for _ in range(actor_count):
-                self.q_network_que.put(self.agent.Qnet.state_dict())
-                self.e_network_que.put(self.agent.EEnet.state_dict())
-                self.q_t_network_que.put(self.agent.targetQnet.state_dict())
-                self.e_t_network_que.put(self.agent.targetEEnet.state_dict())
+                self.q_network_que.put(copy.deepcopy(self.agent.Qnet.state_dict()))
+                self.e_network_que.put(copy.deepcopy(self.agent.EEnet.state_dict()))
+                self.q_t_network_que.put(copy.deepcopy(self.agent.targetQnet.state_dict()))
+                self.e_t_network_que.put(copy.deepcopy(self.agent.targetEEnet.state_dict()))
             logging.info("Pushed networks")
