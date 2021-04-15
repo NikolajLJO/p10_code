@@ -9,6 +9,7 @@ import random
 
 class Agent:
     def __init__(self, nq=0.1, ne=0.1):
+       torch.multiprocessing.set_sharing_strategy('file_system')
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
             print("cuda")
