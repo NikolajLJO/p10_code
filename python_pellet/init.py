@@ -7,7 +7,7 @@ from multiprocessing import Pool
 
 def setup(env_name, RDN):
     
-    agent = Agent(use_RND=bool(RDN))
+    agent = Agent(use_RND=bool(int(RDN)))
     env = create_atari_env(env_name, agent.device)
     action_space = env.action_space
     agent.action_space = action_space
