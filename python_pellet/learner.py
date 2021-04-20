@@ -9,6 +9,7 @@ from memory import ReplayMemory
 import sys
 from init import setup_agent
 import traceback
+import torch
 
 
 class Learner:

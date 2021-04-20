@@ -4,6 +4,7 @@ import datetime
 import logging
 import sys
 import copy
+import torch
 
 from memory import ReplayMemory
 
