@@ -9,6 +9,7 @@ from memory import ReplayMemory
 import sys
 from init import setup_agent
 import traceback
+import torch
 
 
 class Learner:
@@ -24,7 +25,7 @@ class Learner:
                  from_actor_partition_que,
                  to_actor_partition_que,
                  actor_count):
-
+        torch.multiprocessing.set_sharing_strategy('file_system')
         path = Path(__file__).parent
         Path(path / 'logs').mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()
