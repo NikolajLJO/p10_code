@@ -69,7 +69,9 @@ class Learner:
             # then when it does, update it
             for _ in range(int(self.learner_que_max_size)):
                 transition = learner_replay_que.get()
-                self.replay_memory.memory.append(transition)
+                process_local_transition = copy.deepcopy(transition)
+                self.replay_memory.memory.append(process_local_transition)
+                del transition
 
             logging.info("Refilled replay memory")
 
@@ -79,14 +81,18 @@ class Learner:
             if not learner_ee_que.empty():
                 for _ in range(int(self.learner_ee_que_max_size)):
                     transition = learner_ee_que.get()
-                    self.ee_memory.append(transition)
+                    process_local_transition = copy.deepcopy(transition)
+                    self.ee_memory.append(process_local_transition)
+                    del transition
                 logging.info("Refilled ee memory")
 
             if from_actor_partition_que.qsize() >= actor_count * 2:
                 unqued_partitions = []
                 for _ in range(actor_count*2):
                     partition = from_actor_partition_que.get()
-                    unqued_partitions.append(partition)
+                    process_local_partition = copy.deepcopy(partition)
+                    unqued_partitions.append(process_local_partition)
+                    del partition
                 best_partition = max(unqued_partitions, key=lambda item: item[1])[0]
                 for _ in range(actor_count):
                     to_actor_partition_que.put(copy.deepcopy(best_partition))

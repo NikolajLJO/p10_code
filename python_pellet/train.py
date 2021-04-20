@@ -1,5 +1,5 @@
 import sys
-import multiprocessing as mp
+from torch import multiprocessing as mp
 
 from actor import Actor
 from learner import Learner
