@@ -61,4 +61,5 @@ if __name__ == "__main__":
         for process in actor_list:
             process.start()
 
-    actor_list[0].join()
+    for p in actor_list:
+        p.join()
