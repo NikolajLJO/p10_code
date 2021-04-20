@@ -108,33 +108,26 @@ class Actor:
                     break
 
     def check_ques_for_updates(self):
-        if not self.q_network_que.empty():
-            parameters = self.q_network_que.get()
-            for name, single_param in self.agent.Qnet.state_dict().items():
-                single_param = parameters[name]
-                self.agent.Qnet.state_dict()[name].copy_(single_param)
-            logging.info("updated q network")
-        if not self.q_t_network_que.empty():
-            parameters = self.q_t_network_que.get()
-            for name, single_param in self.agent.targetQnet.state_dict().items():
-                single_param = parameters[name]
-                self.agent.targetQnet.state_dict()[name].copy_(single_param)
-            logging.info("updated q_t network")
-        if not self.e_network_que.empty():
-            parameters = self.e_network_que.get()
-            for name, single_param in self.agent.EEnet.state_dict().items():
-                single_param = parameters[name]
-                self.agent.EEnet.state_dict()[name].copy_(single_param)
-            logging.info("updated e network")
-        if not self.e_t_network_que.empty():
-            parameters = self.e_t_network_que.get()
-            for name, single_param in self.agent.targetEEnet.state_dict().items():
-                single_param = parameters[name]
-                self.agent.targetEEnet.state_dict()[name].copy_(single_param)
-            logging.info("updated e_t network")
+        self.check_que_and_update_network(self.q_network_que, self.agent.Qnet)
+        self.check_que_and_update_network(self.e_network_que, self.agent.EEnet)
+        self.check_que_and_update_network(self.q_t_network_que, self.agent.targetQnet)
+        self.check_que_and_update_network(self.e_t_network_que, self.agent.targetEEnet)
+
         if not self.to_actor_partition_que.empty():
             partition = self.to_actor_partition_que.get()
-            self.local_partition_memory.append(partition)
+            proces_local_partition = copy.deepcopy(partition)
+            self.local_partition_memory.append(proces_local_partition)
             if len(self.local_partition_memory) > 100:  # TODO get self.argument here for length
                 self.local_partition_memory.pop(0)
+            del partition
             logging.info("updated partition memory")
+
+    @staticmethod
+    def check_que_and_update_network(que, network):
+        if not que.empty():
+            parameters = que.get()
+            proces_local_parameters = copy.deepcopy(parameters)
+            for name, single_param in network.state_dict().items():
+                single_param = proces_local_parameters[name]
+                network.state_dict()[name].copy_(single_param)
+            del parameters
