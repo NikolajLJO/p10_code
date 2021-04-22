@@ -35,6 +35,7 @@ def get_writer():
 
 
 def mainloop(args):
+    torch.set_flush_denormal(True)
     path = Path(__file__).parent
     Path(path / 'logs').mkdir(parents=True, exist_ok=True)
     now = datetime.datetime.now()
@@ -49,7 +50,8 @@ def mainloop(args):
     terminating = False
     total_score = 0
     reward = np.NINF
-    dmax = np.NINF
+    dmax = 0
+    distance = 0
     episode_buffer = []
 
     game_actions, replay_memory, agent, opt, env = setup(args[1], args[5])
@@ -59,6 +61,8 @@ def mainloop(args):
     state = env.reset()
     partition_memory = [[state, 0]]
     state_prime = None
+    visited = []
+    visited_prime =[]
     now = time.process_time()
 
     for i in range(1, int(args[2])):
@@ -70,7 +74,8 @@ def mainloop(args):
             state_prime, reward, terminating, info = env.step(action.item())
             total_score += reward
             reward = max(min(reward,1),-1)
-            visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
+            if i % 10 == 0:
+                visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
             episode_buffer.append([state, action, visited, auxiliary_reward, 
                                    torch.tensor(reward, device=agent.device).unsqueeze(0), 
                                    torch.tensor(terminating, device=agent.device).unsqueeze(0), 
@@ -81,6 +86,8 @@ def mainloop(args):
             terminating = False
             update_partitions(agent.visited,partition_memory)
             agent.visited = []
+            visited = []
+            visited_prime =[]
             replay_memory.save(episode_buffer)
             episode_time = time.process_time()-now
             logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(episode_time) + " partitions: " + str(len(partition_memory)) + " time pr. step: " + str(episode_time/len(episode_buffer)))
