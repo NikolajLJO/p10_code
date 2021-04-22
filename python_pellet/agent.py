@@ -32,10 +32,10 @@ class Agent:
         self.EE_discount = 0.99
         self.action_space = 0
 
-        listt= []
-        listt.append(torch.tensor([self.EE_discount]*18, device = self.device).unsqueeze(0))
-        for i in range(1,100):
-            listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device = self.device).unsqueeze(0))
+        listt = []
+        listt.append(torch.tensor([self.EE_discount]*18, device=self.device).unsqueeze(0))
+        for i in range(1, 100):
+            listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device=self.device).unsqueeze(0))
         self.EE_discounts = torch.cat(listt)
 
     def cast_to_device(self, tensors):
@@ -66,8 +66,7 @@ class Agent:
 
             for i in range(replay_memory.batch_size):
                 if len(visited[i]) < len(visited_prime[i]):
-                    # TODO 1 replaced with self.ee_beta correct parameter here for calc_pellet_reward
-                    pellet_rewards.append(calc_pellet_reward(1, visited_prime[i][-1][1]))
+                    pellet_rewards.append(replay_memory.calc_pellet_reward(visited_prime[i][-1][1]))
                 else:
                     pellet_rewards.append(0)
             pellet_rewards = torch.tensor(pellet_rewards, device=self.device)
@@ -95,8 +94,9 @@ class Agent:
 
             targ_mc = torch.zeros(len(auxreward), 18)
             for i, setauxreward in enumerate(auxreward):
-                for j, r in enumerate(setauxreward):
-                    targ_mc[i] = targ_mc[i] + self.EE_discount ** (j + 1) * torch.tensor(r).unsqueeze(0)
+                targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)],0)
+
+            # targmixed   (1 􀀀 E)targone-step + EtargMC
             targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
 
             merged = []

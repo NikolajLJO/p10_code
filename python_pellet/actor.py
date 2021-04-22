@@ -48,7 +48,8 @@ class Actor:
         episode_buffer = []
 
         game_actions, self.agent, opt, env = setup(args[1])
-
+        visited = []
+        visited_prime = []
         state = env.reset()
         self.local_partition_memory.append([state, 0])
 
@@ -61,7 +62,8 @@ class Actor:
             state_prime, reward, terminating, info = env.step(action)
             total_score += reward
             reward = int(max(min(reward, 1), -1))
-            visited, visited_prime, distance = self.agent.find_current_partition(state_prime, self.local_partition_memory)
+            if i % 10 == 0:
+                visited, visited_prime, distance = self.agent.find_current_partition(state_prime, self.local_partition_memory)
             episode_buffer.append([state, action, visited, auxiliary_reward,
                                    torch.tensor(reward, device=self.agent.device).unsqueeze(0),
                                    torch.tensor(terminating, device=self.agent.device).unsqueeze(0),
@@ -81,6 +83,8 @@ class Actor:
                                      elapsed,
                                      elapsed/len(episode_buffer)))
                 episode_buffer.clear()
+                visited.clear()
+                visited_prime.clear()
                 total_score = 0
 
             if distance > dmax:
