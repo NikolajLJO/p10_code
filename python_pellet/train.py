@@ -8,13 +8,20 @@ import os
 from pathlib import Path
 import datetime
 import logging
+import time
 
 
 MAX_PARTITIONS = 100
-start_making_partitions = 50000
-initial_memory_fill = 50000
+start_making_partitions = 2000000
+partition_add_time_mult = 1.2
+start_eelearn = 250000
+end_eelearn = 2000000
+
+start_qlearn = 2250000
 update_targets_frequency = 10000
 save_networks_frequency = 500000
+
+
 '''
 args1 = gamename
 args2 = traenigsperiode
@@ -28,6 +35,7 @@ def get_writer():
 
 
 def mainloop(args):
+    torch.set_flush_denormal(True)
     path = Path(__file__).parent
     Path(path / 'logs').mkdir(parents=True, exist_ok=True)
     now = datetime.datetime.now()
@@ -48,15 +56,20 @@ def mainloop(args):
     terminating = False
     total_score = 0
     reward = np.NINF
-    dmax = np.NINF
+    dmax = 0
+    distance = 0
     episode_buffer = []
 
-    game_actions, replay_memory, agent, opt, env = setup(args[1])
+    game_actions, replay_memory, agent, opt, env = setup(args[1], args[5])
+    add_partition_freq = int(args[4])
+    update_freq = int(args[3])
     
     state = env.reset()
-    partition_memory = [[state,0]]
+    partition_memory = [[state, 0]]
     state_prime = None
-    now = datetime.datetime.now()
+    visited = []
+    visited_prime =[]
+    now = time.process_time()
 
     for i in range(1, int(args[2])):
         if i % 20000 == 0:
@@ -70,7 +83,8 @@ def mainloop(args):
             state_prime, reward, terminating, info = env.step(action.item())
             total_score += reward
             reward = max(min(reward,1),-1)
-            visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
+            if i % 10 == 0:
+                visited, visited_prime, distance = agent.find_current_partition(state_prime, partition_memory)
             episode_buffer.append([state, action, visited, auxiliary_reward, 
                                    torch.tensor(reward, device=agent.device).unsqueeze(0), 
                                    torch.tensor(terminating, device=agent.device).unsqueeze(0), 
@@ -81,26 +95,35 @@ def mainloop(args):
             terminating = False
             update_partitions(agent.visited,partition_memory)
             agent.visited = []
+            visited = []
+            visited_prime =[]
             replay_memory.save(episode_buffer)
+            episode_time = time.process_time()-now
+            log1.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(episode_time) + " partitions: " + str(len(partition_memory)) + " time pr. step: " + str(episode_time/len(episode_buffer)))
             episode_buffer.clear()
-            log1.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(datetime.datetime.now()-now))
-            now = datetime.datetime.now()
+            now = time.process_time()
             total_score = 0
             
         if distance > dmax and i >= start_making_partitions:
             partition_candidate = state_prime
             dmax = distance
         
-        if i % int(args[4]) == 0 and partition_candidate is not None:
+        if i % add_partition_freq == 0 and partition_candidate is not None:
             partition_memory.append([partition_candidate, 0])
             dmax = 0
-            if len(partition_memory) > MAX_PARTITIONS:
-                partition_memory[-MAX_PARTITIONS:]
+            
+            partition_memory = partition_memory[-MAX_PARTITIONS:]
+            add_partition_freq = int(add_partition_freq * partition_add_time_mult)
+            
+
 
         state = state_prime
 
-        if i % int(args[3]) == 0 and i >= initial_memory_fill:
-            agent.update(replay_memory)
+        if i % update_freq == 0 and i >= start_qlearn:
+            agent.qlearn(replay_memory)
+        
+        if i % update_freq == 0 and i >= start_eelearn and (i < end_eelearn or args[5]):
+            agent.imagecomparelearn(replay_memory)
         
         if i % update_targets_frequency == 0:
             agent.update_targets()
@@ -109,6 +132,7 @@ def mainloop(args):
             agent.save_networks(path, i)
     
     agent.save_networks(path, i)
+
 
 
 def calculate_auxiliary_reward(policy, aidx):
