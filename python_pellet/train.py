@@ -31,10 +31,16 @@ def mainloop(args):
     path = Path(__file__).parent
     Path(path / 'logs').mkdir(parents=True, exist_ok=True)
     now = datetime.datetime.now()
+    logpos= str(path) + "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute)
     logging.basicConfig(level=logging.DEBUG,
                         format='%(message)s',
-                        filename=(str(path) + "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute) + "-log.txt"),
+                        filename=(logpos + "-log.txt"),
                         filemode='w')
+    log1 = logging.getLogger("log1")
+    
+    handeler = logging.FileHandler(logpos + "-log2.txt") 
+    log2 = logging.getLogger("log2")
+    log2.addHandler(handeler)
     logger = get_writer()
     sys.stdout = logger
     
@@ -53,6 +59,9 @@ def mainloop(args):
     now = datetime.datetime.now()
 
     for i in range(1, int(args[2])):
+        if i % 20000 == 0:
+            log2.info("step: " + str(i) + " running")
+
         action, policy = agent.find_action(state, i)
 
         auxiliary_reward = torch.tensor(calculate_auxiliary_reward(policy, action.item()), device=agent.device)
@@ -74,7 +83,7 @@ def mainloop(args):
             agent.visited = []
             replay_memory.save(episode_buffer)
             episode_buffer.clear()
-            logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(datetime.datetime.now()-now))
+            log1.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(datetime.datetime.now()-now))
             now = datetime.datetime.now()
             total_score = 0
             
