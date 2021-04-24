@@ -70,6 +70,7 @@ def mainloop(args):
     visited = []
     visited_prime =[]
     now = time.process_time()
+    steps_since_reward = 0
 
     for i in range(1, int(args[2])):
         if i % 20000 == 0:
@@ -96,14 +97,20 @@ def mainloop(args):
             update_partitions(agent.visited,partition_memory)
             agent.visited = []
             visited = []
-            visited_prime =[]
+            visited_prime = []
             replay_memory.save(episode_buffer)
             episode_time = time.process_time()-now
             log1.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(episode_time) + " partitions: " + str(len(partition_memory)) + " time pr. step: " + str(episode_time/len(episode_buffer)))
             episode_buffer.clear()
             now = time.process_time()
             total_score = 0
-            
+            steps_since_reward = 0
+
+        if reward != 0 or len(visited) != len(visited_prime):
+            steps_since_reward = 0
+        else:
+            steps_since_reward += 1
+
         if distance > dmax and i >= start_making_partitions:
             partition_candidate = state_prime
             dmax = distance
@@ -118,6 +125,7 @@ def mainloop(args):
 
 
         state = state_prime
+        visited = visited_prime
 
         if i % update_freq == 0 and i >= start_qlearn:
             agent.qlearn(replay_memory)
@@ -130,6 +138,11 @@ def mainloop(args):
             
         if i % save_networks_frequency == 0:
             agent.save_networks(path, i)
+        
+        if steps_since_reward > 500:
+            terminating = True
+            episode_buffer[-1][5] = torch.tensor(terminating, device=agent.device).unsqueeze(0)
+            steps_since_reward = 0
     
     agent.save_networks(path, i)
 
