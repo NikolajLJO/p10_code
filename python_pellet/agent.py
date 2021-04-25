@@ -162,7 +162,7 @@ class Agent:
         else:
             for i, s2 in enumerate(partition_memory):
                 max_distance = np.NINF
-                for refrence in partition_memory:
+                for refrence in partition_memory[:-5]:
                     distance = self.distance(state, s2[0], refrence[0])
                     if distance > max_distance:
                         max_distance = distance
