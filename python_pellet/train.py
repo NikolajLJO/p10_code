@@ -1,6 +1,6 @@
 import sys
 from torch import multiprocessing as mp
-from tools import process_score_over_steps
+from tools import process_score_over_steps, process_dis
 from actor import Actor
 from learner import Learner
 from memory_manager import MemoryManager
@@ -24,6 +24,10 @@ if __name__ == "__main__":
 
     if (args[3]) == 'y':
         process_score_over_steps(args[4])
+        exit()
+
+    if (args[3] == 'd'):
+        process_dis(args[4])
         exit()
 
     with mp.Pool(processes=thread_count) as pool:
