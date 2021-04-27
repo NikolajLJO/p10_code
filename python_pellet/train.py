@@ -1,6 +1,6 @@
 import sys
 from torch import multiprocessing as mp
-
+from tools import process_score_over_steps
 from actor import Actor
 from learner import Learner
 from memory_manager import MemoryManager
@@ -14,6 +14,18 @@ if __name__ == "__main__":
     learner_que_max_size = 1000
     learner_ee_que_max_size = 1000
     args = sys.argv
+
+    args = args[1].split(' ')
+    args.reverse()
+    args.append("shit")
+    args.reverse()
+    args[2] = int(args[2])
+
+
+    if (args[3]) == 'y':
+        process_score_over_steps(args[4])
+        exit()
+
     with mp.Pool(processes=thread_count) as pool:
         replay_que = mp.Queue()
         q_network_que = mp.Queue()
