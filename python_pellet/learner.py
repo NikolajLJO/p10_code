@@ -93,7 +93,7 @@ class Learner:
                     process_local_partition = copy.deepcopy(partition)
                     unqued_partitions.append(process_local_partition)
                     del partition
-                best_partition = max(unqued_partitions, key=lambda item: item[1])[0]
+                best_partition = max(unqued_partitions, key=lambda item: item[1])
                 for _ in range(actor_count):
                     to_actor_partition_que.put(copy.deepcopy(best_partition))
                 logging.info("Pushed partitions")

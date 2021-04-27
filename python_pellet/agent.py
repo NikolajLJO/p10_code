@@ -1,10 +1,12 @@
 import math
+import traceback
 
 from Qnetwork import Qnet, EEnet
 import copy
 import torch
 import numpy as np
 import random
+import logging
 
 
 class Agent:
@@ -88,13 +90,23 @@ class Agent:
             targ_onesteps = []
             for i in range(len(smid)):
                 targ_onesteps.append(
-                    torch.tensor(auxreward[i][0])
+                    auxreward[i][0]
                     + self.EE_discount
                     * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
             targ_mc = torch.zeros(len(auxreward), 18)
             for i, setauxreward in enumerate(auxreward):
-                targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)],0)
+                try:
+                    targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)], 0)
+                except TypeError as err:
+                    logging.debug(err)
+                    logging.debug(traceback.format_exc())
+                    logging.debug("aux")
+                    logging.debug(setauxreward)
+                    logging.debug("ee discounts")
+                    logging.debug(self.EE_discounts[:len(setauxreward)])
+
+
 
             # targmixed   (1 􀀀 E)targone-step + EtargMC
             targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
@@ -140,10 +152,18 @@ class Agent:
         return max_distance
 
     def distance(self, s1, s2, reference_point):
-        return max(
+        try:
+            return max(
             torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) - self.EEnet(merge_states_for_comparason(reference_point, s2)))),
             torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) - self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
-    
+        except TypeError as err:
+            logging.info("s1")
+            logging.info(s1)
+            logging.info("s2")
+            logging.info(s2)
+            logging.info("ref")
+            logging.info(reference_point)
+
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.targetEEnet = copy.deepcopy(self.EEnet)
@@ -158,7 +178,16 @@ def calc_pellet_reward(ee_beta, visits):
 
 
 def merge_states_for_comparason(s1, s2):
-    return torch.stack([s1, s2], dim=2).squeeze(0)
+    try:
+        return torch.stack([s1, s2], dim=2).squeeze(0)
+    except TypeError as err:
+        logging.info(err)
+        logging.info(traceback.format_exc())
+        logging.info("s1")
+        logging.info(s1)
+        logging.info("s2")
+        logging.info(s2)
+        raise err
 
 
 def is_tensor_in_list(mtensor, mlist):

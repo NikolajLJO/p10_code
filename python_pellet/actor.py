@@ -52,55 +52,62 @@ class Actor:
         visited_prime = []
         state = env.reset()
         self.local_partition_memory.append([state, 0])
+        try:
+            for i in range(1, int(args[2])):
+                start = time.process_time()
+                action, policy = self.agent.find_action(state, i)
 
-        for i in range(1, int(args[2])):
-            start = time.process_time()
-            action, policy = self.agent.find_action(state, i)
+                auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()),
+                                                device=self.agent.device)
 
-            auxiliary_reward = self.calculate_auxiliary_reward(policy, action)
+                state_prime, reward, terminating, info = env.step(action)
+                total_score += reward
+                reward = int(max(min(reward, 1), -1))
+                if i % 10 == 0:
+                    visited, visited_prime, distance = self.agent.find_current_partition(state_prime,
+                                                                                         self.local_partition_memory)
+                episode_buffer.append([state, action, visited, auxiliary_reward,
+                                       torch.tensor(reward, device=self.agent.device).unsqueeze(0),
+                                       torch.tensor(terminating, device=self.agent.device).unsqueeze(0),
+                                       state_prime,
+                                       visited_prime])
 
-            state_prime, reward, terminating, info = env.step(action)
-            total_score += reward
-            reward = int(max(min(reward, 1), -1))
-            if i % 10 == 0:
-                visited, visited_prime, distance = self.agent.find_current_partition(state_prime, self.local_partition_memory)
-            episode_buffer.append([state, action, visited, auxiliary_reward,
-                                   torch.tensor(reward, device=self.agent.device).unsqueeze(0),
-                                   torch.tensor(terminating, device=self.agent.device).unsqueeze(0),
-                                   state_prime,
-                                   visited_prime])
+                if terminating:
+                    replay_que.put(copy.deepcopy(episode_buffer))
+                    end = time.process_time()
+                    elapsed = (end - start)
+                    state_prime = env.reset()
+                    self.update_partitions(self.agent.visited,
+                                           self.local_partition_memory)  # TODO SHOULD local_partition_memory be shared since we just have replicated data for reading? (asnwer is yes)
+                    self.agent.visited = []
+                    logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.2f}|"
+                                 .format(str(i).rjust(7, " "),
+                                         int(total_score),
+                                         elapsed,
+                                         elapsed / len(episode_buffer)))
+                    episode_buffer.clear()
+                    visited.clear()
+                    visited_prime.clear()
+                    total_score = 0
 
-            if terminating:
-                replay_que.put(copy.deepcopy(episode_buffer))
-                end = time.process_time()
-                elapsed = (end - start)
-                state_prime = env.reset()
-                self.update_partitions(self.agent.visited, self.local_partition_memory)  # TODO SHOULD local_partition_memory be shared since we just have replicated data for reading? (asnwer is yes)
-                self.agent.visited = []
-                logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.2f}|"
-                             .format(str(i).rjust(7, " "),
-                                     int(total_score),
-                                     elapsed,
-                                     elapsed/len(episode_buffer)))
-                episode_buffer.clear()
-                visited.clear()
-                visited_prime.clear()
-                total_score = 0
+                if distance > dmax:
+                    partition_candidate = state_prime
+                    dmax = distance
 
-            if distance > dmax:
-                partition_candidate = state_prime
-                dmax = distance
+                if i % 10000 == 0:
+                    from_actor_partition_que.put(copy.deepcopy([partition_candidate, dmax]))
 
-            if i % 10000:
-                from_actor_partition_que.put(copy.deepcopy(([partition_candidate, 0], dmax)))
+                state = state_prime
+                if i % 1000 == 0:  # TODO this should prob be some better mere defined value
+                    try:
+                        self.check_ques_for_updates()
+                    except Exception as err:
+                        logging.info(err)
+                        logging.info(traceback.format_exc())
 
-            state = state_prime
-            if i % 1000 == 0:  # TODO this should prob be some better mere defined value
-                try:
-                    self.check_ques_for_updates()
-                except Exception as err:
-                    logging.info(err)
-                    logging.info(traceback.format_exc())
+        except Exception as err:
+            logging.info(err)
+            logging.info(traceback.format_exc())
 
     @staticmethod
     def calculate_auxiliary_reward(policy, aidx):
@@ -130,6 +137,8 @@ class Actor:
         if not self.to_actor_partition_que.empty():
             partition = self.to_actor_partition_que.get()
             proces_local_partition = copy.deepcopy(partition)
+            if proces_local_partition[0] is None:
+                    logging.info("jank")
             self.local_partition_memory.append(proces_local_partition)
             if len(self.local_partition_memory) > 100:  # TODO get self.argument here for length
                 self.local_partition_memory.pop(0)
