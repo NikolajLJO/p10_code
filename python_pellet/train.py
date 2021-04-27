@@ -117,7 +117,7 @@ def mainloop(args):
             
             partition_memory = partition_memory[-MAX_PARTITIONS:]
             add_partition_freq = int(add_partition_freq * partition_add_time_mult)
-            transform_to_image(state[0][0]).save(str(path) + "/logs/" + "patition_" + str(len(partition_memory)) + ".png")
+            transform_to_image(state[0][0]).save(logpath + "patition_" + str(len(partition_memory)) + ".png")
 
         state = state_prime
         visited = visited_prime
@@ -132,14 +132,14 @@ def mainloop(args):
             agent.update_targets()
             
         if i % save_networks_frequency == 0:
-            agent.save_networks(path, i)
+            agent.save_networks(logpath, i)
         
         if steps_since_reward > 500:
             terminating = True
             episode_buffer[-1][5] = torch.tensor(terminating, device=agent.device).unsqueeze(0)
             steps_since_reward = 0
     
-    agent.save_networks(path, i)
+    agent.save_networks(logpath, i)
 
 
 def calculate_auxiliary_reward(policy, aidx):
