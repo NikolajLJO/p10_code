@@ -9,7 +9,9 @@ from pathlib import Path
 import datetime
 import logging
 import time
+import torchvision.transforms as transforms
 
+transform_to_image = transforms.ToPILImage()
 
 MAX_PARTITIONS = 100
 start_making_partitions = 2000000
@@ -66,6 +68,7 @@ def mainloop(args):
     
     state = env.reset()
     partition_memory = [[state, 0]]
+    transform_to_image(state[0][0]).save(str(path) + "/logs/" + "patition_1.png")
     state_prime = None
     visited = []
     visited_prime =[]
@@ -121,6 +124,7 @@ def mainloop(args):
             
             partition_memory = partition_memory[-MAX_PARTITIONS:]
             add_partition_freq = int(add_partition_freq * partition_add_time_mult)
+            transform_to_image(state[0][0]).save(str(path) + "/logs/" + "patition_" + str(len(partition_memory)) + ".png")
             
 
 
