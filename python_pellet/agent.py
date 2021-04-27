@@ -35,11 +35,11 @@ class Agent:
         self.EE_discount = 0.99
         self.action_space = 0
         
-        listt= []
+        temp_discounts= []
         listt.append(torch.tensor([self.EE_discount]*18, device=self.device).unsqueeze(0))
         for i in range(1,100):
-            listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device=self.device).unsqueeze(0))
-        self.EE_discounts = torch.cat(listt)
+            temp_discounts.append(torch.tensor([self.EE_discount**(i+1)]*18, device=self.device).unsqueeze(0))
+        self.EE_discounts = torch.cat(temp_discounts)
         self.MSE = torch.nn.MSELoss()
 
     def cast_to_device(self, tensors):
@@ -54,6 +54,7 @@ class Agent:
         self.qlearn(replay_memory)
         self.eelearn(replay_memory)
 
+
     def qlearn(self, replay_memory):
         if len(replay_memory.memory) > replay_memory.batch_size:
             targ_onesteps = []
@@ -63,6 +64,8 @@ class Agent:
             batch = replay_memory.sample()
             pellet_rewards = []
 
+            # targ_mc is the target montecarlo reward, i. e. the cummulative reward we can get from a state to the
+            # terminating state.
             states, action, visited, reward, terminating, s_primes, visited_prime, targ_mc = zip(*batch)
             states = torch.cat(states)
             action = torch.cat(action).long().unsqueeze(1)
@@ -81,6 +84,7 @@ class Agent:
             # end if
             
             for i in range(replay_memory.batch_size):
+                # If we visit a new partition, calculate the pellet reward of the new partition:
                 if len(visited[i]) < len(visited_prime[i]):
                     pellet_rewards.append(replay_memory.calc_pellet_reward(visited_prime[i][-1][1]))
                 else:
@@ -88,6 +92,8 @@ class Agent:
             pellet_rewards = torch.tensor(pellet_rewards, device=self.device)
 
             # targone-step   r + r+ + maxa Q(s0; v0; a)
+            # Represents the target reward for one step.
+            # In contrast to targ_mc, we calculate the rest of the reward by using our network targetQnet.
             targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
 
             # Calculate extrinsic and intrinsic returns, R and R+,
@@ -162,7 +168,7 @@ class Agent:
         else:
             for i, s2 in enumerate(partition_memory):
                 max_distance = np.NINF
-                for refrence in partition_memory:
+                for refrence in partition_memory[:5]:
                     distance = self.distance(state, s2[0], refrence[0])
                     if distance > max_distance:
                         max_distance = distance
@@ -188,10 +194,10 @@ class Agent:
 
         return action.unsqueeze(0), policy
 
-    def distance(self, s1, s2, dfactor):
+    def distance(self, s1, s2, ref_point):
         return max(
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(dfactor, s2)))),
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, dfactor)) - self.EEnet(merge_states_for_comparason(s2, dfactor))))).item()
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(ref_point, s2)))),
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, ref_point)) - self.EEnet(merge_states_for_comparason(s2, ref_point))))).item()
 
     def rnd_distance(self, s1, s2):
         return max(self.RND_calculate_novelty(s2, s1),

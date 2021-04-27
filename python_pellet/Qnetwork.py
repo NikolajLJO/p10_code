@@ -66,7 +66,7 @@ class EEnet(torch.nn.Module):
 
         layer_node_count = int(height * width * 16)
 
-        self.liniar_net = torch.nn.Sequential(torch.nn.Linear(layer_node_count*2, 128),
+        self.linear_net = torch.nn.Sequential(torch.nn.Linear(layer_node_count*2, 128),
                                               torch.nn.ReLU(),
                                               torch.nn.Linear(128, 18))
 
@@ -82,7 +82,7 @@ class EEnet(torch.nn.Module):
         mean = (state1+state2)/2
         state = torch.cat([sub.view(sub.shape[0], -1), mean.view(mean.shape[0], -1)], 1)
 
-        output = self.liniar_net(state)
+        output = self.linear_net(state)
         return output
 
     def backpropagate(self, prediction, target):

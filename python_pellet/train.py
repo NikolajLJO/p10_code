@@ -41,9 +41,10 @@ def mainloop(args):
     path = Path(__file__).parent
     Path(path / 'logs').mkdir(parents=True, exist_ok=True)
     now = datetime.datetime.now()
+    logpath= str(path) + "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute)
     logging.basicConfig(level=logging.DEBUG,
                         format='%(message)s',
-                        filename=(str(path) + "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute) + "-log.txt"),
+                        filename=(logpath + "-log.txt"),
                         filemode='w')
     logger = get_writer()
     sys.stdout = logger
@@ -70,6 +71,7 @@ def mainloop(args):
     steps_since_reward = 0
 
     for i in range(1, int(args[2])):
+
         action, policy = agent.find_action(state, i)
 
         auxiliary_reward = torch.tensor(calculate_auxiliary_reward(policy, action.item()), device=agent.device)
@@ -115,9 +117,7 @@ def mainloop(args):
             
             partition_memory = partition_memory[-MAX_PARTITIONS:]
             add_partition_freq = int(add_partition_freq * partition_add_time_mult)
-            transform_to_image(state[0][0]).save(str(path) + "/logs/" + "patition_" + str(len(partition_memory)) + ".png")
-            
-
+            transform_to_image(state[0][0]).save(logpath + "patition_" + str(len(partition_memory)) + ".png")
 
         state = state_prime
         visited = visited_prime
@@ -132,15 +132,14 @@ def mainloop(args):
             agent.update_targets()
             
         if i % save_networks_frequency == 0:
-            agent.save_networks(path, i)
+            agent.save_networks(logpath, i)
         
         if steps_since_reward > 500:
             terminating = True
             episode_buffer[-1][5] = torch.tensor(terminating, device=agent.device).unsqueeze(0)
             steps_since_reward = 0
     
-    agent.save_networks(path, i)
-
+    agent.save_networks(logpath, i)
 
 
 def calculate_auxiliary_reward(policy, aidx):
@@ -162,6 +161,7 @@ def partitiondeterminarion(ee_network, s_n, r):
             mindist[0] = dist
             mindist[1] = s_pi
     return mindist[1]
+
 
 def update_partitions(visited_partitions, partition_memory):
     for visited in visited_partitions:
