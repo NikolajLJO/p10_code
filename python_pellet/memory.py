@@ -26,6 +26,7 @@ class ReplayMemory:
             self.memory_refrence_pointer = (self.memory_refrence_pointer + 1) % self.MAX_MEMORY_SIZE
 
     def sample(self):
+        # TODO Document what a batch returned from this method contains.
         batch = []
         for i in range(self.batch_size):
             state_index = np.random.randint(0, (len(self.memory)))
@@ -49,6 +50,7 @@ class ReplayMemory:
         return batch
 
     def sample_ee_minibatch(self):
+        # TODO Document what a batch returned from this method contains.
         batch = []
         for i in range(self.batch_size):
             state_index = np.random.randint(0, (len(self.memory)))
