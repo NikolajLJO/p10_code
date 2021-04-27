@@ -46,7 +46,6 @@ def mainloop(args):
                         format='%(message)s',
                         filename=(logpath + "-log.txt"),
                         filemode='w')
-    log1 = logging.getLogger("log1")
     logger = get_writer()
     sys.stdout = logger
     
@@ -97,7 +96,7 @@ def mainloop(args):
             visited_prime = []
             replay_memory.save(episode_buffer)
             episode_time = time.process_time()-now
-            log1.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(episode_time) + " partitions: " + str(len(partition_memory)) + " time pr. step: " + str(episode_time/len(episode_buffer)))
+            logging.info("step: " + str(i) + " total_score: " + str(total_score) + " time taken: " + str(episode_time) + " partitions: " + str(len(partition_memory)) + " time pr. step: " + str(episode_time/len(episode_buffer)))
             episode_buffer.clear()
             now = time.process_time()
             total_score = 0
