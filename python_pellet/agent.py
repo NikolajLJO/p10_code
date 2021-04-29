@@ -1,71 +1,76 @@
-import math
-
-from Qnetwork import Qnet, EEnet
+'''
+In this file the agent and belonging methods can be found.
+'''
 import copy
 import torch
 import numpy as np
-import itertools
+from Qnetwork import Qnet, EEnet
 
 
 class Agent:
-    def __init__(self, nq=0.1, ne=0.1, use_RND=False):
-        
+    '''
+    The agent is teh primary object contaning multiple neural networks
+    and methods to use them
+    '''
+    def __init__(self, NQ=0.1, NE=0.1, use_RND=False):
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
         else:
             self.device = torch.device('cpu')
-        
-        self.Qnet = Qnet().to(self.device)
-        self.targetQnet = copy.deepcopy(self.Qnet)
+
+        self.q_net = Qnet().to(self.device)
+        self.target_q_net = copy.deepcopy(self.q_net)
         if use_RND:
-            self.EEnet = EEnet().to(self.device)
-            self.targetEEnet = EEnet().to(self.device)
+            self.ee_net = EEnet().to(self.device)
+            self.target_ee_net = EEnet().to(self.device)
         else:
-            self.EEnet = EEnet().to(self.device)
-            self.targetEEnet = copy.deepcopy(self.EEnet)
-        self.use_RND = use_RND
+            self.ee_net = EEnet().to(self.device)
+            self.targetee_net = copy.deepcopy(self.ee_net)
+        self.use_rnd = use_RND
         self.visited = []
-        self.NQ = nq
-        self.NE = ne
+        self.nq = NQ
+        self.ne = NE
 
         self.epsilon = 0
         self.slope = -(1 - 0.05) / 1000000
         self.intercept = 1
-        self.Q_discount = 0.99
-        self.EE_discount = 0.99
+        self.q_discount = 0.99
+        self.ee_discount = 0.99
         self.action_space = 0
-        
-        temp_discounts= []
-        listt.append(torch.tensor([self.EE_discount]*18, device=self.device).unsqueeze(0))
-        for i in range(1,100):
-            temp_discounts.append(torch.tensor([self.EE_discount**(i+1)]*18, device=self.device).unsqueeze(0))
-        self.EE_discounts = torch.cat(temp_discounts)
-        self.MSE = torch.nn.MSELoss()
 
-    def cast_to_device(self, tensors):
-        for tensor in tensors:
-            tensor = tensor.to(device=self.device)
+        temp_discounts= []
+        temp_discounts.append(torch.tensor([self.ee_discount]*18, device=self.device).unsqueeze(0))
+        for i in range(1,100):
+            temp_discounts.append(torch.tensor([self.ee_discount**(i+1)]*18,
+                                                device=self.device).unsqueeze(0))
+        self.ee_discounts = torch.cat(temp_discounts)
+        self.mse = torch.nn.MSELoss()
 
     def find_action(self, state, step):
+        '''
+        this function finds and return an action
+        Input: state is the current state and step is the stepcount
+        output: the best action according to policy
+                policy the full list of q-values
+        '''
         action, policy = self.e_greedy_action_choice(state, step)
         return action, policy
 
-    def update(self, replay_memory):
-        self.qlearn(replay_memory)
-        self.eelearn(replay_memory)
-
-
     def qlearn(self, replay_memory):
+        '''
+        qlearn calucaltes the variabels used for backpropagating the q-network
+        Input: replay_memory to sample from
+        '''
         if len(replay_memory.memory) > replay_memory.batch_size:
             targ_onesteps = []
 
             # Sample random minibatch of transitions
-            # {s; v; a; r; s ; v´} from replay memory
+            # {s; v; a; r; s ; v´, mcr} from replay memory
             batch = replay_memory.sample()
             pellet_rewards = []
 
-            # targ_mc is the target montecarlo reward, i. e. the cummulative reward we can get from a state to the
-            # terminating state.
+            # targ_mc is the target montecarlo reward, i. e.
+            # the cummulative reward we can get from a state to the terminating state.
             states, action, visited, reward, terminating, s_primes, visited_prime, targ_mc = zip(*batch)
             states = torch.cat(states)
             action = torch.cat(action).long().unsqueeze(1)
@@ -74,15 +79,6 @@ class Agent:
             terminating = torch.cat(terminating).long()
             targ_mc = torch.cat(targ_mc)
 
-            #self.cast_to_device([states,action,reward,s_primes,terminating,targ_mc])
-
-            # if v 6= v0 then
-            # r+  pellet reward for the partition visited
-            # (i.e. the single partition in v0 n v)
-            # else
-            # r+   0
-            # end if
-            
             for i in range(replay_memory.batch_size):
                 # If we visit a new partition, calculate the pellet reward of the new partition:
                 if len(visited[i]) < len(visited_prime[i]):
@@ -91,76 +87,93 @@ class Agent:
                     pellet_rewards.append(0)
             pellet_rewards = torch.tensor(pellet_rewards, device=self.device)
 
-            # targone-step   r + r+ + maxa Q(s0; v0; a)
             # Represents the target reward for one step.
-            # In contrast to targ_mc, we calculate the rest of the reward by using our network targetQnet.
-            targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
+            # In contrast to targ_mc, we calculate the rest of the reward
+            # by using our network target_q_net.
+            future_reward = self.target_q_net(s_primes).max(1)[0].detach() * (1 - terminating)
+            targ_onesteps = reward + pellet_rewards + self.q_discount * future_reward
 
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
-            predictions = self.Qnet(states).gather(1, action)
+            predictions = self.q_net(states).gather(1, action)
 
-            # targMC   R + R+
-            # targmixed   (1 􀀀 Q)targone-step + QtargMC
-            # Update Q(s; v; a) towards targmixed
-            targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
-            self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
+            targ_mix = (1 - self.nq) * targ_onesteps + self.nq * targ_mc
+            self.q_net.backpropagate(predictions, targ_mix.unsqueeze(1))
 
     def eelearn(self, replay_memory):
+        '''
+        eelearn calucaltes the variabels used for backpropagating the q-network
+        Input: replay_memory to sample from
+        '''
         if len(replay_memory.memory) > replay_memory.batch_size:
             # Sample a minibatch of state pairs and interleaving
-            # auxiliary rewards fst; st+k; f^rt ; : : : ; ^rt+k􀀀1gg
-            # from the replay memory with k < m
             batch = replay_memory.sample_ee_minibatch()
 
             states, s_primes, smid, auxreward = zip(*batch)
             targ_onesteps = []
             for i in range(len(smid)):
-                # targone-step   ^rt + Em(st+1; st+k􀀀1)
                 targ_onesteps.append(
                     auxreward[i][0]
-                    + self.EE_discount
-                    * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
+                    + self.ee_discount
+                    * self.target_ee_net(merge_states_for_comparason(smid[i], s_primes[i])))
 
             targ_mc = torch.zeros(len(auxreward),18, device=self.device)
-            # targMC Pk􀀀1 i=0 i^rt+i
-            for i, setauxreward in enumerate(auxreward):
-                targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)],0)
 
-            # targmixed   (1 􀀀 E)targone-step + EtargMC
-            targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
+            for i, setauxreward in enumerate(auxreward):
+                discounted_aux = torch.stack(setauxreward) + self.ee_discounts[:len(setauxreward)]
+                targ_mc[i] = torch.sum(discounted_aux, 0)
+
+            targ_mix = (1 - self.ne) * torch.cat(targ_onesteps) + self.ne * targ_mc
 
             merged = []
             for i in range(len(states)):
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))
-            # Update Em(st; st+k􀀀1) towards targmixed
-            self.EEnet.backpropagate(self.EEnet(torch.cat(merged).to(device=self.device)), targ_mix)
+
+            self.ee_net.backpropagate(self.ee_net(torch.cat(merged).to(device=self.device)),
+                                      targ_mix)
 
     def rndlearn(self, replay_memory):
+        '''
+        rndlearn calucaltes the variabels used for backpropagating the q-network
+        Input: replay_memory to sample from
+        '''
         if len(replay_memory.memory) > replay_memory.batch_size:
             batch = replay_memory.sample_ee_minibatch()
             states, s_primes, _, _ = zip(*batch)
             netinput = []
             for i in range(len(states)):
                 netinput.append(merge_states_for_comparason(states[i], s_primes[i]))
-            
-            netinput = torch.cat(netinput)
-            pred = self.EEnet(netinput)
-            targ = self.targetEEnet(netinput)
 
-            self.EEnet.backpropagate(pred, targ)
-    
+            netinput = torch.cat(netinput)
+            pred = self.ee_net(netinput)
+            targ = self.target_ee_net(netinput)
+
+            self.ee_net.backpropagate(pred, targ)
+
     def imagecomparelearn(self, replay_memory):
-        if self.use_RND:
+        '''
+        This function decides how to train the state compareson network
+        Input: replay_memory is sent to the correct training algorithm
+        '''
+        if self.use_rnd:
             self.rndlearn(replay_memory)
         else:
             self.eelearn(replay_memory)
 
     def find_current_partition(self, state, partition_memory):
+        '''
+        This function findc the partition the agent is currently in,
+        and adding it to the list of visited partitions.
+        Input: state should be the current state
+               partition_memory is the list of all partitions
+        output: visited is the list of visited partition before the transition
+                visited_prime is the list of visited states after the transition
+                distance is the maximum distance between the state and all partitions
+        '''
         min_distance = np.Inf
         current_partition = None
-        if self.use_RND:
-            for i, s2 in enumerate(partition_memory):
+        if self.use_rnd:
+            for s2 in partition_memory:
                 max_distance = self.rnd_distance(state, s2[0])
                 if max_distance < min_distance:
                     min_distance = max_distance
@@ -177,14 +190,21 @@ class Agent:
                     current_partition = s2
 
         visited = copy.deepcopy(self.visited)
-        
+
         if not is_tensor_in_list(current_partition, self.visited):
             self.visited.append(current_partition)
 
         return visited, self.visited, min_distance
 
     def e_greedy_action_choice(self, state, step):
-        policy = self.Qnet(state)
+        '''
+        This function chooses the agction greedily or randomly according to the epsilon value
+        Input: state is the state you want an action for
+               step is the current step used to calculate the epsilon for the next decisions
+        Output: action a tensor with the best action index
+                policy is all q-values at the state
+        '''
+        policy = self.q_net(state)
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0])
         else:
@@ -195,34 +215,77 @@ class Agent:
         return action.unsqueeze(0), policy
 
     def distance(self, s1, s2, ref_point):
+        '''
+        distance uses the ee-netwok to calculate the distance be s1 and s2 via ref_point
+        Input: s1 is a state
+               s2 is a state
+               ref_point is a state
+        Output: The maximum distate from s1 to s2 or s2 to s1
+        '''
         return max(
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(ref_point, s2)))),
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, ref_point)) - self.EEnet(merge_states_for_comparason(s2, ref_point))))).item()
+            torch.sum(abs(self.ee_net(merge_states_for_comparason(ref_point, s1)) -
+                          self.ee_net(merge_states_for_comparason(ref_point, s2)))),
+            torch.sum(abs(self.ee_net(merge_states_for_comparason(s1, ref_point)) -
+                          self.ee_net(merge_states_for_comparason(s2, ref_point))))).item()
 
     def rnd_distance(self, s1, s2):
+        '''
+        This method usues the distilation method to calculates
+        the novelty of the state combination
+        Input: s1 is a state
+               s2 is a state
+        Output: The maximum distate from s1 to s2 or s2 to s1
+        '''
         return max(self.RND_calculate_novelty(s2, s1),
                    self.RND_calculate_novelty(s1, s2))
-    
+
     def update_targets(self):
-        self.targetQnet = copy.deepcopy(self.Qnet)
-        if not self.use_RND:
-            self.targetEEnet = copy.deepcopy(self.EEnet)
-    
+        '''
+        This function updates the target networks
+        If the agent is using RND the EE-target will not be updated.
+        '''
+        self.target_q_net = copy.deepcopy(self.q_net)
+        if not self.use_rnd:
+            self.target_ee_net = copy.deepcopy(self.ee_net)
+
     def save_networks(self, path,step):
-        torch.save(self.Qnet.state_dict(), str(path) + "/logs/" + "Qagent_"+ str(step) +".p")
-        torch.save(self.EEnet.state_dict(), str(path) + "/logs/" + "EEagent_"+ str(step) +".p")
-    
+        '''
+        This function saves the networks parameters on the provided path
+        using step to indicate when in the training the networks is from
+        Input: path the path to the save location
+               step the step the training is at
+        '''
+        torch.save(self.q_net.state_dict(), str(path) + "/logs/" + "Qagent_"+ str(step) +".p")
+        torch.save(self.ee_net.state_dict(), str(path) + "/logs/" + "EEagent_"+ str(step) +".p")
+
     def RND_calculate_novelty(self, s, s2):
+        '''
+        calculates mean squared error between the target and the predictor using two states
+        Input: s is a state
+               s2 is a state
+        '''
         netinput = merge_states_for_comparason(s, s2)
-        pred = self.EEnet(netinput)
-        targ = self.targetEEnet(netinput)
-        return self.MSE(pred, targ).item()
+        pred = self.ee_net(netinput)
+        targ = self.target_ee_net(netinput)
+        return self.mse(pred, targ).item()
 
 
 def merge_states_for_comparason(s1, s2):
+    '''
+    this funktion combines two states
+    Input: s1 is a state
+           s2 is a state
+    Output: A tensor containing the two states on the secound dimention
+    '''
     return torch.stack([s1, s2], dim=2).squeeze(0)
 
 def is_tensor_in_list(mtensor, mlist):
+    '''
+    This function tests if a tensor os in the list
+    Input: mtensor is a tensor
+           mlist is a list of tensors of same form as mtensor
+    Output: boolean dependant on if the mtensor is in the list
+    '''
     for element in mlist:
         if torch.equal(mtensor[0], element[0]):
             return True
