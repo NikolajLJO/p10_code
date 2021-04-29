@@ -95,7 +95,8 @@ def mainloop(args):
         auxiliary_reward = torch.tensor(calculate_auxiliary_reward(policy,
                                                                    action.item()),
                                         device=agent.device)
-
+        # if the state is not terminating take the action and save the trasition
+        # else reset the game an all related variables.
         if not terminating:
             state_prime, reward, terminating, _ = env.step(action.item())
             total_score += reward
