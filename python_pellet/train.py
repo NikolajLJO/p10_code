@@ -118,7 +118,7 @@ def mainloop(args):
             visited_prime = []
             replay_memory.save(episode_buffer)
             episode_time = time.process_time()-now
-            logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.4f}| Partition #: |{4:.2f}|"
+            logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.4f}| Partition #: |{4}|"
                          .format(str(i).rjust(7, " "),
                                  int(total_score),
                                  episode_time,
