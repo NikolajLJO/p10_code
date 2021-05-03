@@ -44,7 +44,7 @@ class Agent:
             temp_discounts.append(torch.tensor([self.ee_discount**(i+1)]*18,
                                                 device=self.device).unsqueeze(0))
         self.ee_discounts = torch.cat(temp_discounts)
-        self.mse = torch.nn.MSELoss()
+        self.mse = torch.nn.MSELoss(reduction='none')
 
     def find_action(self, state, step):
         '''
@@ -172,22 +172,58 @@ class Agent:
         '''
         min_distance = np.Inf
         current_partition = None
+
         if self.use_rnd:
+            merged_states_forward = []
+            merged_states_back = []
             for s2 in partition_memory:
-                max_distance = self.rnd_distance(state, s2[0])
-                if max_distance < min_distance:
-                    min_distance = max_distance
-                    current_partition = s2
+                merged_states_forward.append(merge_states_for_comparason(state, s2[0]))
+                merged_states_back.append(merge_states_for_comparason(s2[0], state))
+            merged_states_forward = torch.cat(merged_states_forward)
+            merged_states_back = torch.cat(merged_states_back)
+   
+            lars_forward = self.ee_net(merged_states_forward)
+            lars2_forward = self.target_ee_net(merged_states_forward)
+            
+            lars_back = self.ee_net(merged_states_back)
+            lars2_back = self.target_ee_net(merged_states_back)
+            
+            lars_forward = torch.mean(self.mse(lars_forward,lars2_forward), dim = 1)
+            lars_back =  torch.mean(self.mse(lars_back,lars2_back), dim = 1)
+
+            lars = torch.max(torch.stack([lars_forward,lars_back], dim=1),1)[0]
+
+            argmin_value, argmin_index = torch.min(lars,0)
+            current_partition = partition_memory[argmin_index.item()]
+            min_distance = argmin_value.item()
+
         else:
             for i, s2 in enumerate(partition_memory):
                 max_distance = np.NINF
+                state_to_ref = []
+                s2_to_ref = []
+                ref_to_state = []
+                ref_to_s2 = []
                 for refrence in partition_memory[:5]:
-                    distance = self.distance(state, s2[0], refrence[0])
-                    if distance > max_distance:
-                        max_distance = distance
+                    state_to_ref.append(merge_states_for_comparason(state, refrence[0]))
+                    s2_to_ref.append(merge_states_for_comparason(s2[0], refrence[0]))
+                    ref_to_state.append(merge_states_for_comparason(refrence[0], state))
+                    ref_to_s2.append(merge_states_for_comparason(refrence[0], s2[0]))
+                
+                state_to_ref = torch.cat(state_to_ref)
+                s2_to_ref = torch.cat(s2_to_ref)
+                forward = torch.sum(self.ee_net(state_to_ref) - self.ee_net(s2_to_ref), dim=1)
+
+                ref_to_state = torch.cat(ref_to_state)
+                ref_to_s2 = torch.cat(ref_to_s2)
+                backward = torch.sum(self.ee_net(ref_to_state)- self.ee_net(ref_to_s2), dim=1)
+
+                max_distance = torch.max(torch.max(torch.stack([forward,backward], dim=1),1)[0],0)[0].item()
+
                 if max_distance < min_distance:
                     min_distance = max_distance
                     current_partition = s2
+                
 
         visited = copy.deepcopy(self.visited)
 
@@ -267,7 +303,7 @@ class Agent:
         netinput = merge_states_for_comparason(s, s2)
         pred = self.ee_net(netinput)
         targ = self.target_ee_net(netinput)
-        return self.mse(pred, targ).item()
+        return torch.mean(self.mse(pred, targ)).item()
 
 
 def merge_states_for_comparason(s1, s2):
