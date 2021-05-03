@@ -291,8 +291,8 @@ class Agent:
         Input: path the path to the save location
                step the step the training is at
         '''
-        torch.save(self.q_net.state_dict(), str(path) + "/logs/" + "Qagent_"+ str(step) +".p")
-        torch.save(self.ee_net.state_dict(), str(path) + "/logs/" + "EEagent_"+ str(step) +".p")
+        torch.save(self.q_net.state_dict(), str(path) + "Qagent_"+ str(step) +".p")
+        torch.save(self.ee_net.state_dict(), str(path) + "EEagent_"+ str(step) +".p")
 
     def RND_calculate_novelty(self, s, s2):
         '''
