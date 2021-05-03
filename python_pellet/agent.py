@@ -196,7 +196,7 @@ class Agent:
 
     def distance(self, s1, s2, ref_point):
         return max(
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(dfactor, s1)) - self.EEnet(merge_states_for_comparason(ref_point, s2)))),
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(ref_point, s1)) - self.EEnet(merge_states_for_comparason(ref_point, s2)))),
             torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, ref_point)) - self.EEnet(merge_states_for_comparason(s2, ref_point))))).item()
 
     def rnd_distance(self, s1, s2):
