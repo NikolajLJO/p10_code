@@ -9,7 +9,7 @@ from Qnetwork import Qnet, EEnet
 
 class Agent:
     '''
-    The agent is teh primary object contaning multiple neural networks
+    The agent is the primary object containing multiple neural networks
     and methods to use them
     '''
     def __init__(self, NQ=0.1, NE=0.1, use_RND=False):
