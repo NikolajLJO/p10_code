@@ -1,4 +1,5 @@
 import math
+import time
 import traceback
 
 from Qnetwork import Qnet, EEnet
@@ -117,16 +118,45 @@ class Agent:
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
 
     def find_current_partition(self, state, partition_memory):
-        current_partition = None
+        '''
+        This function findc the partition the agent is currently in,
+        and adding it to the list of visited partitions.
+        Input: state should be the current state
+               partition_memory is the list of all partitions
+        output: visited is the list of visited partition before the transition
+                visited_prime is the list of visited states after the transition
+                distance is the maximum distance between the state and all partitions
+        '''
         min_distance = np.Inf
-        for partition in partition_memory:
-            distance = self.distance_prime(state, partition[0], partition_memory)
-            if distance < min_distance:
-                min_distance = distance
-                current_partition = partition
+        current_partition = None
+        for i, s2 in enumerate(partition_memory):
+            max_distance = np.NINF
+            state_to_ref = []
+            s2_to_ref = []
+            ref_to_state = []
+            ref_to_s2 = []
+            for refrence in partition_memory[:5]:
+                state_to_ref.append(merge_states_for_comparason(state, refrence[0]))
+                s2_to_ref.append(merge_states_for_comparason(s2[0], refrence[0]))
+                ref_to_state.append(merge_states_for_comparason(refrence[0], state))
+                ref_to_s2.append(merge_states_for_comparason(refrence[0], s2[0]))
+
+            state_to_ref = torch.cat(state_to_ref)
+            s2_to_ref = torch.cat(s2_to_ref)
+            forward = torch.sum(self.EEnet(state_to_ref) - self.EEnet(s2_to_ref), dim=1)
+
+            ref_to_state = torch.cat(ref_to_state)
+            ref_to_s2 = torch.cat(ref_to_s2)
+            backward = torch.sum(self.EEnet(ref_to_state) - self.EEnet(ref_to_s2), dim=1)
+
+            max_distance = torch.max(torch.max(torch.stack([forward, backward], dim=1), 1)[0], 0)[0].item()
+
+            if max_distance < min_distance:
+                min_distance = max_distance
+                current_partition = s2
 
         visited = copy.deepcopy(self.visited)
-        
+
         if not is_tensor_in_list(current_partition, self.visited):
             self.visited.append(current_partition)
 

@@ -21,19 +21,20 @@ def process_score_over_steps(in_file_name: str):
         writer = csv.writer(outfile, )
         with open(in_file_path, 'r') as infile:
             for line in infile:
-                items = line.split('|')
-                printable_items = [items[1].strip(),
-                                   items[3].strip(),
-                                   items[5].strip(),
-                                   items[7].strip()]
-                writer.writerow(printable_items)
-
+                if line.__contains__("|"):
+                    items = line.split('|')
+                    printable_items = [items[1].strip(),
+                                       items[3].strip(),
+                                       items[5].strip(),
+                                       items[7].strip()]
+                    writer.writerow(printable_items)
 
 
 def process_dis(in_file_name: str):
     now = datetime.datetime.now()
     now_but_text = str(now.date()) + '-' + str(now.hour) + str(now.minute)
-    # TODO if file name not end txt add it
+    if in_file_name.split('.')[-1] is not ".txt":
+        in_file_name += ".text"
     path = Path(__file__).parent
     csv_path = path / "logs" / (now_but_text + ".csv")
     in_file_path = path / "logs" / (in_file_name + ".txt")
@@ -48,6 +49,7 @@ def process_dis(in_file_name: str):
             end = datetime.datetime.strptime(end, '%Y-%m-%d %H:%M:%S.%f')
             running_time = (end-start).total_seconds()
             running_time = str(int(running_time))
+
         in_file_path = in_file_path.__str__().replace('manager', 'learner')
         with open(in_file_path, 'r') as infile:
             j = 0
