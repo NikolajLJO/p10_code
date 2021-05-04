@@ -111,11 +111,15 @@ class Agent:
 
             states, s_primes, smid, auxreward = zip(*batch)
             targ_onesteps = []
+            merged = []
             for i in range(len(smid)):
-                targ_onesteps.append(
-                    auxreward[i][0]
-                    + self.ee_discount
-                    * self.target_ee_net(merge_states_for_comparason(smid[i], s_primes[i])))
+                targ_onesteps.append(auxreward[i][0])
+                merged.append(merge_states_for_comparason(smid[i], s_primes[i]))
+            
+            merged = torch.cat(merged)
+            targ_onesteps = torch.stack(targ_onesteps)
+            future = self.ee_discount * self.target_ee_net(merged).detach()
+            targ_onesteps = targ_onesteps + future
 
             targ_mc = torch.zeros(len(auxreward),18, device=self.device)
 
@@ -123,7 +127,7 @@ class Agent:
                 discounted_aux = torch.stack(setauxreward) + self.ee_discounts[:len(setauxreward)]
                 targ_mc[i] = torch.sum(discounted_aux, 0)
 
-            targ_mix = (1 - self.ne) * torch.cat(targ_onesteps) + self.ne * targ_mc
+            targ_mix = (1 - self.ne) * targ_onesteps + self.ne * targ_mc
 
             merged = []
             for i in range(len(states)):
