@@ -75,6 +75,9 @@ class Learner:
 
             logging.info("Refilled replay memory")
 
+            ee_update_count = 0
+            ee_done = False
+
             while learner_ee_que.qsize() < self.learner_ee_que_max_size:
                 pass
 
@@ -85,6 +88,10 @@ class Learner:
                     self.ee_memory.append(process_local_transition)
                     del transition
                 logging.info("Refilled ee memory")
+                ee_update_count += 1
+
+            if not ee_done and ee_update_count * self.learner_ee_que_max_size > 2e6:
+                ee_done = True
 
             if from_actor_partition_que.qsize() >= actor_count * 2:
                 unqued_partitions = []
@@ -101,7 +108,7 @@ class Learner:
             # while we have more than 10% replay memory, learn
             while len(self.replay_memory.memory) >= self.update_memory_break_point \
                 and len(self.ee_memory) >= self.update_ee_memory_break_point:
-                self.agent.update(self.replay_memory, self.ee_memory)
+                self.agent.update(self.replay_memory, self.ee_memory,ee_done)
 
             logging.info("I processed 90% of que")
 

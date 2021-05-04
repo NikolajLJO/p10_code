@@ -49,9 +49,10 @@ class Agent:
         action, policy = self.e_greedy_action_choice(state, step)
         return action, policy
 
-    def update(self, replay_memory, ee_memory):
+    def update(self, replay_memory, ee_memory, ee_done: bool):
         self.qlearn(replay_memory)
-        self.eelearn(ee_memory)
+        if not ee_done:
+            self.eelearn(ee_memory)
 
     def qlearn(self, replay_memory):
         if len(replay_memory.memory) > replay_memory.batch_size:
