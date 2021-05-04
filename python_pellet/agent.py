@@ -182,18 +182,18 @@ class Agent:
             merged_states_forward = torch.cat(merged_states_forward)
             merged_states_back = torch.cat(merged_states_back)
    
-            lars_forward = self.ee_net(merged_states_forward)
-            lars2_forward = self.target_ee_net(merged_states_forward)
+            aux_forward = self.ee_net(merged_states_forward)
+            aux_target_forward = self.target_ee_net(merged_states_forward)
             
-            lars_back = self.ee_net(merged_states_back)
-            lars2_back = self.target_ee_net(merged_states_back)
+            aux_back = self.ee_net(merged_states_back)
+            aux_target_back = self.target_ee_net(merged_states_back)
             
-            lars_forward = torch.mean(self.mse(lars_forward,lars2_forward), dim = 1)
-            lars_back =  torch.mean(self.mse(lars_back,lars2_back), dim = 1)
+            aux_forward = torch.mean(self.mse(aux_forward,aux_target_forward), dim = 1)
+            aux_back =  torch.mean(self.mse(aux_back,aux_target_back), dim = 1)
 
-            lars = torch.max(torch.stack([lars_forward,lars_back], dim=1),1)[0]
+            novelties = torch.max(torch.stack([aux_forward,aux_back], dim=1),1)[0]
 
-            argmin_value, argmin_index = torch.min(lars,0)
+            argmin_value, argmin_index = torch.min(novelties,0)
             current_partition = partition_memory[argmin_index.item()]
             min_distance = argmin_value.item()
 
