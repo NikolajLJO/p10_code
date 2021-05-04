@@ -10,6 +10,9 @@ import sys
 from init import setup_agent
 import traceback
 import torch
+import torchvision.transforms as transforms
+
+transform_to_image = transforms.ToPILImage()
 
 
 class Learner:
@@ -26,13 +29,13 @@ class Learner:
                  to_actor_partition_que,
                  actor_count):
         torch.multiprocessing.set_sharing_strategy('file_system')
-        path = Path(__file__).parent
-        Path(path / 'logs').mkdir(parents=True, exist_ok=True)
+        self.path = Path(__file__).parent
+        Path(self.path / 'logs').mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()
         now_but_text = "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute)
         logging.basicConfig(level=logging.DEBUG,
                             format='%(message)s',
-                            filename=(str(path) + now_but_text + "-learner" + "-log.txt"),
+                            filename=(str(self.path) + now_but_text + "-learner" + "-log.txt"),
                             filemode='w')
         logger = tools.get_writer()
         sys.stdout = logger
@@ -101,6 +104,8 @@ class Learner:
                     unqued_partitions.append(process_local_partition)
                     del partition
                 best_partition = max(unqued_partitions, key=lambda item: item[1])
+                transform_to_image(best_partition[0][0][0]).save((self.path / "patition_" /
+                                                     str(len(self.partition_memory)) / ".png").__str__())
                 for _ in range(actor_count):
                     to_actor_partition_que.put(copy.deepcopy(best_partition))
                 logging.info("Pushed partitions")

@@ -52,6 +52,7 @@ class Actor:
         visited_prime = []
         state = env.reset()
         self.local_partition_memory.append([state, 0])
+        steps_since_reward = 0
         try:
             for i in range(1, int(args[2])):
                 start = time.process_time()
@@ -89,6 +90,12 @@ class Actor:
                     visited.clear()
                     visited_prime.clear()
                     total_score = 0
+                    steps_since_reward = 0
+
+                if reward != 0 or len(visited) != len(visited_prime):
+                    steps_since_reward = 0
+                else:
+                    steps_since_reward += 1
 
                 if distance > dmax:
                     partition_candidate = state_prime
@@ -104,6 +111,11 @@ class Actor:
                     except Exception as err:
                         logging.info(err)
                         logging.info(traceback.format_exc())
+
+                if steps_since_reward > 500:
+                    terminating = True
+                    episode_buffer[-1][5] = torch.tensor(terminating, device=self.agent.device).unsqueeze(0)
+                    steps_since_reward = 0
 
         except Exception as err:
             logging.info(err)
