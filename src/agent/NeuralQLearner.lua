@@ -264,6 +264,7 @@ function nql:__init(args)
         print('Creating Agent Network from ' .. self.network)
         self.network = err
         self.network = self:network()
+        self:log('|||||||||||||||||||||||||||| ' .. tostring(self.network))
     end
 
 

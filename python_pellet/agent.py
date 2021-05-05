@@ -23,7 +23,7 @@ class Agent:
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.EEnet = EEnet().to(self.device)
         self.targetEEnet = copy.deepcopy(self.EEnet)
-        self.visited = []
+        self.visited = torch.zeros(1,100)
         self.NQ = nq
         self.NE = ne
 
@@ -49,18 +49,17 @@ class Agent:
         action, policy = self.e_greedy_action_choice(state, step)
         return action, policy
 
-    def update(self, replay_memory, ee_memory, ee_done: bool):
-        self.qlearn(replay_memory)
+    def update(self, replay_memory, ee_memory, partition_memory, ee_done: bool):
+        self.qlearn(replay_memory, partition_memory)
         if not ee_done:
             self.eelearn(ee_memory)
 
-    def qlearn(self, replay_memory, batch_size=None ):
+    def qlearn(self, replay_memory, partition_memory, batch_size=None ):
             # Sample random minibatch of transitions
             # {s; v; a; r; s ; v´} from replay memoryfe
             if batch_size is None:
                 batch_size = replay_memory.batch_size
             batch = replay_memory.sample(forced_batch_size=batch_size, should_pop=True)
-            pellet_rewards = []
             states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
             states = torch.cat(states)
             action = torch.cat(action).long().unsqueeze(1)
@@ -69,17 +68,12 @@ class Agent:
             terminating = torch.cat(terminating).long()
             targ_mc = torch.cat(targ_mc)
 
-            for i in range(batch_size):
-                if len(visited[i]) < len(visited_prime[i]):
-                    pellet_rewards.append(replay_memory.calc_pellet_reward(visited_prime[i][-1][1]))
-                else:
-                    pellet_rewards.append(0)
-            pellet_rewards = torch.tensor(pellet_rewards, device=self.device)
+            pellet_rewards = torch.sum(visited_prime, dim=1) - torch.sum(visited, dim=1)
 
             targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
-            predictions = self.Qnet(states).gather(1, action)
+            predictions = self.Qnet(states, visited).gather(1, action)
 
             targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
             self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
@@ -130,6 +124,7 @@ class Agent:
         '''
         min_distance = np.Inf
         current_partition = None
+        index = 0
         for i, s2 in enumerate(partition_memory):
             max_distance = np.NINF
             state_to_ref = []
@@ -155,16 +150,17 @@ class Agent:
             if max_distance < min_distance:
                 min_distance = max_distance
                 current_partition = s2
+                index = i
 
         visited = copy.deepcopy(self.visited)
 
-        if not is_tensor_in_list(current_partition, self.visited):
-            self.visited.append(current_partition)
+        if visited[index] is None:
+            visited[index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])], device=self.device)
 
         return visited, self.visited, min_distance
 
     def e_greedy_action_choice(self, state, step):
-        policy = self.Qnet(state)
+        policy = self.Qnet(state, self.visited)
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0])
         else:

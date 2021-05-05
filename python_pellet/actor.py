@@ -48,7 +48,7 @@ class Actor:
         episode_buffer = []
 
         game_actions, self.agent, opt, env = setup(args[1])
-        visited = []
+        visited = [None] * 100
         visited_prime = []
         state = env.reset()
         self.local_partition_memory.append([state, 0])
@@ -87,8 +87,9 @@ class Actor:
                                          elapsed,
                                          elapsed / len(episode_buffer)))
                     episode_buffer.clear()
-                    visited.clear()
-                    visited_prime.clear()
+                    visited[visited != 0] = 0
+                    visited_prime[visited_prime != 0] = 0
+
                     total_score = 0
                     steps_since_reward = 0
 
@@ -133,12 +134,12 @@ class Actor:
         return aux
 
     @staticmethod
-    def update_partitions(visited_partitions, partition_memory):
-        for visited in visited_partitions:
-            for i, partition in enumerate(partition_memory):
-                if torch.equal(visited[0], partition[0]):
-                    partition_memory[i][1] += 1
-                    break
+    def update_partitions(visited, partition_memory):
+        for i, _visited in enumerate(visited[0]):
+            logging.info(_visited)
+            if _visited.item() != 0:
+
+                partition_memory[i][1] += 1
 
     def check_ques_for_updates(self):
         self.check_que_and_update_network(self.q_network_que, self.agent.Qnet)

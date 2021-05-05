@@ -15,6 +15,14 @@ function create_network(args)
     local conv_layers = nn.Sequential()
     conv_layers:add(nn.Reshape(unpack(args.input_dims)))
 
+    print(args.input_dims)
+    print(unpack(args.input_dims))
+
+    for k, v in pairs(args.input_dims) do
+        print(v)
+    end
+
+
     --- first convolutional layer
     local convLayer = nn.SpatialConvolution
 

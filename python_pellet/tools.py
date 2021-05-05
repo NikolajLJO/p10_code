@@ -21,7 +21,7 @@ def process_score_over_steps(in_file_name: str):
         writer = csv.writer(outfile, )
         with open(in_file_path, 'r') as infile:
             for line in infile:
-                if line.__contains__("|"):
+                if line.__contains__(":"):
                     items = line.split('|')
                     printable_items = [items[1].strip(),
                                        items[3].strip(),
