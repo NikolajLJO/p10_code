@@ -40,7 +40,7 @@ class ReplayMemory:
                 self.memory[self.memory_refrence_pointer] = transition
             self.memory_refrence_pointer = (self.memory_refrence_pointer + 1) % self.MAX_MEMORY_SIZE
 
-    def sample(self, forced_batch_size=None):
+    def sample(self, forced_batch_size=None, should_pop = False):
         batch = []
         if forced_batch_size is not None:
             batch_size = forced_batch_size
@@ -49,7 +49,7 @@ class ReplayMemory:
 
         for i in range(0, batch_size):
             state_index = np.random.randint(0, (len(self.memory)))
-            if forced_batch_size is None:
+            if should_pop:
                 element = self.memory.pop(state_index)
             else:
                 element = self.memory[state_index]

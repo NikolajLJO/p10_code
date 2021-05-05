@@ -114,7 +114,7 @@ class Learner:
             # while we have more than 10% replay memory, learn
             while len(self.replay_memory.memory) >= self.update_memory_break_point \
                 and len(self.ee_memory) >= self.update_ee_memory_break_point:
-                self.agent.update(self.replay_memory, self.ee_memory,ee_done)
+                self.agent.update(self.replay_memory, self.ee_memory, ee_done)
 
             logging.info("I processed 90% of que")
 

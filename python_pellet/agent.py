@@ -54,11 +54,12 @@ class Agent:
         if not ee_done:
             self.eelearn(ee_memory)
 
-    def qlearn(self, replay_memory):
-        if len(replay_memory.memory) > replay_memory.batch_size:
+    def qlearn(self, replay_memory, batch_size=None ):
             # Sample random minibatch of transitions
             # {s; v; a; r; s ; v´} from replay memoryfe
-            batch = replay_memory.sample()
+            if batch_size is None:
+                batch_size = replay_memory.batch_size
+            batch = replay_memory.sample(forced_batch_size=batch_size, should_pop=True)
             pellet_rewards = []
             states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
             states = torch.cat(states)
@@ -68,7 +69,7 @@ class Agent:
             terminating = torch.cat(terminating).long()
             targ_mc = torch.cat(targ_mc)
 
-            for i in range(replay_memory.batch_size):
+            for i in range(batch_size):
                 if len(visited[i]) < len(visited_prime[i]):
                     pellet_rewards.append(replay_memory.calc_pellet_reward(visited_prime[i][-1][1]))
                 else:
@@ -83,11 +84,10 @@ class Agent:
             targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
             self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
 
-    def eelearn(self, ee_memory):
-        if len(ee_memory) > 32:
+    def eelearn(self, ee_memory, batch_size=32):
             # Sample a minibatch of state pairs and interleaving
             # auxiliary rewards
-            batch = random.sample(ee_memory, 32)
+            batch = random.sample(ee_memory, batch_size)
             states, s_primes, smid, auxreward = zip(*batch)
             targ_onesteps = []
             for i in range(len(smid)):
