@@ -17,7 +17,7 @@ class ReplayMemory:
 
     def save(self, episode_buffer):
         '''
-        Shis functions saves a buffers content to memory
+        Shis functions saves a buffers content to memory while adding the mc reward and the count to a terminating state
         Input: episode_bffer a list of transaction
         '''
         full_pellet_reward = 0
