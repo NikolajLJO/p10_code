@@ -110,7 +110,7 @@ class Agent:
             batch = replay_memory.sample_ee_minibatch()
 
             states, s_primes, smid, auxreward = zip(*batch)
-            # targ_onesteps is a list of targets where the fist step is what is done and future is calculated by a netwok
+            # targ_onesteps is a list of targets where the first step is what is done and future is calculated by a network
             targ_onesteps = []
             # merged is a list of all the merged states used to calculate future
             merged = []
@@ -130,7 +130,7 @@ class Agent:
                 targ_mc[i] = torch.sum(discounted_aux, 0)
 
             targ_mix = (1 - self.ne) * targ_onesteps + self.ne * targ_mc
-            # merged is changed to contain a list of state calculaing now and future
+            # merged is changed to contain a list of states calculating now and future.
             merged = []
             for i in range(len(states)):
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))
