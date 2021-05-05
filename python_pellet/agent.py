@@ -15,10 +15,10 @@ class Agent:
         torch.multiprocessing.set_sharing_strategy('file_system')
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
-            print("cuda")
+            logging.info("cuda")
         else:
             self.device = torch.device('cpu')
-            print("cpu")
+            logging.info("cpu")
         self.Qnet = Qnet().to(self.device)
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.EEnet = EEnet().to(self.device)
