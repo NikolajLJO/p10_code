@@ -188,7 +188,7 @@ def calculate_auxiliary_reward(policy, aidx):
 
 def update_partitions(visited_partitions, partition_memory):
     '''
-    this function update the number of visits that
+    this function updates the number of visits that
     each partition has when an episode is terminatied
     Input: visited_partitions is the list of visited partitions in an episode
            partition_memory is the full partition memory
