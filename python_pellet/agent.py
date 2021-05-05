@@ -102,7 +102,7 @@ class Agent:
 
     def eelearn(self, replay_memory):
         '''
-        eelearn calucaltes the variabels used for backpropagating the q-network
+        eelearn calucaltes the variabels used for backpropagating the ee-network
         Input: replay_memory to sample from
         '''
         if len(replay_memory.memory) > replay_memory.batch_size:
@@ -110,12 +110,18 @@ class Agent:
             batch = replay_memory.sample_ee_minibatch()
 
             states, s_primes, smid, auxreward = zip(*batch)
+            # targ_onesteps is a list of targets where the first step is what is done and future is calculated by a network
             targ_onesteps = []
+            # merged is a list of all the merged states used to calculate future
+            merged = []
             for i in range(len(smid)):
-                targ_onesteps.append(
-                    auxreward[i][0]
-                    + self.ee_discount
-                    * self.target_ee_net(merge_states_for_comparason(smid[i], s_primes[i])))
+                targ_onesteps.append(auxreward[i][0])
+                merged.append(merge_states_for_comparason(smid[i], s_primes[i]))
+            
+            merged = torch.cat(merged)
+            targ_onesteps = torch.stack(targ_onesteps)
+            future = self.ee_discount * self.target_ee_net(merged).detach()
+            targ_onesteps = targ_onesteps + future
 
             targ_mc = torch.zeros(len(auxreward),18, device=self.device)
 
@@ -123,8 +129,8 @@ class Agent:
                 discounted_aux = torch.stack(setauxreward) + self.ee_discounts[:len(setauxreward)]
                 targ_mc[i] = torch.sum(discounted_aux, 0)
 
-            targ_mix = (1 - self.ne) * torch.cat(targ_onesteps) + self.ne * targ_mc
-
+            targ_mix = (1 - self.ne) * targ_onesteps + self.ne * targ_mc
+            # merged is changed to contain a list of states calculating now and future.
             merged = []
             for i in range(len(states)):
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))

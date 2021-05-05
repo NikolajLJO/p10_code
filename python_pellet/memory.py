@@ -17,11 +17,20 @@ class ReplayMemory:
 
     def save(self, episode_buffer):
         '''
-        Shis functions saves a buffers content to memory
+        Shis functions saves a buffers content to memory while adding the mc reward and the count to a terminating state
         Input: episode_bffer a list of transaction
         '''
-        for i, transition in enumerate(episode_buffer):
-            transition.append(len(episode_buffer)-i)
+        full_pellet_reward = 0
+        for i, transition in enumerate(reversed(episode_buffer)):
+            if len(transition[2]) < len(transition[7]):
+                pellet_reward = self.calc_pellet_reward(transition[7][-1][1])
+            else:
+                pellet_reward = 0
+            full_pellet_reward =  pellet_reward + self.pellet_discount * full_pellet_reward
+            transition.append(full_pellet_reward + episode_buffer[-1][4])
+            transition.append(i)
+
+        for transition in episode_buffer:
             if len(self.memory) < self.MAX_MEMORY_SIZE:
                 self.memory.append(transition)
             else:
@@ -37,19 +46,6 @@ class ReplayMemory:
         batch = []
         for i in range(self.batch_size):
             state_index = np.random.randint(0, (len(self.memory)))
-            index = state_index
-            terminating = self.memory[state_index][5]
-            dist_to_term = self.memory[state_index][8]-1
-            mc_reward = self.memory[(state_index + dist_to_term) % self.MAX_MEMORY_SIZE][4]
-            j = 0
-            while not terminating:
-                transition = self.memory[index % self.MAX_MEMORY_SIZE]
-                if len(transition[2]) < len(transition[7]):
-                    pellet_reward = self.calc_pellet_reward(transition[7][-1][1])
-                    mc_reward = mc_reward + pellet_reward * (self.pellet_discount ** j)
-                index += 1
-                j += 1
-                terminating = self.memory[index % self.MAX_MEMORY_SIZE][5]
             
             # self.memory[state_index][0] = state at state_index
             # self.memory[state_index][1] = the action done at state
@@ -61,7 +57,7 @@ class ReplayMemory:
             batch.append([self.memory[state_index][0], self.memory[state_index][1],
                           self.memory[state_index][2], self.memory[state_index][4],
                           self.memory[state_index][5], self.memory[state_index][6],
-                          self.memory[state_index][7], mc_reward])
+                          self.memory[state_index][7], self.memory[state_index][8]])
 
         return batch
 
@@ -86,10 +82,11 @@ class ReplayMemory:
                 aux.append(auxiliary_reward)
             # self.memory[state_index][0] = state at state_index
             # self.memory[state_prime_index][0] = the state that we want to find the distance to
+            # self.memory[state_index][6]
             # aux the auxilary reward form state to state prime in a list
             batch.append([self.memory[state_index][0],
                           self.memory[state_prime_index][0],
-                          self.memory[state_index][-3],
+                          self.memory[state_index][6],
                           aux])
 
         return batch

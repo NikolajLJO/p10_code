@@ -81,7 +81,7 @@ def mainloop(args):
 
     state = env.reset()
     partition_memory = [[state, 0]]
-    transform_to_image(state[0][0]).save(str(path) + "/logs/" + "patition_1.png")
+    transform_to_image(state[0][0].cpu()).save(logpath + "patition_1.png")
     state_prime = None
     visited = []
     visited_prime =[]
@@ -144,7 +144,7 @@ def mainloop(args):
 
             partition_memory = partition_memory[-MAX_PARTITIONS:]
             add_partition_freq = int(add_partition_freq * PARTITION_ADD_TIME_MULT)
-            transform_to_image(state[0][0]).save(logpath + "patition_" +
+            transform_to_image(state[0][0].cpu()).save(logpath + "patition_" +
                                                  str(len(partition_memory)) + ".png")
 
         state = state_prime
@@ -153,7 +153,7 @@ def mainloop(args):
         if i % update_freq == 0 and i >= START_QLEARN:
             agent.qlearn(replay_memory)
 
-        if i % update_freq == 0 and i >= START_QLEARN and (i < END_EELEARN or int(args[5])):
+        if i % update_freq == 0 and i >= START_EELEARN and (i < END_EELEARN or int(args[5])):
             agent.imagecomparelearn(replay_memory)
 
         if i % UPDATE_TARGETS_FREQUENCY == 0:
