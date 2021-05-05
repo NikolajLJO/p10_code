@@ -34,7 +34,7 @@ class Actor:
         now = datetime.datetime.now()
         now_but_text = "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute)
         logging.basicConfig(level=logging.DEBUG,
-                            format='%(message)s',
+                            format='%(asctime)-15s | %(message)s',
                             filename=(str(path) + now_but_text + "-actor[" + str(process_itterator) + "]" + "-log.txt"),
                             filemode='w')
         logger = tools.get_writer()

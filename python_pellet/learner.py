@@ -34,7 +34,7 @@ class Learner:
         now = datetime.datetime.now()
         now_but_text = "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute)
         logging.basicConfig(level=logging.DEBUG,
-                            format='%(message)s',
+                            format='%(asctime)-15s | %(message)s',
                             filename=(str(self.path) + now_but_text + "-learner" + "-log.txt"),
                             filemode='w')
         logger = tools.get_writer()
@@ -66,9 +66,10 @@ class Learner:
         logging.info("Started with empty memory")
         while True:
             # when rpelay memory is almost empty, wait until the que has a full memory size
+            logging.info("start wait 1")
             while learner_replay_que.qsize() < self.learner_que_max_size:
                 pass
-
+            logging.info("end wait 1")
             # then when it does, update it
             for _ in range(int(self.learner_que_max_size)):
                 transition = learner_replay_que.get()
@@ -80,10 +81,10 @@ class Learner:
 
             ee_update_count = 0
             ee_done = False
-
+            logging.info("start wait 2")
             while learner_ee_que.qsize() < self.learner_ee_que_max_size:
                 pass
-
+            logging.info("end wait 2")
             if not learner_ee_que.empty():
                 for _ in range(int(self.learner_ee_que_max_size)):
                     transition = learner_ee_que.get()
