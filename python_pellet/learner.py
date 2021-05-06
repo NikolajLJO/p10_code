@@ -49,7 +49,7 @@ class Learner:
         self.dmax = np.NINF
         self.distance = np.NINF
         self.agent = setup_agent()
-        self.partition_memory = [None] * 100
+        self.partition = 0
         self.replay_memory = ReplayMemory()
         self.ee_memory = []
         self. learner_que_max_size = learner_que_max_size
@@ -101,7 +101,8 @@ class Learner:
                     unqued_partitions.append(process_local_partition)
                     del partition
                 best_partition = max(unqued_partitions, key=lambda item: item[1])
-                path = (self.path / ("patition_" + str(len(self.partition_memory)) + ".png")).__str__()
+                path = (self.path / ("patition_" + str(self.partition) + ".png")).__str__()
+                self.partition += 1
                 transform_to_image(best_partition[0][0][0]).save(path)
                 for _ in range(actor_count):
                     to_actor_partition_que.put(copy.deepcopy(best_partition))
@@ -110,7 +111,7 @@ class Learner:
             # while we have more than 10% replay memory, learn
             while len(self.replay_memory.memory) >= self.update_memory_break_point \
                 and len(self.ee_memory) >= self.update_ee_memory_break_point:
-                self.agent.update(self.replay_memory, self.ee_memory, self.partition_memory, ee_done)
+                self.agent.update(self.replay_memory, self.ee_memory, ee_done)
 
             logging.info("I processed 90% of que")
 

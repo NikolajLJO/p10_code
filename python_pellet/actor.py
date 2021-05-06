@@ -56,7 +56,7 @@ class Actor:
         try:
             for i in range(1, int(args[2])):
                 start = time.process_time()
-                action, policy = self.agent.find_action(state, i, visited)
+                action, policy = self.agent.find_action(state, i, visited, steps_since_reward)
 
                 auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()),
                                                 device=self.agent.device)

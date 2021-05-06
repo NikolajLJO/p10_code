@@ -26,9 +26,13 @@ class Agent:
         self.NQ = nq
         self.NE = ne
 
-        self.epsilon = 0
+        self.epsilon_start = 1
+        self.epsilon = self.epsilon_start
+        self.epsilon_end = 0.01
+        self.epsilon_endt = 1000000
         self.slope = -(1 - 0.05) / 1000000
         self.intercept = 1
+        self.qlearn_start = 2250000
         self.total_steps = 0
         self.Q_discount = 0.99
         self.EE_discount = 0.99
@@ -44,12 +48,12 @@ class Agent:
         for tensor in tensors:
             tensor = tensor.to(device=self.device)
 
-    def find_action(self, state, step, visited):
-        action, policy = self.e_greedy_action_choice(state, step, visited)
+    def find_action(self, state, step, visited, steps_since_reward):
+        action, policy = self.e_greedy_action_choice(state, step, visited, steps_since_reward)
         return action, policy
 
-    def update(self, replay_memory, ee_memory, partition_memory, ee_done: bool):
-        self.qlearn(replay_memory, partition_memory)
+    def update(self, replay_memory, ee_memory, ee_done: bool):
+        self.qlearn(replay_memory)
         if not ee_done:
             self.eelearn(ee_memory)
 
@@ -112,7 +116,6 @@ class Agent:
                 distance is the maximum distance between the state and all partitions
         '''
         min_distance = np.Inf
-        current_partition = None
         index = 0
         for i, s2 in enumerate(partition_memory):
             max_distance = np.NINF
@@ -138,19 +141,37 @@ class Agent:
 
             if max_distance < min_distance:
                 min_distance = max_distance
-                current_partition = s2
                 index = i
 
         visited_prime = copy.deepcopy(visited)
 
-        if visited[index] is None:
-            visited[index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])],
+        if visited[0][index] is None:
+            visited[0][index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])],
                                           device=self.device)
 
         return visited, visited_prime, min_distance
 
-    def e_greedy_action_choice(self, state, step, visited):
+    def e_greedy_action_choice(self, state, step, visited, steps_since_reward):
+        '''
+        This function chooses the agction greedily or randomly according to the epsilon value
+        Input: state is the state you want an action for
+               step is the current step used to calculate the epsilon for the next decisions
+        Output: action a tensor with the best action index
+                policy is all q-values at the state
+        '''
         policy = self.Qnet(state, visited)
+
+        if steps_since_reward > 500:
+            self.epsilon = self.epsilon_start
+        elif step <= self.qlearn_start:
+            self.epsilon = self.epsilon_start
+        else:
+            self.epsilon = self.epsilon_end + \
+                           max(0.0,
+                               (self.epsilon_start - self.epsilon_end) *
+                               (self.epsilon_endt - max(0, step - self.qlearn_start)) /
+                               self.epsilon_endt)
+
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0])
         else:
