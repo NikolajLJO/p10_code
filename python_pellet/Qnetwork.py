@@ -23,18 +23,19 @@ class Qnet(torch.nn.Module):
         height, width = conv2d_size_out(height, width, 1, 3)
 
         self.layer_node_count = int(height * width * 64)
-        self.lay1 = torch.nn.Linear(self.layer_node_count, 512)
+        self.lay1 = torch.nn.Linear(self.layer_node_count + 100, 512)
         self.lay2 = torch.nn.Linear(512, 18)
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=0.00025)
         self.loss = torch.nn.SmoothL1Loss()
 
-    def forward(self, state):
+    def forward(self, state, visited):
         state = state.float() / 255
         state = functional.relu(self.conv_1(state))
         state = functional.relu(self.conv_2(state))
         state = functional.relu(self.conv_3(state))
-        state = functional.relu(self.lay1(state.view(state.shape[0], -1)))
+        state = torch.cat([state.view(state.shape[0], -1), visited], 1)
+        state = functional.relu(self.lay1(state))
         qvalues = self.lay2(state)
         return qvalues
 

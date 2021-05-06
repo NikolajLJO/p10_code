@@ -22,19 +22,19 @@ transform_to_image = transforms.ToPILImage()
 
 # Partition constants
 MAX_PARTITIONS = 100
-START_MAKING_PARTITIONS = 2000000
+START_MAKING_PARTITIONS = 200000
 PARTITION_ADD_TIME_MULT = 1.2
 
 # EE and RND constants
-START_EELEARN = 250000
-END_EELEARN = 2000000
+START_EELEARN = 25000
+END_EELEARN = 200000
 
 # Q constants
-START_QLEARN = 2250000
+START_QLEARN = 225000
 
 # Shared constants
-UPDATE_TARGETS_FREQUENCY = 10000
-SAVE_NETWORKS_FREQUENCY = 500000
+UPDATE_TARGETS_FREQUENCY = 1000
+SAVE_NETWORKS_FREQUENCY = 50000
 
 def get_writer():
     '''
@@ -83,8 +83,8 @@ def mainloop(args):
     partition_memory = [[state, 0]]
     transform_to_image(state[0][0].cpu()).save(logpath + "patition_1.png")
     state_prime = None
-    visited = []
-    visited_prime =[]
+    visited = torch.zeros([1,100], device=agent.device)
+    visited_prime = torch.zeros([1,100], device=agent.device)
     now = time.process_time()
     steps_since_reward = 0
 
@@ -113,9 +113,9 @@ def mainloop(args):
             state_prime = env.reset()
             terminating = False
             update_partitions(agent.visited,partition_memory)
-            agent.visited = []
-            visited = []
-            visited_prime = []
+            agent.visited[agent.visited != 0] = 0
+            visited[visited != 0] = 0
+            visited_prime[visited_prime != 0] = 0
             replay_memory.save(episode_buffer)
             episode_time = time.process_time()-now
             logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.4f}| Partition #: |{4}|"
@@ -129,7 +129,7 @@ def mainloop(args):
             total_score = 0
             steps_since_reward = 0
 
-        if reward != 0 or len(visited) != len(visited_prime):
+        if reward != 0 or (torch.sum(visited_prime, 1) - torch.sum(visited, 1)).item() != 0:
             steps_since_reward = 0
         else:
             steps_since_reward += 1
@@ -193,11 +193,9 @@ def update_partitions(visited_partitions, partition_memory):
     Input: visited_partitions is the list of visited partitions in an episode
            partition_memory is the full partition memory
     '''
-    for visited in visited_partitions:
-        for i, partition in enumerate(partition_memory):
-            if torch.equal(visited[0],partition[0]):
-                partition_memory[i][1] += 1
-                break
+    for i, visited in enumerate(visited_partitions[0]):
+        if visited != 0:
+            partition_memory[i][1] += 1
 
 
 if __name__ == "__main__":

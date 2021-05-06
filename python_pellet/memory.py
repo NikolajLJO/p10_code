@@ -3,6 +3,7 @@ The class includes the replay memory and
 functions to query it.
 '''
 import math
+import torch
 import numpy as np
 
 class ReplayMemory:
@@ -17,15 +18,12 @@ class ReplayMemory:
 
     def save(self, episode_buffer):
         '''
-        Shis functions saves a buffers content to memory while adding the mc reward and the count to a terminating state
+        This functions saves a buffers content to memory while adding the mc reward and the count to a terminating state
         Input: episode_bffer a list of transaction
         '''
         full_pellet_reward = 0
         for i, transition in enumerate(reversed(episode_buffer)):
-            if len(transition[2]) < len(transition[7]):
-                pellet_reward = self.calc_pellet_reward(transition[7][-1][1])
-            else:
-                pellet_reward = 0
+            pellet_reward = torch.sum(transition[7], 1) - torch.sum(transition[2], 1)
             full_pellet_reward =  pellet_reward + self.pellet_discount * full_pellet_reward
             transition.append(full_pellet_reward + episode_buffer[-1][4])
             transition.append(i)

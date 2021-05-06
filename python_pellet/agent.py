@@ -2,6 +2,7 @@
 In this file the agent and belonging methods can be found.
 '''
 import copy
+import math
 import torch
 import numpy as np
 from Qnetwork import Qnet, EEnet
@@ -27,7 +28,7 @@ class Agent:
             self.ee_net = EEnet().to(self.device)
             self.targetee_net = copy.deepcopy(self.ee_net)
         self.use_rnd = use_RND
-        self.visited = []
+        self.visited = torch.zeros([1,100], device=self.device)
         self.nq = NQ
         self.ne = NE
 
@@ -38,7 +39,7 @@ class Agent:
         self.ee_discount = 0.99
         self.action_space = 0
 
-        temp_discounts= []
+        temp_discounts = []
         temp_discounts.append(torch.tensor([self.ee_discount]*18, device=self.device).unsqueeze(0))
         for i in range(1,100):
             temp_discounts.append(torch.tensor([self.ee_discount**(i+1)]*18,
@@ -78,24 +79,21 @@ class Agent:
             s_primes = torch.cat(s_primes)
             terminating = torch.cat(terminating).long()
             targ_mc = torch.cat(targ_mc)
+            visited = torch.cat(visited)
+            visited_prime = torch.cat(visited_prime)
 
-            for i in range(replay_memory.batch_size):
-                # If we visit a new partition, calculate the pellet reward of the new partition:
-                if len(visited[i]) < len(visited_prime[i]):
-                    pellet_rewards.append(replay_memory.calc_pellet_reward(visited_prime[i][-1][1]))
-                else:
-                    pellet_rewards.append(0)
-            pellet_rewards = torch.tensor(pellet_rewards, device=self.device)
+            
+            pellet_rewards = (torch.sum(visited_prime, 1) - torch.sum(visited, 1))
 
             # Represents the target reward for one step.
             # In contrast to targ_mc, we calculate the rest of the reward
             # by using our network target_q_net.
-            future_reward = self.target_q_net(s_primes).max(1)[0].detach() * (1 - terminating)
+            future_reward = self.target_q_net(s_primes, visited_prime).max(1)[0].detach() * (1 - terminating)
             targ_onesteps = reward + pellet_rewards + self.q_discount * future_reward
 
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
-            predictions = self.q_net(states).gather(1, action)
+            predictions = self.q_net(states, visited).gather(1, action)
 
             targ_mix = (1 - self.nq) * targ_onesteps + self.nq * targ_mc
             self.q_net.backpropagate(predictions, targ_mix.unsqueeze(1))
@@ -229,12 +227,13 @@ class Agent:
                 if max_distance < min_distance:
                     min_distance = max_distance
                     current_partition = s2
+                    index = i
                 
 
         visited = copy.deepcopy(self.visited)
 
-        if not is_tensor_in_list(current_partition, self.visited):
-            self.visited.append(current_partition)
+        if self.visited[0][index].item() == 0:
+            self.visited[0][index] = 1 / math.sqrt(max(1, partition_memory[index][1]))
 
         return visited, self.visited, min_distance
 
@@ -246,7 +245,7 @@ class Agent:
         Output: action a tensor with the best action index
                 policy is all q-values at the state
         '''
-        policy = self.q_net(state)
+        policy = self.q_net(state, self.visited)
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0])
         else:
