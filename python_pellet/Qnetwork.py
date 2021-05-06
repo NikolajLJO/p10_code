@@ -36,8 +36,6 @@ class Qnet(torch.nn.Module):
         state = functional.relu(self.conv_1(state))
         state = functional.relu(self.conv_2(state))
         state = functional.relu(self.conv_3(state))
-        logging.info("2")
-        logging.info(new_input)
         final_input = torch.cat((state.view(state.shape[0], -1), new_input), 1)
         state = functional.relu(self.lay1(final_input))
         qvalues = self.lay2(state)

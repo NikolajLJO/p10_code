@@ -48,15 +48,15 @@ class Actor:
         episode_buffer = []
 
         game_actions, self.agent, opt, env = setup(args[1])
-        visited = [None] * 100
-        visited_prime = []
+        visited = torch.zeros(1,100)
+        visited_prime = torch.zeros(1,100)
         state = env.reset()
         self.local_partition_memory.append([state, 0])
         steps_since_reward = 0
         try:
             for i in range(1, int(args[2])):
                 start = time.process_time()
-                action, policy = self.agent.find_action(state, i)
+                action, policy = self.agent.find_action(state, i, visited)
 
                 auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()),
                                                 device=self.agent.device)
@@ -66,7 +66,8 @@ class Actor:
                 reward = int(max(min(reward, 1), -1))
                 if i % 10 == 0:
                     visited, visited_prime, distance = self.agent.find_current_partition(state_prime,
-                                                                                         self.local_partition_memory)
+                                                                                         self.local_partition_memory,
+                                                                                         visited)
                 episode_buffer.append([state, action, visited, auxiliary_reward,
                                        torch.tensor(reward, device=self.agent.device).unsqueeze(0),
                                        torch.tensor(terminating, device=self.agent.device).unsqueeze(0),
@@ -78,9 +79,8 @@ class Actor:
                     end = time.process_time()
                     elapsed = (end - start)
                     state_prime = env.reset()
-                    self.update_partitions(self.agent.visited,
+                    self.update_partitions(visited,
                                            self.local_partition_memory)  # TODO SHOULD local_partition_memory be shared since we just have replicated data for reading? (asnwer is yes)
-                    self.agent.visited = []
                     logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.2f}|"
                                  .format(str(i).rjust(7, " "),
                                          int(total_score),
@@ -135,10 +135,9 @@ class Actor:
 
     @staticmethod
     def update_partitions(visited, partition_memory):
-        for i, _visited in enumerate(visited[0]):
-            logging.info(_visited)
-            if _visited.item() != 0:
 
+        for i, _visited in enumerate(visited[0]):
+            if _visited.item() != 0:
                 partition_memory[i][1] += 1
 
     def check_ques_for_updates(self):

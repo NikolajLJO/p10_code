@@ -23,7 +23,6 @@ class Agent:
         self.targetQnet = copy.deepcopy(self.Qnet)
         self.EEnet = EEnet().to(self.device)
         self.targetEEnet = copy.deepcopy(self.EEnet)
-        self.visited = torch.zeros(1,100)
         self.NQ = nq
         self.NE = ne
 
@@ -45,8 +44,8 @@ class Agent:
         for tensor in tensors:
             tensor = tensor.to(device=self.device)
 
-    def find_action(self, state, step):
-        action, policy = self.e_greedy_action_choice(state, step)
+    def find_action(self, state, step, visited):
+        action, policy = self.e_greedy_action_choice(state, step, visited)
         return action, policy
 
     def update(self, replay_memory, ee_memory, partition_memory, ee_done: bool):
@@ -112,7 +111,7 @@ class Agent:
                 merged.append(merge_states_for_comparason(states[i], s_primes[i]))
             self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
 
-    def find_current_partition(self, state, partition_memory):
+    def find_current_partition(self, state, partition_memory, visited):
         '''
         This function findc the partition the agent is currently in,
         and adding it to the list of visited partitions.
@@ -152,15 +151,15 @@ class Agent:
                 current_partition = s2
                 index = i
 
-        visited = copy.deepcopy(self.visited)
+        visited_prime = copy.deepcopy(visited)
 
         if visited[index] is None:
             visited[index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])], device=self.device)
 
-        return visited, self.visited, min_distance
+        return visited, visited_prime, min_distance
 
-    def e_greedy_action_choice(self, state, step):
-        policy = self.Qnet(state, self.visited)
+    def e_greedy_action_choice(self, state, step, visited):
+        policy = self.Qnet(state, visited)
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0])
         else:
