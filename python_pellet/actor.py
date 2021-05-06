@@ -150,11 +150,12 @@ class Actor:
         if not self.to_actor_partition_que.empty():
             partition = self.to_actor_partition_que.get()
             proces_local_partition = copy.deepcopy(partition)
-            if proces_local_partition[0] is None:
-                    logging.info("jank")
-            self.local_partition_memory.append(proces_local_partition)
-            if len(self.local_partition_memory) > 100:  # TODO get self.argument here for length
+
+            if len(self.local_partition_memory) == 0:  # TODO get self.argument here for length
                 self.local_partition_memory.pop(0)
+                self.local_partition_memory.append(proces_local_partition)
+            else:
+                self.local_partition_memory.append(proces_local_partition)
             del partition
             logging.info("updated partition memory")
 

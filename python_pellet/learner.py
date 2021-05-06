@@ -49,7 +49,7 @@ class Learner:
         self.dmax = np.NINF
         self.distance = np.NINF
         self.agent = setup_agent()
-        self.partition_memory = []
+        self.partition_memory = [None] * 100
         self.replay_memory = ReplayMemory()
         self.ee_memory = []
         self. learner_que_max_size = learner_que_max_size

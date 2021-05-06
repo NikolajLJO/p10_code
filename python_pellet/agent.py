@@ -205,16 +205,7 @@ def calc_pellet_reward(ee_beta, visits):
 
 
 def merge_states_for_comparason(s1, s2):
-    try:
         return torch.stack([s1, s2], dim=2).squeeze(0)
-    except TypeError as err:
-        logging.info(err)
-        logging.info(traceback.format_exc())
-        logging.info("s1")
-        logging.info(s1)
-        logging.info("s2")
-        logging.info(s2)
-        raise err
 
 
 def is_tensor_in_list(mtensor, mlist):
