@@ -31,8 +31,11 @@ class Agent:
         self.visited = torch.zeros([1,100], device=self.device)
         self.nq = NQ
         self.ne = NE
-
-        self.epsilon = 0
+        
+        self.epsilon_start = 1
+        self.epsilon = self.epsilon_start
+        self.epsilon_end = 0.01
+        self.epsilon_endt = 1000000
         self.slope = -(1 - 0.05) / 1000000
         self.intercept = 1
         self.q_discount = 0.99
@@ -46,6 +49,9 @@ class Agent:
                                                 device=self.device).unsqueeze(0))
         self.ee_discounts = torch.cat(temp_discounts)
         self.mse = torch.nn.MSELoss(reduction='none')
+
+        self.steps_since_reward = 0
+        self.non_reward_steps_before_full_eps = 500
 
     def find_action(self, state, step):
         '''
@@ -246,12 +252,18 @@ class Agent:
                 policy is all q-values at the state
         '''
         policy = self.q_net(state, self.visited)
+        
+        if self.steps_since_reward > self.non_reward_steps_before_full_eps:
+            self.epsilon = self.epsilon_start
+        elif step <= self.qlearn_start:
+            self.epsilon = self.epsilon_start
+        else:
+            self.epsilon = self.epsilon_end + max(0, (self.epsilon_start - self.epsilon_end) * (self.epsilon_endt - max(0, step - self.qlearn_start)) / self.epsilon_endt)
+        
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0])
         else:
             action = torch.tensor(np.random.randint(1, self.action_space.n), device=self.device)
-
-        self.epsilon = self.slope * step + self.intercept
 
         return action.unsqueeze(0), policy
 

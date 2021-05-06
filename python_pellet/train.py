@@ -76,6 +76,8 @@ def mainloop(args):
     episode_buffer = []
 
     _, replay_memory, agent, _, env = setup(args[1], args[5])
+
+    agent.qlearn_start = START_QLEARN
     add_partition_freq = int(args[4])
     update_freq = int(args[3])
 
@@ -127,12 +129,12 @@ def mainloop(args):
             episode_buffer.clear()
             now = time.process_time()
             total_score = 0
-            steps_since_reward = 0
+            agent.steps_since_reward = 0
 
         if reward != 0 or (torch.sum(visited_prime, 1) - torch.sum(visited, 1)).item() != 0:
-            steps_since_reward = 0
+            agent.steps_since_reward = 0
         else:
-            steps_since_reward += 1
+            agent.steps_since_reward += 1
 
         if distance > dmax and i >= START_MAKING_PARTITIONS:
             partition_candidate = state_prime
@@ -161,11 +163,6 @@ def mainloop(args):
 
         if i % SAVE_NETWORKS_FREQUENCY == 0:
             agent.save_networks(logpath, i)
-
-        if steps_since_reward > 500:
-            terminating = True
-            episode_buffer[-1][5] = torch.tensor(terminating, device=agent.device).unsqueeze(0)
-            steps_since_reward = 0
 
     agent.save_networks(logpath, i)
 
