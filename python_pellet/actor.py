@@ -107,11 +107,7 @@ class Actor:
 
                 state = state_prime
                 if i % 1000 == 0:  # TODO this should prob be some better mere defined value
-                    try:
                         self.check_ques_for_updates()
-                    except Exception as err:
-                        logging.info(err)
-                        logging.info(traceback.format_exc())
 
                 if steps_since_reward > 500:
                     terminating = True

@@ -35,9 +35,9 @@ class Agent:
         self.action_space = 0
 
         listt = []
-        listt.append(torch.tensor([self.EE_discount]*18, device=self.device).unsqueeze(0))
+        listt.append(torch.tensor([self.EE_discount] * 18, device=self.device).unsqueeze(0))
         for i in range(1, 100):
-            listt.append(torch.tensor([self.EE_discount**(i+1)]*18, device=self.device).unsqueeze(0))
+            listt.append(torch.tensor([self.EE_discount ** (i + 1)] * 18, device=self.device).unsqueeze(0))
         self.EE_discounts = torch.cat(listt)
 
     def cast_to_device(self, tensors):
@@ -67,49 +67,39 @@ class Agent:
             terminating = torch.cat(terminating).long()
             targ_mc = torch.cat(targ_mc)
 
-            pellet_rewards = torch.sum(visited_prime, dim=1) - torch.sum(visited, dim=1)
+        pellet_rewards = torch.sum(visited_prime, dim=1) - torch.sum(visited, dim=1)
 
             targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
             predictions = self.Qnet(states, visited).gather(1, action)
 
-            targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
-            self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
+        targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
+        self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
 
     def eelearn(self, ee_memory, batch_size=32):
-            # Sample a minibatch of state pairs and interleaving
-            # auxiliary rewards
-            batch = random.sample(ee_memory, batch_size)
-            states, s_primes, smid, auxreward = zip(*batch)
-            targ_onesteps = []
-            for i in range(len(smid)):
-                targ_onesteps.append(
-                    auxreward[i][0]
-                    + self.EE_discount
-                    * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
+        # Sample a minibatch of state pairs and interleaving
+        # auxiliary rewards
+        batch = random.sample(ee_memory, batch_size)
+        states, s_primes, smid, auxreward = zip(*batch)
+        targ_onesteps = []
+        for i in range(len(smid)):
+            targ_onesteps.append(
+                auxreward[i][0]
+                + self.EE_discount
+                * self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
-            targ_mc = torch.zeros(len(auxreward), 18)
-            for i, setauxreward in enumerate(auxreward):
-                try:
-                    targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)], 0)
-                except TypeError as err:
-                    logging.debug(err)
-                    logging.debug(traceback.format_exc())
-                    logging.debug("aux")
-                    logging.debug(setauxreward)
-                    logging.debug("ee discounts")
-                    logging.debug(self.EE_discounts[:len(setauxreward)])
+        targ_mc = torch.zeros(len(auxreward), 18)
+        for i, setauxreward in enumerate(auxreward):
+            targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)], 0)
 
+        # targmixed   (1 􀀀 E)targone-step + EtargMC
+        targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
 
-
-            # targmixed   (1 􀀀 E)targone-step + EtargMC
-            targ_mix = (1 - self.NE) * torch.cat(targ_onesteps) + self.NE * targ_mc
-
-            merged = []
-            for i in range(len(states)):
-                merged.append(merge_states_for_comparason(states[i], s_primes[i]))
-            self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
+        merged = []
+        for i in range(len(states)):
+            merged.append(merge_states_for_comparason(states[i], s_primes[i]))
+        self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
 
     def find_current_partition(self, state, partition_memory, visited):
         '''
@@ -154,7 +144,8 @@ class Agent:
         visited_prime = copy.deepcopy(visited)
 
         if visited[index] is None:
-            visited[index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])], device=self.device)
+            visited[index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])],
+                                          device=self.device)
 
         return visited, visited_prime, min_distance
 
@@ -178,17 +169,11 @@ class Agent:
         return max_distance
 
     def distance(self, s1, s2, reference_point):
-        try:
-            return max(
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) - self.EEnet(merge_states_for_comparason(reference_point, s2)))),
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) - self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
-        except TypeError as err:
-            logging.info("s1")
-            logging.info(s1)
-            logging.info("s2")
-            logging.info(s2)
-            logging.info("ref")
-            logging.info(reference_point)
+        return max(
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) -
+                          self.EEnet(merge_states_for_comparason(reference_point, s2)))),
+            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) -
+                          self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
 
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)
@@ -204,7 +189,7 @@ def calc_pellet_reward(ee_beta, visits):
 
 
 def merge_states_for_comparason(s1, s2):
-        return torch.stack([s1, s2], dim=2).squeeze(0)
+    return torch.stack([s1, s2], dim=2).squeeze(0)
 
 
 def is_tensor_in_list(mtensor, mlist):

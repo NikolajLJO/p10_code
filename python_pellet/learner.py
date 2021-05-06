@@ -66,10 +66,8 @@ class Learner:
         logging.info("Started with empty memory")
         while True:
             # when rpelay memory is almost empty, wait until the que has a full memory size
-            logging.info("start wait 1")
             while learner_replay_que.qsize() < self.learner_que_max_size:
                 pass
-            logging.info("end wait 1")
             # then when it does, update it
             for _ in range(int(self.learner_que_max_size)):
                 transition = learner_replay_que.get()
@@ -81,10 +79,8 @@ class Learner:
 
             ee_update_count = 0
             ee_done = False
-            logging.info("start wait 2")
             while learner_ee_que.qsize() < self.learner_ee_que_max_size:
                 pass
-            logging.info("end wait 2")
             if not learner_ee_que.empty():
                 for _ in range(int(self.learner_ee_que_max_size)):
                     transition = learner_ee_que.get()
@@ -105,8 +101,8 @@ class Learner:
                     unqued_partitions.append(process_local_partition)
                     del partition
                 best_partition = max(unqued_partitions, key=lambda item: item[1])
-                transform_to_image(best_partition[0][0][0]).save((self.path / "patition_" /
-                                                     str(len(self.partition_memory)) / ".png").__str__())
+                path = (self.path / ("patition_" + str(len(self.partition_memory)) + ".png")).__str__()
+                transform_to_image(best_partition[0][0][0]).save(path)
                 for _ in range(actor_count):
                     to_actor_partition_que.put(copy.deepcopy(best_partition))
                 logging.info("Pushed partitions")
