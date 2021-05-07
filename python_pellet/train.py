@@ -97,20 +97,27 @@ def mainloop(args):
         auxiliary_reward = torch.tensor(calculate_auxiliary_reward(policy,
                                                                    action.item()),
                                         device=agent.device)
+        
         # if the state is not terminating take the action and save the trasition
         # else reset the game an all related variables.
         if not terminating:
             state_prime, reward, terminating, _ = env.step(action.item())
             total_score += reward
             reward = max(min(reward,1),-1)
-            if i % 10 == 0:
+            if i % 2 == 0:
                 visited, visited_prime, distance = agent.find_current_partition(state_prime,
                                                                                 partition_memory)
+
+                if not terminating and i >= START_MAKING_PARTITIONS and distance > dmax:
+                    partition_candidate = state_prime
+                    dmax = distance
+
             episode_buffer.append([state, action, visited, auxiliary_reward,
                                    torch.tensor(reward, device=agent.device).unsqueeze(0),
                                    torch.tensor(terminating, device=agent.device).unsqueeze(0),
                                    state_prime,
                                    visited_prime])
+
         else:
             state_prime = env.reset()
             terminating = False
@@ -136,17 +143,13 @@ def mainloop(args):
         else:
             agent.steps_since_reward += 1
 
-        if distance > dmax and i >= START_MAKING_PARTITIONS:
-            partition_candidate = state_prime
-            dmax = distance
-
         if i % add_partition_freq == 0 and partition_candidate is not None:
             partition_memory.append([partition_candidate, 0])
             dmax = 0
 
             partition_memory = partition_memory[-MAX_PARTITIONS:]
             add_partition_freq = int(add_partition_freq * PARTITION_ADD_TIME_MULT)
-            transform_to_image(state[0][0].cpu()).save(logpath + "patition_" +
+            transform_to_image(partition_candidate[0].cpu()).save(logpath + "partition_" +
                                                  str(len(partition_memory)) + ".png")
 
         state = state_prime
@@ -156,7 +159,7 @@ def mainloop(args):
             agent.qlearn(replay_memory)
 
         if i % update_freq == 0 and i >= START_EELEARN and (i < END_EELEARN or int(args[5])):
-            agent.imagecomparelearn(replay_memory)
+            agent.imagecomparelearn(replay_memory)  
 
         if i % UPDATE_TARGETS_FREQUENCY == 0:
             agent.update_targets()
