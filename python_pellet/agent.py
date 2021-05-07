@@ -13,7 +13,7 @@ class Agent:
     The agent is the primary object containing multiple neural networks
     and methods to use them
     '''
-    def __init__(self, NQ=0.1, NE=0.1, use_RND=False):
+    def __init__(self, NQ=0.1, NE=0.1, use_RND=False, double_DQN = True):
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
         else:
@@ -52,6 +52,7 @@ class Agent:
 
         self.steps_since_reward = 0
         self.non_reward_steps_before_full_eps = 500
+        self.double = double_DQN 
 
     def find_action(self, state, step):
         '''
@@ -94,7 +95,11 @@ class Agent:
             # Represents the target reward for one step.
             # In contrast to targ_mc, we calculate the rest of the reward
             # by using our network target_q_net.
-            future_reward = self.target_q_net(s_primes, visited_prime).max(1)[0].detach() * (1 - terminating)
+            if self.double:
+                best_next_action = self.q_net(s_primes, visited_prime).max(1)[1].detach().unsqueeze(1)
+                future_reward = self.target_q_net(s_primes, visited_prime).gather(1, best_next_action).squeeze(1) * (1 - terminating)
+            else:
+                future_reward = self.target_q_net(s_primes, visited_prime).max(1)[0].detach() * (1 - terminating)
             targ_onesteps = reward + pellet_rewards + self.q_discount * future_reward
 
             # Calculate extrinsic and intrinsic returns, R and R+,
