@@ -82,8 +82,9 @@ def mainloop(args):
     update_freq = int(args[3])
 
     state = env.reset()
-    partition_memory = [[state, 0]]
-    transform_to_image(state[0].cpu()).save(logpath + "partition_1.png")
+    '''partition_memory = [[state, 0]]
+    transform_to_image(state[0].cpu()).save(logpath + "partition_1.png")'''
+    partition_memory = []
     state_prime = None
     visited = torch.zeros([1,100], device=agent.device)
     visited_prime = torch.zeros([1,100], device=agent.device)
@@ -91,6 +92,10 @@ def mainloop(args):
     steps_since_reward = 0
 
     for i in range(1, int(args[2])):
+
+        if i == START_MAKING_PARTITIONS:
+            replay_memory.memory = []
+            replay_memory.memory_refrence_pointer = 0
 
         action, policy = agent.find_action(state, i)
 
@@ -125,7 +130,8 @@ def mainloop(args):
             agent.visited[agent.visited != 0] = 0
             visited[visited != 0] = 0
             visited_prime[visited_prime != 0] = 0
-            replay_memory.save(episode_buffer)
+            if i < END_EELEARN or len(partition_memory) >= 5:
+                replay_memory.save(episode_buffer)
             episode_time = time.process_time()-now
             logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.4f}| Partition #: |{4}|"
                          .format(str(i).rjust(7, " "),
@@ -157,7 +163,7 @@ def mainloop(args):
         visited = visited_prime
 
         if i % update_freq == 0 and i >= START_QLEARN:
-            agent.qlearn(replay_memory)
+            agent.qlearn(replay_memory, partition_memory)
 
         if i % update_freq == 0 and i >= START_EELEARN and (i < END_EELEARN or int(args[5])):
             agent.imagecomparelearn(replay_memory)  
