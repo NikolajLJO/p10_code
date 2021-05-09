@@ -64,7 +64,7 @@ class Agent:
         action, policy = self.e_greedy_action_choice(state, step)
         return action, policy
 
-    def qlearn(self, replay_memory):
+    def qlearn(self, replay_memory, partition_memory):
         '''
         qlearn calucaltes the variabels used for backpropagating the q-network
         Input: replay_memory to sample from
@@ -88,23 +88,33 @@ class Agent:
             targ_mc = torch.cat(targ_mc)
             visited = torch.cat(visited)
             visited_prime = torch.cat(visited_prime)
-
             
-            pellet_rewards = (torch.sum(visited_prime, 1) - torch.sum(visited, 1))
+            partitionreward = torch.zeros([len(visited),100], device=self.device)
+            for i, partition in enumerate(partition_memory):
+                partitionreward[0][i] = replay_memory.calc_pellet_reward(partition[1])
+            for i in range(1,len(visited)):
+                partitionreward[i] = partitionreward[0]
+            partitionrewardprime  = copy.deepcopy(partitionreward)
+
+            partitionreward[visited == 0] = 0
+            partitionrewardprime[visited_prime == 0] = 0
+
+
+            pellet_rewards = (torch.sum(partitionrewardprime, 1) - torch.sum(partitionreward, 1))
 
             # Represents the target reward for one step.
             # In contrast to targ_mc, we calculate the rest of the reward
             # by using our network target_q_net.
             if self.double:
-                best_next_action = self.q_net(s_primes, visited_prime).max(1)[1].detach().unsqueeze(1)
-                future_reward = self.target_q_net(s_primes, visited_prime).gather(1, best_next_action).squeeze(1) * (1 - terminating)
+                best_next_action = self.q_net(s_primes, partitionrewardprime).max(1)[1].detach().unsqueeze(1)
+                future_reward = self.target_q_net(s_primes, partitionrewardprime).gather(1, best_next_action).squeeze(1) * (1 - terminating)
             else:
-                future_reward = self.target_q_net(s_primes, visited_prime).max(1)[0].detach() * (1 - terminating)
+                future_reward = self.target_q_net(s_primes, partitionrewardprime).max(1)[0].detach() * (1 - terminating)
             targ_onesteps = reward + pellet_rewards + self.q_discount * future_reward
 
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
-            predictions = self.q_net(states, visited).gather(1, action)
+            predictions = self.q_net(states, partitionreward).gather(1, action)
 
             targ_mix = (1 - self.nq) * targ_onesteps + self.nq * targ_mc
             self.q_net.backpropagate(predictions, targ_mix.unsqueeze(1))
@@ -213,6 +223,7 @@ class Agent:
             min_distance = argmin_value.item()
 
         else:
+            selfdist = torch.zeros([18])
             for i, s2 in enumerate(partition_memory):
                 max_distance = np.NINF
                 state_to_ref = []
@@ -227,11 +238,15 @@ class Agent:
                 
                 state_to_ref = torch.cat(state_to_ref)
                 s2_to_ref = torch.cat(s2_to_ref)
-                forward = torch.sum(self.ee_net(state_to_ref) - self.ee_net(s2_to_ref), dim=1)
+                s2_to_ref  = self.ee_net(s2_to_ref)
+                s2_to_ref[i] = selfdist
+                forward = torch.abs(torch.sum(self.ee_net(state_to_ref) - s2_to_ref, dim=1))
 
                 ref_to_state = torch.cat(ref_to_state)
                 ref_to_s2 = torch.cat(ref_to_s2)
-                backward = torch.sum(self.ee_net(ref_to_state)- self.ee_net(ref_to_s2), dim=1)
+                ref_to_s2 = self.ee_net(ref_to_s2)
+                ref_to_s2[i] = selfdist
+                backward = torch.abs(torch.sum(self.ee_net(ref_to_state)- ref_to_s2, dim=1))
 
                 max_distance = torch.max(torch.max(torch.stack([forward,backward], dim=1),1)[0],0)[0].item()
 
@@ -243,7 +258,7 @@ class Agent:
 
         visited = copy.deepcopy(self.visited)
 
-        if self.visited[0][index].item() == 0:
+        if "index" in locals() and self.visited[0][index].item() == 0:
             self.visited[0][index] = 1 / math.sqrt(max(1, partition_memory[index][1]))
 
         return visited, self.visited, min_distance
