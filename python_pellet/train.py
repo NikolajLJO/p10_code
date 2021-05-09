@@ -163,7 +163,7 @@ def mainloop(args):
         visited = visited_prime
 
         if i % update_freq == 0 and i >= START_QLEARN:
-            agent.qlearn(replay_memory, partition_memory)
+            agent.qlearn(replay_memory)
 
         if i % update_freq == 0 and i >= START_EELEARN and (i < END_EELEARN or int(args[5])):
             agent.imagecomparelearn(replay_memory)  

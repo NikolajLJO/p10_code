@@ -64,7 +64,7 @@ class Agent:
         action, policy = self.e_greedy_action_choice(state, step)
         return action, policy
 
-    def qlearn(self, replay_memory, partition_memory):
+    def qlearn(self, replay_memory):
         '''
         qlearn calucaltes the variabels used for backpropagating the q-network
         Input: replay_memory to sample from
@@ -87,9 +87,9 @@ class Agent:
             terminating = torch.cat(terminating).long()
             targ_mc = torch.cat(targ_mc)
             visited = torch.cat(visited)
-            visited_prime = torch.cat(visited_prime)
-            
+            visited_prime = torch.cat(visited_prime)        
             partitionreward = torch.zeros([len(visited),100], device=self.device)
+
             for i, partition in enumerate(partition_memory):
                 partitionreward[0][i] = replay_memory.calc_pellet_reward(partition[1])
             for i in range(1,len(visited)):
@@ -114,7 +114,7 @@ class Agent:
 
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
-            predictions = self.q_net(states, partitionreward).gather(1, action)
+            predictions = self.q_net(states, visited).gather(1, action)
 
             targ_mix = (1 - self.nq) * targ_onesteps + self.nq * targ_mc
             self.q_net.backpropagate(predictions, targ_mix.unsqueeze(1))
@@ -223,7 +223,6 @@ class Agent:
             min_distance = argmin_value.item()
 
         else:
-            selfdist = torch.zeros([18])
             for i, s2 in enumerate(partition_memory):
                 max_distance = np.NINF
                 state_to_ref = []
@@ -238,15 +237,11 @@ class Agent:
                 
                 state_to_ref = torch.cat(state_to_ref)
                 s2_to_ref = torch.cat(s2_to_ref)
-                s2_to_ref  = self.ee_net(s2_to_ref)
-                s2_to_ref[i] = selfdist
-                forward = torch.abs(torch.sum(self.ee_net(state_to_ref) - s2_to_ref, dim=1))
+                forward = torch.sum(self.ee_net(state_to_ref) - self.ee_net(s2_to_ref), dim=1)
 
                 ref_to_state = torch.cat(ref_to_state)
                 ref_to_s2 = torch.cat(ref_to_s2)
-                ref_to_s2 = self.ee_net(ref_to_s2)
-                ref_to_s2[i] = selfdist
-                backward = torch.abs(torch.sum(self.ee_net(ref_to_state)- ref_to_s2, dim=1))
+                backward = torch.sum(self.ee_net(ref_to_state)- self.ee_net(ref_to_s2), dim=1)
 
                 max_distance = torch.max(torch.max(torch.stack([forward,backward], dim=1),1)[0],0)[0].item()
 
