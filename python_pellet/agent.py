@@ -64,7 +64,7 @@ class Agent:
         action, policy = self.e_greedy_action_choice(state, step)
         return action, policy
 
-    def qlearn(self, replay_memory):
+    def qlearn(self, replay_memory, partition_memory):
         '''
         qlearn calucaltes the variabels used for backpropagating the q-network
         Input: replay_memory to sample from
