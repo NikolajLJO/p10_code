@@ -22,10 +22,12 @@ class ReplayMemory:
         Input: episode_bffer a list of transaction
         '''
         full_pellet_reward = 0
+        mc_reward = 0
         for i, transition in enumerate(reversed(episode_buffer)):
             pellet_reward = torch.sum(transition[7], 1) - torch.sum(transition[2], 1)
             full_pellet_reward =  pellet_reward + self.pellet_discount * full_pellet_reward
-            transition.append(full_pellet_reward + episode_buffer[-1][4])
+            mc_reward =  transition[4].item() + 0.99 * mc_reward
+            transition.append(full_pellet_reward + mc_reward)
             transition.append(i)
 
         for transition in episode_buffer:
