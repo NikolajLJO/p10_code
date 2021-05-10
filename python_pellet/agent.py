@@ -26,7 +26,7 @@ class Agent:
             self.target_ee_net = EEnet().to(self.device)
         else:
             self.ee_net = EEnet().to(self.device)
-            self.targetee_net = copy.deepcopy(self.ee_net)
+            self.target_ee_net = copy.deepcopy(self.ee_net)
         self.use_rnd = use_RND
         self.visited = torch.zeros([1,100], device=self.device)
         self.nq = NQ
