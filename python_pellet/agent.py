@@ -229,7 +229,7 @@ class Agent:
                 s2_to_ref = []
                 ref_to_state = []
                 ref_to_s2 = []
-                for refrence in partition_memory:
+                for refrence in partition_memory[:5]:
                     state_to_ref.append(merge_states_for_comparason(state, refrence[0]))
                     s2_to_ref.append(merge_states_for_comparason(s2[0], refrence[0]))
                     ref_to_state.append(merge_states_for_comparason(refrence[0], state))
