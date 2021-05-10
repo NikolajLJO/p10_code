@@ -13,7 +13,7 @@ class Agent:
     The agent is the primary object containing multiple neural networks
     and methods to use them
     '''
-    def __init__(self, NQ=0.1, NE=0.1, use_RND=False):
+    def __init__(self, NQ=0.1, NE=0.1, use_RND=False, double_DQN = True):
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
         else:
@@ -31,8 +31,11 @@ class Agent:
         self.visited = torch.zeros([1,100], device=self.device)
         self.nq = NQ
         self.ne = NE
-
-        self.epsilon = 0
+        
+        self.epsilon_start = 1
+        self.epsilon = self.epsilon_start
+        self.epsilon_end = 0.01
+        self.epsilon_endt = 1000000
         self.slope = -(1 - 0.05) / 1000000
         self.intercept = 1
         self.q_discount = 0.99
@@ -47,6 +50,10 @@ class Agent:
         self.ee_discounts = torch.cat(temp_discounts)
         self.mse = torch.nn.MSELoss(reduction='none')
 
+        self.steps_since_reward = 0
+        self.non_reward_steps_before_full_eps = 500
+        self.double = double_DQN 
+
     def find_action(self, state, step):
         '''
         this function finds and return an action
@@ -57,7 +64,7 @@ class Agent:
         action, policy = self.e_greedy_action_choice(state, step)
         return action, policy
 
-    def qlearn(self, replay_memory):
+    def qlearn(self, replay_memory, partition_memory):
         '''
         qlearn calucaltes the variabels used for backpropagating the q-network
         Input: replay_memory to sample from
@@ -80,15 +87,29 @@ class Agent:
             terminating = torch.cat(terminating).long()
             targ_mc = torch.cat(targ_mc)
             visited = torch.cat(visited)
-            visited_prime = torch.cat(visited_prime)
+            visited_prime = torch.cat(visited_prime)        
+            partitionreward = torch.zeros([len(visited),100], device=self.device)
 
-            
-            pellet_rewards = (torch.sum(visited_prime, 1) - torch.sum(visited, 1))
+            for i, partition in enumerate(partition_memory):
+                partitionreward[0][i] = replay_memory.calc_pellet_reward(partition[1])
+            for i in range(1,len(visited)):
+                partitionreward[i] = partitionreward[0]
+            partitionrewardprime  = copy.deepcopy(partitionreward)
+
+            partitionreward[visited == 0] = 0
+            partitionrewardprime[visited_prime == 0] = 0
+
+
+            pellet_rewards = (torch.sum(partitionrewardprime, 1) - torch.sum(partitionreward, 1))
 
             # Represents the target reward for one step.
             # In contrast to targ_mc, we calculate the rest of the reward
             # by using our network target_q_net.
-            future_reward = self.target_q_net(s_primes, visited_prime).max(1)[0].detach() * (1 - terminating)
+            if self.double:
+                best_next_action = self.q_net(s_primes, partitionrewardprime).max(1)[1].detach().unsqueeze(1)
+                future_reward = self.target_q_net(s_primes, partitionrewardprime).gather(1, best_next_action).squeeze(1) * (1 - terminating)
+            else:
+                future_reward = self.target_q_net(s_primes, partitionrewardprime).max(1)[0].detach() * (1 - terminating)
             targ_onesteps = reward + pellet_rewards + self.q_discount * future_reward
 
             # Calculate extrinsic and intrinsic returns, R and R+,
@@ -232,7 +253,7 @@ class Agent:
 
         visited = copy.deepcopy(self.visited)
 
-        if self.visited[0][index].item() == 0:
+        if "index" in locals() and self.visited[0][index].item() == 0:
             self.visited[0][index] = 1 / math.sqrt(max(1, partition_memory[index][1]))
 
         return visited, self.visited, min_distance
@@ -246,12 +267,18 @@ class Agent:
                 policy is all q-values at the state
         '''
         policy = self.q_net(state, self.visited)
+        
+        if self.steps_since_reward > self.non_reward_steps_before_full_eps:
+            self.epsilon = self.epsilon_start
+        elif step <= self.qlearn_start:
+            self.epsilon = self.epsilon_start
+        else:
+            self.epsilon = self.epsilon_end + max(0, (self.epsilon_start - self.epsilon_end) * (self.epsilon_endt - max(0, step - self.qlearn_start)) / self.epsilon_endt)
+        
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0])
         else:
             action = torch.tensor(np.random.randint(1, self.action_space.n), device=self.device)
-
-        self.epsilon = self.slope * step + self.intercept
 
         return action.unsqueeze(0), policy
 

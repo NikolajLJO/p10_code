@@ -76,12 +76,15 @@ def mainloop(args):
     episode_buffer = []
 
     _, replay_memory, agent, _, env = setup(args[1], args[5])
+
+    agent.qlearn_start = START_QLEARN
     add_partition_freq = int(args[4])
     update_freq = int(args[3])
 
     state = env.reset()
-    partition_memory = [[state, 0]]
-    transform_to_image(state[0][0].cpu()).save(logpath + "patition_1.png")
+    '''partition_memory = [[state, 0]]
+    transform_to_image(state[0].cpu()).save(logpath + "partition_1.png")'''
+    partition_memory = []
     state_prime = None
     visited = torch.zeros([1,100], device=agent.device)
     visited_prime = torch.zeros([1,100], device=agent.device)
@@ -90,25 +93,36 @@ def mainloop(args):
 
     for i in range(1, int(args[2])):
 
+        if i == START_MAKING_PARTITIONS:
+            replay_memory.memory = []
+            replay_memory.memory_refrence_pointer = 0
+
         action, policy = agent.find_action(state, i)
 
         auxiliary_reward = torch.tensor(calculate_auxiliary_reward(policy,
                                                                    action.item()),
                                         device=agent.device)
+        
         # if the state is not terminating take the action and save the trasition
         # else reset the game an all related variables.
         if not terminating:
             state_prime, reward, terminating, _ = env.step(action.item())
             total_score += reward
             reward = max(min(reward,1),-1)
-            if i % 10 == 0:
+            if i % 2 == 0:
                 visited, visited_prime, distance = agent.find_current_partition(state_prime,
                                                                                 partition_memory)
+
+                if not terminating and i >= START_MAKING_PARTITIONS and distance > dmax:
+                    partition_candidate = state_prime
+                    dmax = distance
+
             episode_buffer.append([state, action, visited, auxiliary_reward,
                                    torch.tensor(reward, device=agent.device).unsqueeze(0),
                                    torch.tensor(terminating, device=agent.device).unsqueeze(0),
                                    state_prime,
                                    visited_prime])
+
         else:
             state_prime = env.reset()
             terminating = False
@@ -116,7 +130,8 @@ def mainloop(args):
             agent.visited[agent.visited != 0] = 0
             visited[visited != 0] = 0
             visited_prime[visited_prime != 0] = 0
-            replay_memory.save(episode_buffer)
+            if i < END_EELEARN or len(partition_memory) >= 5:
+                replay_memory.save(episode_buffer)
             episode_time = time.process_time()-now
             logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.4f}| Partition #: |{4}|"
                          .format(str(i).rjust(7, " "),
@@ -127,45 +142,37 @@ def mainloop(args):
             episode_buffer.clear()
             now = time.process_time()
             total_score = 0
-            steps_since_reward = 0
+            agent.steps_since_reward = 0
 
         if reward != 0 or (torch.sum(visited_prime, 1) - torch.sum(visited, 1)).item() != 0:
-            steps_since_reward = 0
+            agent.steps_since_reward = 0
         else:
-            steps_since_reward += 1
-
-        if distance > dmax and i >= START_MAKING_PARTITIONS:
-            partition_candidate = state_prime
-            dmax = distance
+            agent.steps_since_reward += 1
 
         if i % add_partition_freq == 0 and partition_candidate is not None:
             partition_memory.append([partition_candidate, 0])
             dmax = 0
+            distance = 0
 
             partition_memory = partition_memory[-MAX_PARTITIONS:]
             add_partition_freq = int(add_partition_freq * PARTITION_ADD_TIME_MULT)
-            transform_to_image(state[0][0].cpu()).save(logpath + "patition_" +
+            transform_to_image(partition_candidate[0].cpu()).save(logpath + "partition_" +
                                                  str(len(partition_memory)) + ".png")
 
         state = state_prime
         visited = visited_prime
 
         if i % update_freq == 0 and i >= START_QLEARN:
-            agent.qlearn(replay_memory)
+            agent.qlearn(replay_memory, partition_memory)
 
         if i % update_freq == 0 and i >= START_EELEARN and (i < END_EELEARN or int(args[5])):
-            agent.imagecomparelearn(replay_memory)
+            agent.imagecomparelearn(replay_memory)  
 
         if i % UPDATE_TARGETS_FREQUENCY == 0:
             agent.update_targets()
 
         if i % SAVE_NETWORKS_FREQUENCY == 0:
             agent.save_networks(logpath, i)
-
-        if steps_since_reward > 500:
-            terminating = True
-            episode_buffer[-1][5] = torch.tensor(terminating, device=agent.device).unsqueeze(0)
-            steps_since_reward = 0
 
     agent.save_networks(logpath, i)
 
