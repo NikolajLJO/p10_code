@@ -67,14 +67,14 @@ class Actor:
 					visited, visited_prime, distance = self.agent.find_current_partition(state_prime,self.local_partition_memory,visited)
 				episode_buffer.append(
 					[
-						torch.tensor(state, device="cpu"),
-						torch.tensor(action, device="cpu"),
-						torch.tensor(visited, device="cpu"),
-						torch.tensor(auxiliary_reward, device="cpu"),
+						state.to("cpu"),
+						action.to("cpu"),
+						visited.to("cpu"),
+						auxiliary_reward.to("cpu"),
 						torch.tensor(reward, device="cpu").unsqueeze(0),
 						torch.tensor(terminating, device="cpu").unsqueeze(0),
-						torch.tensor(state_prime, device="cpu"),
-						torch.tensor(visited_prime, device="cpu")])
+						state_prime.to("cpu"),
+						visited_prime.to("cpu")])
 
 				if terminating:
 					replay_que.put(copy.deepcopy(episode_buffer))
