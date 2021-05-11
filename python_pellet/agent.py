@@ -87,6 +87,10 @@ class Agent:
 		# auxiliary rewards
 		batch = random.sample(ee_memory, batch_size)
 		states, s_primes, smid, auxreward = zip(*batch)
+		states = torch.cat(states).to("cuda:0")
+		s_primes = torch.cat(s_primes).to("cuda:0")
+		auxreward = torch.cat(auxreward).to("cuda:0")
+
 		targ_onesteps = []
 		for i in range(len(smid)):
 			targ_onesteps.append(
