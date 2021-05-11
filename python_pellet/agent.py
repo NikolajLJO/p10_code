@@ -108,7 +108,7 @@ class Agent:
 
 		merged = []
 		for i in range(len(states)):
-			merged.append(merge_states_for_comparason(states[i], s_primes[i]))
+			merged.append(merge_states_for_comparason(states[i].unsqueeze(0), s_primes[i].unsqueeze(0)))
 		self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
 
 	def find_current_partition(self, state, partition_memory, visited):
