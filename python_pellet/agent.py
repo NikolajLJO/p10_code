@@ -94,7 +94,7 @@ class Agent:
 		targ_onesteps = []
 		for i in range(len(smid)):
 			targ_onesteps.append(
-				auxreward[i][0]
+				auxreward[i][0].to("cuda:0")
 				+ self.EE_discount
 				* self.targetEEnet(merge_states_for_comparason(smid[i].unsqueeze(0), s_primes[i].unsqueeze(0))))
 

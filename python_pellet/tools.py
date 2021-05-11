@@ -31,7 +31,7 @@ def process_dis(in_file_name: str):
 	now = datetime.datetime.now()
 	now_but_text = str(now.date()) + '-' + str(now.hour) + str(now.minute)
 	if in_file_name.split('.')[-1] is not ".txt":
-		in_file_name += ".text"
+		in_file_name += ".txt"
 	path = Path(__file__).parent
 	csv_path = path / "logs" / (now_but_text + ".csv")
 	in_file_path = path / "logs" / (in_file_name + ".txt")
