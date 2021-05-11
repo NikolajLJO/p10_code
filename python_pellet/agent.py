@@ -96,7 +96,7 @@ class Agent:
 			targ_onesteps.append(
 				auxreward[i][0]
 				+ self.EE_discount
-				* self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
+				* self.targetEEnet(merge_states_for_comparason(smid[i].unsqueeze(0), s_primes[i].unsqueeze(0))))
 
 		targ_mc = torch.zeros(len(auxreward), 18, device=self.device)
 		for i, setauxreward in enumerate(auxreward):
