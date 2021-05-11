@@ -54,13 +54,7 @@ class EEnet(torch.nn.Module):
         super(EEnet, self).__init__()
 
         # conv_3_channels needs replacement if conv layer setup changes
-        self.conv_net = torch.nn.Sequential(torch.nn.Conv2d(1, 16, 8, stride=4),
-                                            torch.nn.ReLU(),
-                                            torch.nn.Conv2d(16, 16, 4, stride=2),
-                                            torch.nn.ReLU(),
-                                            torch.nn.Conv2d(16, 16, 3, stride=1),
-                                            torch.nn.ReLU()
-                                            )
+        self.conv_net = torch.nn.Sequential(torch.nn.Conv2d(1, 16, 8, stride=4),torch.nn.ReLU(),torch.nn.Conv2d(16, 16, 4, stride=2),torch.nn.ReLU(),torch.nn.Conv2d(16, 16, 3, stride=1),torch.nn.ReLU())
         self.parallel_conv_net = copy.deepcopy(self.conv_net)
 
         height, width = conv2d_size_out(84, 84, 4, 8)
@@ -69,9 +63,7 @@ class EEnet(torch.nn.Module):
 
         layer_node_count = int(height * width * 16)
 
-        self.liniar_net = torch.nn.Sequential(torch.nn.Linear(layer_node_count*2, 128),
-                                              torch.nn.ReLU(),
-                                              torch.nn.Linear(128, 18))
+        self.liniar_net = torch.nn.Sequential(torch.nn.Linear(layer_node_count*2, 128),torch.nn.ReLU(),torch.nn.Linear(128, 18))
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=0.0000625)
         self.loss = torch.nn.SmoothL1Loss()

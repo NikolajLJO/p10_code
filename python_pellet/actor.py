@@ -58,34 +58,22 @@ class Actor:
                 start = time.process_time()
                 action, policy = self.agent.find_action(state, i, visited, steps_since_reward)
 
-                auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()),
-                                                device=self.agent.device)
+                auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()),device=self.agent.device)
 
                 state_prime, reward, terminating, info = env.step(action)
                 total_score += reward
                 reward = int(max(min(reward, 1), -1))
                 if i % 10 == 0:
-                    visited, visited_prime, distance = self.agent.find_current_partition(state_prime,
-                                                                                         self.local_partition_memory,
-                                                                                         visited)
-                episode_buffer.append([state, action, visited, auxiliary_reward,
-                                       torch.tensor(reward, device=self.agent.device).unsqueeze(0),
-                                       torch.tensor(terminating, device=self.agent.device).unsqueeze(0),
-                                       state_prime,
-                                       visited_prime])
+                    visited, visited_prime, distance = self.agent.find_current_partition(state_prime,self.local_partition_memory,visited)
+                episode_buffer.append([state, action, visited, auxiliary_reward,torch.tensor(reward, device=self.agent.device).unsqueeze(0),torch.tensor(terminating, device=self.agent.device).unsqueeze(0),state_prime,visited_prime])
 
                 if terminating:
                     replay_que.put(copy.deepcopy(episode_buffer))
                     end = time.process_time()
                     elapsed = (end - start)
                     state_prime = env.reset()
-                    self.update_partitions(visited,
-                                           self.local_partition_memory)  # TODO SHOULD local_partition_memory be shared since we just have replicated data for reading? (asnwer is yes)
-                    logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.2f}|"
-                                 .format(str(i).rjust(7, " "),
-                                         int(total_score),
-                                         elapsed,
-                                         elapsed / len(episode_buffer)))
+                    self.update_partitions(visited,self.local_partition_memory)  # TODO SHOULD local_partition_memory be shared since we just have replicated data for reading? (asnwer is yes)
+                    logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.2f}|".format(str(i).rjust(7, " "),int(total_score),elapsed,elapsed / len(episode_buffer)))
                     episode_buffer.clear()
                     visited[visited != 0] = 0
                     visited_prime[visited_prime != 0] = 0
@@ -107,7 +95,7 @@ class Actor:
 
                 state = state_prime
                 if i % 1000 == 0:  # TODO this should prob be some better mere defined value
-                        self.check_ques_for_updates()
+                    self.check_ques_for_updates()
 
                 if steps_since_reward > 500:
                     terminating = True

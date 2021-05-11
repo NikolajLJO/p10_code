@@ -75,10 +75,7 @@ class ReplayMemory:
             for j in range(0, offset):
                 auxiliary_reward = self.memory[((state_index + j) % self.MAX_MEMORY_SIZE)][3]
                 aux.append(auxiliary_reward)
-            batch.append([self.memory[state_index][0],
-                          self.memory[state_prime_index][0],
-                          self.memory[state_index][-4],
-                          aux])
+            batch.append([self.memory[state_index][0],self.memory[state_prime_index][0],self.memory[state_index][-4],aux])
 
         return batch
 

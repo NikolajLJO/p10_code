@@ -23,10 +23,7 @@ def process_score_over_steps(in_file_name: str):
             for line in infile:
                 if line.__contains__(":"):
                     items = line.split('|')
-                    printable_items = [items[1].strip(),
-                                       items[3].strip(),
-                                       items[5].strip(),
-                                       items[7].strip()]
+                    printable_items = [items[1].strip(),items[3].strip(),items[5].strip(),items[7].strip()]
                     writer.writerow(printable_items)
 
 

@@ -145,8 +145,7 @@ class Agent:
         visited_prime = copy.deepcopy(visited)
 
         if visited[0][index] is None:
-            visited[0][index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])],
-                                             device=self.device)
+            visited[0][index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])], device=self.device)
 
         return visited, visited_prime, min_distance
 
@@ -165,11 +164,7 @@ class Agent:
         elif step <= self.qlearn_start:
             self.epsilon = self.epsilon_start
         else:
-            self.epsilon = self.epsilon_end + \
-                           max(0.0,
-                               (self.epsilon_start - self.epsilon_end) *
-                               (self.epsilon_endt - max(0, step - self.qlearn_start)) /
-                               self.epsilon_endt)
+            self.epsilon = self.epsilon_end + max(0.0, (self.epsilon_start - self.epsilon_end) *(self.epsilon_endt - max(0, step - self.qlearn_start)) /self.epsilon_endt)
 
         if np.random.rand() > self.epsilon:
             action = torch.argmax(policy[0])
@@ -189,11 +184,7 @@ class Agent:
         return max_distance
 
     def distance(self, s1, s2, reference_point):
-        return max(
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) -
-                          self.EEnet(merge_states_for_comparason(reference_point, s2)))),
-            torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) -
-                          self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
+        return max(torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) -self.EEnet(merge_states_for_comparason(reference_point, s2)))),torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) -self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
 
     def update_targets(self):
         self.targetQnet = copy.deepcopy(self.Qnet)

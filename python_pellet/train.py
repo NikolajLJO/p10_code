@@ -21,12 +21,11 @@ if __name__ == "__main__":
     args.reverse()
     args[2] = int(args[2])
 
-
     if (args[3]) == 'y':
         process_score_over_steps(args[4])
         exit()
 
-    if (args[3] == 'd'):
+    if args[3] == 'd':
         process_dis(args[4])
         exit()
 
