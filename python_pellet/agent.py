@@ -94,7 +94,7 @@ class Agent:
 				+ self.EE_discount
 				* self.targetEEnet(merge_states_for_comparason(smid[i], s_primes[i])))
 
-		targ_mc = torch.zeros(len(auxreward), 18)
+		targ_mc = torch.zeros(len(auxreward), 18, device=self.device)
 		for i, setauxreward in enumerate(auxreward):
 			targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)], 0)
 

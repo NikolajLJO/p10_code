@@ -48,8 +48,8 @@ class Actor:
 		episode_buffer = []
 
 		game_actions, self.agent, opt, env = setup(args[1])
-		visited = torch.zeros(1,100)
-		visited_prime = torch.zeros(1,100)
+		visited = torch.zeros(1,100, device=self.agent.device)
+		visited_prime = torch.zeros(1,100, device=self.agent.device)
 		state = env.reset()
 		self.local_partition_memory.append([state, 0])
 		steps_since_reward = 0
