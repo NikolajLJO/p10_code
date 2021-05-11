@@ -100,6 +100,7 @@ class Agent:
 
 		targ_mc = torch.zeros(len(auxreward), 18, device=self.device)
 		for i, setauxreward in enumerate(auxreward):
+			setauxreward = setauxreward.to("cuda:0")
 			targ_mc[i] = torch.sum(torch.stack(setauxreward) + self.EE_discounts[:len(setauxreward)], 0)
 
 		# targmixed   (1 􀀀 E)targone-step + EtargMC
