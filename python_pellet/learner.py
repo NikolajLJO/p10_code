@@ -1,4 +1,5 @@
 import copy
+import itertools
 
 import tools
 from pathlib import Path
@@ -71,7 +72,7 @@ class Learner:
 			# then when it does, update it
 			for _ in range(int(self.learner_que_max_size)):
 				transition = learner_replay_que.get()
-				for elem in transition:
+				for elem in itertools.islice(transition,0,7):
 					elem = elem.to("cuda:0")
 				process_local_transition = copy.deepcopy(transition)
 				self.replay_memory.memory.append(process_local_transition)
