@@ -81,7 +81,7 @@ class Actor:
 					total_score = 0
 					steps_since_reward = 0
 
-					torch.cuda.empty_cache()
+
 
 				if reward != 0 or len(visited) != len(visited_prime):
 					steps_since_reward = 0
