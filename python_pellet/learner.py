@@ -71,6 +71,9 @@ class Learner:
 			# then when it does, update it
 			for _ in range(int(self.learner_que_max_size)):
 				transition = learner_replay_que.get()
+				for list in transition:
+					for elem in list:
+						elem = elem.to("cuda:0")
 				process_local_transition = copy.deepcopy(transition)
 				self.replay_memory.memory.append(process_local_transition)
 				del transition
@@ -111,12 +114,18 @@ class Learner:
 			# while we have more than 10% replay memory, learn
 			while len(self.replay_memory.memory) >= self.update_memory_break_point and len(self.ee_memory) >= self.update_ee_memory_break_point:
 				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
+				self.ee_memory.clear()
 
 			logging.info("I processed 90% of que")
 
 			for _ in range(actor_count):
-				self.q_network_que.put(copy.deepcopy(self.agent.Qnet.state_dict()))
-				self.e_network_que.put(copy.deepcopy(self.agent.EEnet.state_dict()))
-				self.q_t_network_que.put(copy.deepcopy(self.agent.targetQnet.state_dict()))
-				self.e_t_network_que.put(copy.deepcopy(self.agent.targetEEnet.state_dict()))
+				c1 = self.agent.Qnet.state_dict()
+				c2 = self.agent.EEnet.state_dict()
+				c3 = self.agent.targetQnet.state_dict()
+				c4 = self.agent.targetEEnet.state_dict()
+				self.q_network_que.put(copy.deepcopy(c1))
+				self.e_network_que.put(copy.deepcopy(c2))
+				self.q_t_network_que.put(copy.deepcopy(c3))
+				self.e_t_network_que.put(copy.deepcopy(c4))
+				del c1, c2, c3, c4
 			logging.info("Pushed networks")
