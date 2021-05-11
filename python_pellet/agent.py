@@ -56,26 +56,28 @@ class Agent:
 		if not ee_done:
 			self.eelearn(ee_memory)
 
-    def qlearn(self, replay_memory, partition_memory, batch_size=None ):
-            # Sample random minibatch of transitions
-            # {s; v; a; r; s ; v´} from replay memoryfe
-            if batch_size is None:
-                batch_size = replay_memory.batch_size
-            batch = replay_memory.sample(forced_batch_size=batch_size, should_pop=True)
-            states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
-            states = torch.cat(states)
-            action = torch.cat(action).long().unsqueeze(1)
-            reward = torch.cat(reward)
-            s_primes = torch.cat(s_primes)
-            terminating = torch.cat(terminating).long()
-            targ_mc = torch.cat(targ_mc)
+	def qlearn(self, replay_memory, batch_size=None):
+		# Sample random minibatch of transitions
+		# {s; v; a; r; s ; v´} from replay memoryfe
+		if batch_size is None:
+			batch_size = replay_memory.batch_size
+		batch = replay_memory.sample(forced_batch_size=batch_size, should_pop=True)
+		states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
+		states = torch.cat(states)
+		action = torch.cat(action).long().unsqueeze(1)
+		visited = torch.cat(visited)
+		visited_prime = torch.cat(visited_prime)
+		reward = torch.cat(reward)
+		s_primes = torch.cat(s_primes)
+		terminating = torch.cat(terminating).long()
+		targ_mc = torch.cat(targ_mc)
 
 		pellet_rewards = torch.sum(visited_prime, dim=1) - torch.sum(visited, dim=1)
 
-            targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes).max(1)[0].detach() * (1 - terminating)
-            # Calculate extrinsic and intrinsic returns, R and R+,
-            # via the remaining history in the replay memory
-            predictions = self.Qnet(states, visited).gather(1, action)
+		targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes, visited_prime).max(1)[0].detach() * (1 - terminating)
+		# Calculate extrinsic and intrinsic returns, R and R+,
+		# via the remaining history in the replay memory
+		predictions = self.Qnet(states, visited).gather(1, action)
 
 		targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
 		self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))

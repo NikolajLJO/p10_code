@@ -25,7 +25,7 @@ class Qnet(torch.nn.Module):
         height, width = conv2d_size_out(height, width, 1, 3)
 
         self.layer_node_count = int(height * width * 64)
-        self.lay1 = torch.nn.Linear(self.layer_node_count, 512)
+        self.lay1 = torch.nn.Linear(self.layer_node_count + 100, 512)
         self.lay2 = torch.nn.Linear(512, 18)
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=0.00025)
