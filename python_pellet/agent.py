@@ -1,13 +1,12 @@
+import copy
+import logging
 import math
-import time
-import traceback
+import random
+
+import numpy as np
+import torch
 
 from Qnetwork import Qnet, EEnet
-import copy
-import torch
-import numpy as np
-import random
-import logging
 
 
 class Agent:
@@ -147,7 +146,7 @@ class Agent:
 
         if visited[0][index] is None:
             visited[0][index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])],
-                                          device=self.device)
+                                             device=self.device)
 
         return visited, visited_prime, min_distance
 
