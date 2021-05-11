@@ -116,40 +116,43 @@ class Agent:
 				visited_prime is the list of visited states after the transition
 				distance is the maximum distance between the state and all partitions
 		'''
-		min_distance = np.Inf
-		index = 0
-		for i, s2 in enumerate(partition_memory):
-			max_distance = np.NINF
-			state_to_ref = []
-			s2_to_ref = []
-			ref_to_state = []
-			ref_to_s2 = []
-			for refrence in partition_memory[:5]:
-				state_to_ref.append(merge_states_for_comparason(state, refrence[0]))
-				s2_to_ref.append(merge_states_for_comparason(s2[0], refrence[0]))
-				ref_to_state.append(merge_states_for_comparason(refrence[0], state))
-				ref_to_s2.append(merge_states_for_comparason(refrence[0], s2[0]))
+		with torch.no_grad():
+			min_distance = np.Inf
+			index = 0
+			for i, s2 in enumerate(partition_memory):
+				max_distance = np.NINF
+				state_to_ref = []
+				s2_to_ref = []
+				ref_to_state = []
+				ref_to_s2 = []
+				for refrence in partition_memory[:5]:
+					state_to_ref.append(merge_states_for_comparason(state, refrence[0]))
+					s2_to_ref.append(merge_states_for_comparason(s2[0], refrence[0]))
+					ref_to_state.append(merge_states_for_comparason(refrence[0], state))
+					ref_to_s2.append(merge_states_for_comparason(refrence[0], s2[0]))
 
-			state_to_ref = torch.cat(state_to_ref)
-			s2_to_ref = torch.cat(s2_to_ref)
-			forward = torch.sum(self.EEnet(state_to_ref) - self.EEnet(s2_to_ref), dim=1)
+				state_to_ref = torch.cat(state_to_ref)
+				s2_to_ref = torch.cat(s2_to_ref)
+				#TODO HERE
+				forward = torch.sum(self.EEnet(state_to_ref) - self.EEnet(s2_to_ref), dim=1)
 
-			ref_to_state = torch.cat(ref_to_state)
-			ref_to_s2 = torch.cat(ref_to_s2)
-			backward = torch.sum(self.EEnet(ref_to_state) - self.EEnet(ref_to_s2), dim=1)
+				ref_to_state = torch.cat(ref_to_state)
+				ref_to_s2 = torch.cat(ref_to_s2)
+				#TODO HERE
+				backward = torch.sum(self.EEnet(ref_to_state) - self.EEnet(ref_to_s2), dim=1)
 
-			max_distance = torch.max(torch.max(torch.stack([forward, backward], dim=1), 1)[0], 0)[0].item()
+				max_distance = torch.max(torch.max(torch.stack([forward, backward], dim=1), 1)[0], 0)[0].item()
 
-			if max_distance < min_distance:
-				min_distance = max_distance
-				index = i
+				if max_distance < min_distance:
+					min_distance = max_distance
+					index = i
 
-		visited_prime = copy.deepcopy(visited)
+			visited_prime = copy.deepcopy(visited)
 
-		if visited[0][index] is None:
-			visited[0][index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])], device=self.device)
+			if visited[0][index] is None:
+				visited[0][index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])], device=self.device)
 
-		return visited, visited_prime, min_distance
+			return visited, visited_prime, min_distance
 
 	def e_greedy_action_choice(self, state, step, visited, steps_since_reward):
 		'''
@@ -159,23 +162,24 @@ class Agent:
 		Output: action a tensor with the best action index
 				policy is all q-values at the state
 		'''
-		policy = self.Qnet(state, visited)
+		with torch.no_grad():
+			policy = self.Qnet(state, visited)
 
-		if steps_since_reward > 500:
-			self.epsilon = self.epsilon_start
-		elif step <= self.qlearn_start:
-			self.epsilon = self.epsilon_start
-		else:
-			self.epsilon = self.epsilon_end + max(0.0, (self.epsilon_start - self.epsilon_end) *(self.epsilon_endt - max(0, step - self.qlearn_start)) /self.epsilon_endt)
+			if steps_since_reward > 500:
+				self.epsilon = self.epsilon_start
+			elif step <= self.qlearn_start:
+				self.epsilon = self.epsilon_start
+			else:
+				self.epsilon = self.epsilon_end + max(0.0, (self.epsilon_start - self.epsilon_end) *(self.epsilon_endt - max(0, step - self.qlearn_start)) /self.epsilon_endt)
 
-		if np.random.rand() > self.epsilon:
-			action = torch.argmax(policy[0])
-		else:
-			action = torch.tensor(np.random.randint(1, self.action_space.n), device=self.device)
+			if np.random.rand() > self.epsilon:
+				action = torch.argmax(policy[0])
+			else:
+				action = torch.tensor(np.random.randint(1, self.action_space.n), device=self.device)
 
-		self.epsilon = self.slope * step + self.intercept
+			self.epsilon = self.slope * step + self.intercept
 
-		return action.unsqueeze(0), policy
+			return action.unsqueeze(0), policy
 
 	def distance_prime(self, s1, s2, partition_memory):
 		max_distance = np.NINF
@@ -186,7 +190,8 @@ class Agent:
 		return max_distance
 
 	def distance(self, s1, s2, reference_point):
-		return max(torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) -self.EEnet(merge_states_for_comparason(reference_point, s2)))),torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) -self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
+		with torch.no_grad():
+			return max(torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) -self.EEnet(merge_states_for_comparason(reference_point, s2)))),torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) -self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
 
 	def update_targets(self):
 		self.targetQnet = copy.deepcopy(self.Qnet)
