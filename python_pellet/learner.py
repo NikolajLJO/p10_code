@@ -72,7 +72,7 @@ class Learner:
 			while learner_replay_que.qsize() < self.learner_que_max_size:
 				pass
 			# then when it does, update it
-			for _ in range(int(self.learner_que_max_size)):
+			for _ in range(0, int(self.learner_que_max_size)):
 				try:
 					transition = learner_replay_que.get(False)
 				except queue.Empty:
@@ -101,6 +101,7 @@ class Learner:
 					except queue.Empty:
 						pass
 				logging.info("Refilled ee memory")
+				logging.info(len(self.ee_memory))
 				ee_update_count += 1
 
 			if not ee_done and ee_update_count * self.learner_ee_que_max_size > 2e6:
