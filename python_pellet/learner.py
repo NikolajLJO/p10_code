@@ -92,7 +92,7 @@ class Learner:
 				pass
 
 			if not learner_ee_que.empty():
-				for _ in range(int(self.learner_ee_que_max_size)):
+				for _ in range(0, int(self.learner_ee_que_max_size)):
 					try:
 						transition = learner_ee_que.get(False)
 						process_local_transition = copy.deepcopy(transition)
