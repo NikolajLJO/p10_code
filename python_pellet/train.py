@@ -6,6 +6,17 @@ from learner import Learner
 from memory_manager import MemoryManager
 from memory import ReplayMemory
 
+
+class ClearableQueue(mp.Queue):
+
+	def clear(self):
+		try:
+			while True:
+				self.get_nowait()
+		except mp.Queue.queue.Empty:
+			pass
+
+
 if __name__ == "__main__":
 	mp.set_start_method('spawn')
 	thread_count = min(mp.cpu_count(), 32)
@@ -30,15 +41,15 @@ if __name__ == "__main__":
 		exit()
 
 	with mp.Pool(processes=thread_count) as pool:
-		replay_que = mp.Queue()
-		q_network_que = mp.Queue()
-		e_network_que = mp.Queue()
-		q_t_network_que = mp.Queue()
-		e_t_network_que = mp.Queue()
-		to_actor_partition_que = mp.Queue()
-		from_actor_partition_que = mp.Queue()
-		learner_ee_que = mp.Queue(maxsize=learner_ee_que_max_size)
-		learner_replay_que = mp.Queue(maxsize=learner_que_max_size)
+		replay_que = ClearableQueue()
+		q_network_que = ClearableQueue()
+		e_network_que = ClearableQueue()
+		q_t_network_que = ClearableQueue()
+		e_t_network_que = ClearableQueue()
+		to_actor_partition_que = ClearableQueue()
+		from_actor_partition_que = ClearableQueue()
+		learner_ee_que = ClearableQueue(maxsize=learner_ee_que_max_size)
+		learner_replay_que = ClearableQueue(maxsize=learner_que_max_size)
 
 		manager = mp.Process(target=MemoryManager,
 							 args=(replay_que,
@@ -78,3 +89,5 @@ if __name__ == "__main__":
 
 	for p in actor_list:
 		p.join()
+
+
