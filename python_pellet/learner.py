@@ -110,6 +110,7 @@ class Learner:
 				transform_to_image(best_partition[0][0][0]).save(path)
 				for _ in range(actor_count):
 					to_actor_partition_que.put(copy.deepcopy(best_partition))
+				unqued_partitions.clear()
 				logging.info("Pushed partitions")
 
 			# while we have more than 10% replay memory, learn
