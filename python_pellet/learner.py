@@ -75,20 +75,20 @@ class Learner:
 			for _ in range(0, int(self.learner_que_max_size)):
 				try:
 					transition = learner_replay_que.get(False)
+					for elem in itertools.islice(transition, 0, 7):
+						elem = elem.to("cuda:0")
+					process_local_transition = copy.deepcopy(transition)
+					self.replay_memory.memory.append(process_local_transition)
+					del transition
 				except queue.Empty:
 					pass
-				for elem in itertools.islice(transition,0,7):
-					elem = elem.to("cuda:0")
-
-				process_local_transition = copy.deepcopy(transition)
-				self.replay_memory.memory.append(process_local_transition)
-				del transition
 
 			logging.info("Refilled replay memory")
 			logging.info(len(self.replay_memory.memory))
 
 			ee_update_count = 0
 			ee_done = False
+
 			while learner_ee_que.qsize() < self.learner_ee_que_max_size:
 				pass
 

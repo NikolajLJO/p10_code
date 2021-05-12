@@ -86,7 +86,7 @@ class Agent:
 		# Sample a minibatch of state pairs and interleaving
 		# auxiliary rewards
 		batch = []
-		for _ in range(0, len(ee_memory)):
+		for _ in range(0, min(len(ee_memory), 1000)):
 			batch.append(ee_memory.pop())
 		states, s_primes, smid, auxreward = zip(*batch)
 		states = torch.cat(states).to("cuda:0")

@@ -63,7 +63,7 @@ class ReplayMemory:
 		else:
 			batch_size = self.batch_size
 
-		for i in range(batch_size):
+		for i in range(0, batch_size):
 			state_index = np.random.randint(0, (len(self.memory)))
 			while self.memory[state_index][-1] <= 2:
 				state_index = np.random.randint(0, (len(self.memory)))
