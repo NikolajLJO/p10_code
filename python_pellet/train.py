@@ -7,16 +7,6 @@ from memory_manager import MemoryManager
 from memory import ReplayMemory
 
 
-class ClearableQueue(mp.Queue):
-
-	def clear(self):
-		try:
-			while True:
-				self.get_nowait()
-		except mp.Queue.queue.Empty:
-			pass
-
-
 if __name__ == "__main__":
 	mp.set_start_method('spawn')
 	thread_count = min(mp.cpu_count(), 32)

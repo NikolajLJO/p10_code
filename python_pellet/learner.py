@@ -1,5 +1,6 @@
 import copy
 import itertools
+import queue
 
 import tools
 from pathlib import Path
@@ -11,7 +12,8 @@ import sys
 from init import setup_agent
 import traceback
 import torch
-import torchvision.transforms as transforms
+import torchvision.transforms as
+from torch.multiprocessing.queue import Queue
 
 transform_to_image = transforms.ToPILImage()
 
@@ -111,7 +113,11 @@ class Learner:
 				for _ in range(actor_count):
 					to_actor_partition_que.put(copy.deepcopy(best_partition))
 				unqued_partitions.clear()
-				from_actor_partition_que.clear()
+				try:
+					while True:
+						from_actor_partition_que.get_nowait()
+				except Queue.queue.Empty:
+					pass
 				logging.info("Pushed partitions")
 
 			# while we have more than 10% replay memory, learn
