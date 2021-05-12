@@ -148,7 +148,7 @@ class Actor:
 				partition = self.to_actor_partition_que.get(False)
 				proces_local_partition = copy.deepcopy(partition)
 
-				if len(self.local_partition_memory) == 0:  # TODO get self.argument here for length
+				if len(self.local_partition_memory) == 100:  # TODO get self.argument here for length
 					self.local_partition_memory.pop(0)
 					self.local_partition_memory.append(proces_local_partition)
 				else:
