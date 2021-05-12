@@ -99,9 +99,9 @@ class Learner:
 						self.ee_memory.append(process_local_transition)
 						del transition
 					except queue.Empty:
+						torch.cuda.empty_cache()
 						pass
 				logging.info("Refilled ee memory")
-				logging.info(len(self.ee_memory))
 				ee_update_count += 1
 
 			if not ee_done and ee_update_count * self.learner_ee_que_max_size > 2e6:
