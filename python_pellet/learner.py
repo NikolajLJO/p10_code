@@ -85,6 +85,7 @@ class Learner:
 				del transition
 
 			logging.info("Refilled replay memory")
+			logging.info(len(self.replay_memory.memory))
 
 			ee_update_count = 0
 			ee_done = False
@@ -102,6 +103,7 @@ class Learner:
 						torch.cuda.empty_cache()
 						pass
 				logging.info("Refilled ee memory")
+				logging.info(len(self.ee_memory))
 				ee_update_count += 1
 
 			if not ee_done and ee_update_count * self.learner_ee_que_max_size > 2e6:
