@@ -1,5 +1,6 @@
 import copy
 import itertools
+import queue
 
 import tools
 from pathlib import Path
@@ -12,7 +13,7 @@ from init import setup_agent
 import traceback
 import torch
 import torchvision.transforms as transforms
-from torch.multiprocessing.queue import Queue
+
 
 transform_to_image = transforms.ToPILImage()
 
@@ -115,7 +116,7 @@ class Learner:
 				try:
 					while True:
 						from_actor_partition_que.get_nowait()
-				except Queue.queue.Empty:
+				except queue.Empty:
 					pass
 				logging.info("Pushed partitions")
 
