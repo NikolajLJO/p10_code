@@ -31,15 +31,15 @@ if __name__ == "__main__":
 		exit()
 
 	with mp.Pool(processes=thread_count) as pool:
-		replay_que = ClearableQueue()
-		q_network_que = ClearableQueue()
-		e_network_que = ClearableQueue()
-		q_t_network_que = ClearableQueue()
-		e_t_network_que = ClearableQueue()
-		to_actor_partition_que = ClearableQueue()
-		from_actor_partition_que = ClearableQueue()
-		learner_ee_que = ClearableQueue(maxsize=learner_ee_que_max_size)
-		learner_replay_que = ClearableQueue(maxsize=learner_que_max_size)
+		replay_que = mp.Queue()
+		q_network_que = mp.Queue()
+		e_network_que = mp.Queue()
+		q_t_network_que = mp.Queue()
+		e_t_network_que = mp.Queue()
+		to_actor_partition_que = mp.Queue()
+		from_actor_partition_que = mp.Queue()
+		learner_ee_que = mp.Queue(maxsize=learner_ee_que_max_size)
+		learner_replay_que = mp.Queue(maxsize=learner_que_max_size)
 
 		manager = mp.Process(target=MemoryManager,
 							 args=(replay_que,
