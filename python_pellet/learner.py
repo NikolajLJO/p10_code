@@ -90,6 +90,7 @@ class Learner:
 			ee_done = False
 			while learner_ee_que.qsize() < self.learner_ee_que_max_size:
 				pass
+
 			if not learner_ee_que.empty():
 				for _ in range(int(self.learner_ee_que_max_size)):
 					try:

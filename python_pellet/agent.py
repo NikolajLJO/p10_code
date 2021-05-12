@@ -52,7 +52,7 @@ class Agent:
 		return action, policy
 
 	def update(self, replay_memory, ee_memory, ee_done: bool):
-		self.qlearn(replay_memory)
+		self.qlearn(replay_memory, batch_size=1000)
 		if not ee_done:
 			self.eelearn(ee_memory)
 
@@ -85,7 +85,9 @@ class Agent:
 	def eelearn(self, ee_memory, batch_size=1000):
 		# Sample a minibatch of state pairs and interleaving
 		# auxiliary rewards
-		batch = random.sample(ee_memory, batch_size)
+		batch = []
+		for _ in range(0, batch_size):
+			batch.append(ee_memory.pop())
 		states, s_primes, smid, auxreward = zip(*batch)
 		states = torch.cat(states).to("cuda:0")
 		s_primes = torch.cat(s_primes).to("cuda:0")
