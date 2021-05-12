@@ -38,11 +38,11 @@ class MemoryManager:
 					del optional_replay
 				except queue.Empty:
 					pass
-			if (not learner_replay_que.full()) and len(self.replay_memory.memory) > learner_que_max_size:
+			if learner_replay_que.empty() and len(self.replay_memory.memory) > learner_que_max_size:
 				self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
 				logging.info("refilled learner replay mem with |" + str(learner_que_max_size) + "| elements")
 
-			if (not learner_ee_que.full()) and len(self.replay_memory.memory) > learner_ee_que_max_size:
+			if learner_ee_que.empty() and len(self.replay_memory.memory) > learner_ee_que_max_size:
 				self.fill_learner_ee_que(learner_ee_que, learner_ee_que_max_size)
 				logging.info("refilled learner ee mem with |" + str(learner_ee_que_max_size) + "| elements")
 
