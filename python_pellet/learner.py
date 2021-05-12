@@ -1,6 +1,5 @@
 import copy
 import itertools
-import queue
 
 import tools
 from pathlib import Path
@@ -12,7 +11,7 @@ import sys
 from init import setup_agent
 import traceback
 import torch
-import torchvision.transforms as
+import torchvision.transforms as transforms
 from torch.multiprocessing.queue import Queue
 
 transform_to_image = transforms.ToPILImage()
