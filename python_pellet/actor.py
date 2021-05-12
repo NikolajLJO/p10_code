@@ -1,3 +1,5 @@
+import queue
+
 import tools
 from pathlib import Path
 import datetime
@@ -142,23 +144,29 @@ class Actor:
 		self.check_que_and_update_network(self.e_t_network_que, self.agent.targetEEnet)
 
 		if not self.to_actor_partition_que.empty():
-			partition = self.to_actor_partition_que.get()
-			proces_local_partition = copy.deepcopy(partition)
+			try:
+				partition = self.to_actor_partition_que.get(False)
+				proces_local_partition = copy.deepcopy(partition)
 
-			if len(self.local_partition_memory) == 0:  # TODO get self.argument here for length
-				self.local_partition_memory.pop(0)
-				self.local_partition_memory.append(proces_local_partition)
-			else:
-				self.local_partition_memory.append(proces_local_partition)
-			del partition
-			logging.info("updated partition memory")
+				if len(self.local_partition_memory) == 0:  # TODO get self.argument here for length
+					self.local_partition_memory.pop(0)
+					self.local_partition_memory.append(proces_local_partition)
+				else:
+					self.local_partition_memory.append(proces_local_partition)
+				del partition
+				logging.info("updated partition memory")
+			except queue.Empty:
+				pass
 
 	@staticmethod
 	def check_que_and_update_network(que, network):
 		if not que.empty():
-			parameters = que.get()
-			proces_local_parameters = copy.deepcopy(parameters)
-			for name, single_param in network.state_dict().items():
-				single_param = proces_local_parameters[name]
-				network.state_dict()[name].copy_(single_param)
-			del parameters
+			try:
+				parameters = que.get(False)
+				proces_local_parameters = copy.deepcopy(parameters)
+				for name, single_param in network.state_dict().items():
+					single_param = proces_local_parameters[name]
+					network.state_dict()[name].copy_(single_param)
+				del parameters
+			except queue.Empty:
+				pass

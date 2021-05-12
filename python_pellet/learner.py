@@ -73,7 +73,10 @@ class Learner:
 				pass
 			# then when it does, update it
 			for _ in range(int(self.learner_que_max_size)):
-				transition = learner_replay_que.get()
+				try:
+					transition = learner_replay_que.get(False)
+				except queue.Empty:
+					pass
 				for elem in itertools.islice(transition,0,7):
 					elem = elem.to("cuda:0")
 
@@ -89,10 +92,13 @@ class Learner:
 				pass
 			if not learner_ee_que.empty():
 				for _ in range(int(self.learner_ee_que_max_size)):
-					transition = learner_ee_que.get()
-					process_local_transition = copy.deepcopy(transition)
-					self.ee_memory.append(process_local_transition)
-					del transition
+					try:
+						transition = learner_ee_que.get(False)
+						process_local_transition = copy.deepcopy(transition)
+						self.ee_memory.append(process_local_transition)
+						del transition
+					except queue.Empty:
+						pass
 				logging.info("Refilled ee memory")
 				ee_update_count += 1
 
@@ -102,10 +108,13 @@ class Learner:
 			if from_actor_partition_que.qsize() >= actor_count * 2:
 				unqued_partitions = []
 				for _ in range(actor_count*2):
-					partition = from_actor_partition_que.get()
-					process_local_partition = copy.deepcopy(partition)
-					unqued_partitions.append(process_local_partition)
-					del partition
+					try:
+						partition = from_actor_partition_que.get(False)
+						process_local_partition = copy.deepcopy(partition)
+						unqued_partitions.append(process_local_partition)
+						del partition
+					except queue.Empty:
+						pass
 				best_partition = max(unqued_partitions, key=lambda item: item[1])
 				path = (self.path / ("patition_" + str(self.partition) + ".png")).__str__()
 				self.partition += 1
@@ -113,6 +122,7 @@ class Learner:
 				for _ in range(actor_count):
 					to_actor_partition_que.put(copy.deepcopy(best_partition))
 				unqued_partitions.clear()
+
 				try:
 					while True:
 						from_actor_partition_que.get_nowait()
@@ -127,14 +137,16 @@ class Learner:
 			self.ee_memory.clear()
 			logging.info("I processed 90% of que")
 
+			c1 = self.agent.Qnet.state_dict()
+			c2 = self.agent.EEnet.state_dict()
+			c3 = self.agent.targetQnet.state_dict()
+			c4 = self.agent.targetEEnet.state_dict()
+
 			for _ in range(actor_count):
-				c1 = self.agent.Qnet.state_dict()
-				c2 = self.agent.EEnet.state_dict()
-				c3 = self.agent.targetQnet.state_dict()
-				c4 = self.agent.targetEEnet.state_dict()
 				self.q_network_que.put(copy.deepcopy(c1))
 				self.e_network_que.put(copy.deepcopy(c2))
 				self.q_t_network_que.put(copy.deepcopy(c3))
 				self.e_t_network_que.put(copy.deepcopy(c4))
-				del c1, c2, c3, c4
+
+			del c1, c2, c3, c4
 			logging.info("Pushed networks")

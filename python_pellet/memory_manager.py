@@ -1,3 +1,5 @@
+import queue
+
 import tools
 from pathlib import Path
 import datetime
@@ -29,11 +31,13 @@ class MemoryManager:
 	def manage(self, learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size):
 		while True:
 			while not replay_que.empty() and len(self.replay_memory.memory) < learner_ee_que_max_size + learner_que_max_size:
-				optional_replay = replay_que.get()
-				process_local_optional_replay = copy.deepcopy(optional_replay)
-				self.replay_memory.save(process_local_optional_replay)
-				del optional_replay
-
+				try:
+					optional_replay = replay_que.get(False)
+					process_local_optional_replay = copy.deepcopy(optional_replay)
+					self.replay_memory.save(process_local_optional_replay)
+					del optional_replay
+				except queue.Empty:
+					pass
 			if (not learner_replay_que.full()) and len(self.replay_memory.memory) > learner_que_max_size:
 				self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
 				logging.info("refilled learner replay mem with |" + str(learner_que_max_size) + "| elements")

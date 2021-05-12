@@ -82,7 +82,7 @@ class Agent:
 		targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
 		self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
 
-	def eelearn(self, ee_memory, batch_size=32):
+	def eelearn(self, ee_memory, batch_size=1000):
 		# Sample a minibatch of state pairs and interleaving
 		# auxiliary rewards
 		batch = random.sample(ee_memory, batch_size)
