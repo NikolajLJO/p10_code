@@ -1,6 +1,7 @@
 import copy
 import itertools
 import queue
+import time
 
 import tools
 from pathlib import Path
@@ -67,6 +68,7 @@ class Learner:
 
 	def learn(self, learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que,  actor_count):
 		logging.info("Started with empty memory")
+		learn_count = 0
 		while True:
 			# when rpelay memory is almost empty, wait until the que has a full memory size
 			while learner_replay_que.qsize() < self.learner_que_max_size:
@@ -132,16 +134,19 @@ class Learner:
 						from_actor_partition_que.get_nowait()
 				except queue.Empty:
 					pass
-				logging.info("Pushed partitions")
+				logging.info("Pushed partition: " + str(self.partition))
 
 			# while we have more than 10% replay memory, learn
+			# ToDO this should prob just do entire que its a frakensetein of old concepts
 			while len(self.replay_memory.memory) >= self.update_memory_break_point and len(self.ee_memory) >= self.update_ee_memory_break_point:
-				logging.info("start learn")
+				pre_learn = time.process_time_ns()
 				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
-				logging.info("learned")
+				post_learn = time.process_time_ns()
+				logging.info("learned in: " + str(post_learn-pre_learn))
+				learn_count += 1
 
 			self.ee_memory.clear()
-			logging.info("I processed 90% of que")
+			logging.info("I processed que: " + str(learn_count))
 
 			c1 = self.agent.Qnet.state_dict()
 			c2 = self.agent.EEnet.state_dict()
