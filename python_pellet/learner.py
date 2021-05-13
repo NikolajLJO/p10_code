@@ -141,7 +141,7 @@ class Learner:
 				pre_learn = time.process_time_ns()
 				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
 				post_learn = time.process_time_ns()
-				logging.info("learned in: " + str(post_learn-pre_learn))
+				logging.info("learned in: " + str(post_learn-pre_learn * -1e9))
 				learn_count += 1
 
 			self.ee_memory.clear()

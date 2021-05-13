@@ -53,6 +53,7 @@ class Agent:
 
 	def update(self, replay_memory, ee_memory, ee_done: bool):
 		logging.info("ql")
+		torch.cuda.empty_cache()
 		self.qlearn(replay_memory, batch_size=1000)
 		if not ee_done:
 			logging.info("eel")
