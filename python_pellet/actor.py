@@ -66,17 +66,17 @@ class Actor:
 				total_score += reward
 				reward = int(max(min(reward, 1), -1))
 				if i % 10 == 0:
-					visited, visited_prime, distance = self.agent.find_current_partition(state_prime,self.local_partition_memory,visited)
-				episode_buffer.append(copy.deepcopy(
+					visited, visited_prime, distance = self.agent.find_current_partition(state_prime,self.local_partition_memory, visited)
+				episode_buffer.append(
 					[
-						state.to("cpu"),
-						action.to("cpu"),
-						visited.to("cpu"),
-						auxiliary_reward.to("cpu"),
-						torch.tensor(reward, device="cpu").unsqueeze(0),
-						torch.tensor(terminating, device="cpu").unsqueeze(0),
-						state_prime.to("cpu"),
-						visited_prime.to("cpu")]))
+						copy.deepcopy(state).to("cpu"),
+						copy.deepcopy(action).to("cpu"),
+						copy.deepcopy(visited).to("cpu"),
+						copy.deepcopy(auxiliary_reward).to("cpu"),
+						copy.deepcopy(torch.tensor(reward, device="cpu").unsqueeze(0)),
+						copy.deepcopy(torch.tensor(terminating, device="cpu").unsqueeze(0)),
+						copy.deepcopy(state_prime).to("cpu"),
+						copy.deepcopy(visited_prime).to("cpu")])
 
 				if terminating:
 					replay_que.put(copy.deepcopy(episode_buffer))
@@ -148,7 +148,7 @@ class Actor:
 				partition = self.to_actor_partition_que.get(False)
 				proces_local_partition = copy.deepcopy(partition)
 				proces_local_partition[0].to("cuda:0")
-				logging.info(proces_local_partition)
+
 
 				if len(self.local_partition_memory) == 100:  # TODO get self.argument here for length
 					self.local_partition_memory.pop(0)
