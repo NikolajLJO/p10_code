@@ -52,8 +52,10 @@ class Agent:
 		return action, policy
 
 	def update(self, replay_memory, ee_memory, ee_done: bool):
+		logging.info("ql")
 		self.qlearn(replay_memory, batch_size=1000)
 		if not ee_done:
+			logging.info("eel")
 			self.eelearn(ee_memory)
 
 	def qlearn(self, replay_memory, batch_size=None):

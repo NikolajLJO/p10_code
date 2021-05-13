@@ -158,5 +158,4 @@ class Learner:
 				self.q_t_network_que.put(copy.deepcopy(c3))
 				self.e_t_network_que.put(copy.deepcopy(c4))
 
-			del c1, c2, c3, c4
 			logging.info("Pushed networks")
