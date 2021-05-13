@@ -86,7 +86,6 @@ class Learner:
 					pass
 
 			logging.info("Refilled replay memory")
-			logging.info(len(self.replay_memory.memory))
 
 			ee_update_count = 0
 			ee_done = False
