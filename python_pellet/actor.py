@@ -100,7 +100,7 @@ class Actor:
 					steps_since_reward += 1
 
 				if distance > dmax:
-					partition_candidate = state_prime.to("cpu")
+					partition_candidate = copy.deepcopy(state_prime).to("cpu")
 					dmax = distance
 
 				if i % 10000 == 0:
