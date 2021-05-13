@@ -100,7 +100,7 @@ class Actor:
 					steps_since_reward += 1
 
 				if distance > dmax:
-					partition_candidate = state_prime
+					partition_candidate = state_prime.to("cpu")
 					dmax = distance
 
 				if i % 10000 == 0:
@@ -147,6 +147,7 @@ class Actor:
 			try:
 				partition = self.to_actor_partition_que.get(False)
 				proces_local_partition = copy.deepcopy(partition)
+				proces_local_partition[0].to("cuda:0")
 
 				if len(self.local_partition_memory) == 100:  # TODO get self.argument here for length
 					self.local_partition_memory.pop(0)
