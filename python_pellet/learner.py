@@ -138,10 +138,7 @@ class Learner:
 			# while we have more than 10% replay memory, learn
 			# ToDO this should prob just do entire que its a frakensetein of old concepts
 			while len(self.replay_memory.memory) >= self.update_memory_break_point and len(self.ee_memory) >= self.update_ee_memory_break_point:
-				pre_learn = time.process_time_ns()
 				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
-				post_learn = time.process_time_ns()
-				logging.info("learned in: " + str(post_learn-pre_learn * -1e9))
 				learn_count += 1
 
 			self.ee_memory.clear()

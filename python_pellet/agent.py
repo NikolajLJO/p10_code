@@ -1,7 +1,7 @@
 import copy
 import logging
 import math
-import random
+import time
 
 import numpy as np
 import torch
@@ -52,12 +52,18 @@ class Agent:
 		return action, policy
 
 	def update(self, replay_memory, ee_memory, ee_done: bool):
-		logging.info("ql")
 		torch.cuda.empty_cache()
+		logging.info("ql")
+		pre_learn = time.process_time_ns()
 		self.qlearn(replay_memory, batch_size=1000)
+		post_learn = time.process_time_ns()
+		logging.info("q learned in: " + str(post_learn - pre_learn * -1e9))
 		if not ee_done:
+			pre_learn = time.process_time_ns()
 			logging.info("eel")
 			self.eelearn(ee_memory)
+			post_learn = time.process_time_ns()
+			logging.info("ee learned in: " + str(post_learn - pre_learn * -1e9))
 
 	def qlearn(self, replay_memory, batch_size=None):
 		# Sample random minibatch of transitions
