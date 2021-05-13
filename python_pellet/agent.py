@@ -64,15 +64,11 @@ class Agent:
 		batch = replay_memory.sample(forced_batch_size=batch_size, should_pop=True)
 		states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
 		states = torch.cat(states).to("cuda:0")
-		for a in action:
-			a.to("cuda:0")
 		action = torch.cat(action).long().unsqueeze(1).to("cuda:0")
 		visited = torch.cat(visited).to("cuda:0")
 		visited_prime = torch.cat(visited_prime).to("cuda:0")
 		reward = torch.cat(reward).to("cuda:0")
 		s_primes = torch.cat(s_primes).to("cuda:0")
-		for t in terminating:
-			t.to("cuda:0")
 		terminating = torch.cat(terminating).long().to("cuda:0")
 		targ_mc = torch.cat(targ_mc).to("cuda:0")
 

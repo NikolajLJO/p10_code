@@ -67,7 +67,7 @@ class Actor:
 				reward = int(max(min(reward, 1), -1))
 				if i % 10 == 0:
 					visited, visited_prime, distance = self.agent.find_current_partition(state_prime,self.local_partition_memory,visited)
-				episode_buffer.append(
+				episode_buffer.append(copy.deepcopy(
 					[
 						state.to("cpu"),
 						action.to("cpu"),
@@ -76,7 +76,7 @@ class Actor:
 						torch.tensor(reward, device="cpu").unsqueeze(0),
 						torch.tensor(terminating, device="cpu").unsqueeze(0),
 						state_prime.to("cpu"),
-						visited_prime.to("cpu")])
+						visited_prime.to("cpu")]))
 
 				if terminating:
 					replay_que.put(copy.deepcopy(episode_buffer))
