@@ -76,7 +76,7 @@ class Learner:
 				try:
 					transition = learner_replay_que.get(False)
 					for elem in itertools.islice(transition, 0, 7):
-						elem = elem.to("cuda:0")
+						elem = elem.to(self.agent.device)
 					process_local_transition = copy.deepcopy(transition)
 					self.replay_memory.memory.append(process_local_transition)
 					del transition

@@ -63,14 +63,14 @@ class Agent:
 			batch_size = replay_memory.batch_size
 		batch = replay_memory.sample(forced_batch_size=batch_size, should_pop=True)
 		states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
-		states = torch.cat(states).to("cuda:0")
-		action = torch.cat(action).long().unsqueeze(1).to("cuda:0")
-		visited = torch.cat(visited).to("cuda:0")
-		visited_prime = torch.cat(visited_prime).to("cuda:0")
-		reward = torch.cat(reward).to("cuda:0")
-		s_primes = torch.cat(s_primes).to("cuda:0")
-		terminating = torch.cat(terminating).long().to("cuda:0")
-		targ_mc = torch.cat(targ_mc).to("cuda:0")
+		states = torch.cat(states).to(self.device)
+		action = torch.cat(action).long().unsqueeze(1).to(self.device)
+		visited = torch.cat(visited).to(self.device)
+		visited_prime = torch.cat(visited_prime).to(self.device)
+		reward = torch.cat(reward).to(self.device)
+		s_primes = torch.cat(s_primes).to(self.device)
+		terminating = torch.cat(terminating).long().to(self.device)
+		targ_mc = torch.cat(targ_mc).to(self.device)
 
 		pellet_rewards = torch.sum(visited_prime, dim=1) - torch.sum(visited, dim=1)
 
@@ -89,20 +89,20 @@ class Agent:
 		for _ in range(0, min(len(ee_memory), 1000)):
 			batch.append(ee_memory.pop())
 		states, s_primes, smid, auxreward = zip(*batch)
-		states = torch.cat(states).to("cuda:0")
-		s_primes = torch.cat(s_primes).to("cuda:0")
-		smid = torch.cat(smid).to("cuda:0")
+		states = torch.cat(states).to(self.device)
+		s_primes = torch.cat(s_primes).to(self.device)
+		smid = torch.cat(smid).to(self.device)
 
 		targ_onesteps = []
 		for i in range(len(smid)):
 			targ_onesteps.append(
-				auxreward[i][0].to("cuda:0")
+				auxreward[i][0].to(self.device)
 				+ self.EE_discount
 				* self.targetEEnet(merge_states_for_comparason(smid[i].unsqueeze(0), s_primes[i].unsqueeze(0))))
 
 		targ_mc = torch.zeros(len(auxreward), 18, device=self.device)
 		for i, setauxreward in enumerate(auxreward):
-			setauxreward = torch.stack(setauxreward).to("cuda:0")
+			setauxreward = torch.stack(setauxreward).to(self.device)
 			targ_mc[i] = torch.sum(setauxreward + self.EE_discounts[:len(setauxreward)], 0)
 
 		# targmixed   (1 􀀀 E)targone-step + EtargMC
@@ -134,12 +134,6 @@ class Agent:
 				ref_to_state = []
 				ref_to_s2 = []
 				for refrence in partition_memory[:5]:
-					if state.device == "cpu":
-						logging.info("it was state")
-					if s2[0].device == "cpu":
-						logging.info("it was s2")
-					if refrence[0].device == "cpu":
-						logging.info("it was ref")
 					state_to_ref.append(merge_states_for_comparason(state, refrence[0]))
 					s2_to_ref.append(merge_states_for_comparason(s2[0], refrence[0]))
 					ref_to_state.append(merge_states_for_comparason(refrence[0], state))
