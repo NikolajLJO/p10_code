@@ -126,6 +126,7 @@ class Agent:
 		with torch.no_grad():
 			min_distance = np.Inf
 			index = 0
+
 			for i, s2 in enumerate(partition_memory):
 				max_distance = np.NINF
 				state_to_ref = []
@@ -133,9 +134,12 @@ class Agent:
 				ref_to_state = []
 				ref_to_s2 = []
 				for refrence in partition_memory[:5]:
-					logging.info(state.device)
-					logging.info(s2[0].device)
-					logging.info(refrence[0].device)
+					if state.device == "cpu":
+						logging.info("it was state")
+					if s2[0].device == "cpu":
+						logging.info("it was s2")
+					if refrence[0].device == "cpu":
+						logging.info("it was ref")
 					state_to_ref.append(merge_states_for_comparason(state, refrence[0]))
 					s2_to_ref.append(merge_states_for_comparason(s2[0], refrence[0]))
 					ref_to_state.append(merge_states_for_comparason(refrence[0], state))
