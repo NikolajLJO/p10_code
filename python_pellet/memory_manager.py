@@ -30,21 +30,23 @@ class MemoryManager:
 
 	def manage(self, learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size):
 		while True:
-			while not replay_que.empty() and len(self.replay_memory.memory) < learner_ee_que_max_size + learner_que_max_size:
-				try:
-					optional_replay = replay_que.get(False)
-					process_local_optional_replay = copy.deepcopy(optional_replay)
-					self.replay_memory.save(process_local_optional_replay)
-					del optional_replay
-				except queue.Empty:
-					pass
-			if (not learner_replay_que.full()) and len(self.replay_memory.memory) > learner_que_max_size:
-				self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
-				logging.info("refilled learner replay mem with |" + str(learner_que_max_size) + "| elements")
+			if replay_que.empty() or len(replay_que) < (learner_que_max_size + learner_ee_que_max_size):
+				for _ in range(0, (learner_que_max_size + learner_ee_que_max_size)):
+					try:
+						optional_replay = replay_que.get(False)
+						process_local_optional_replay = copy.deepcopy(optional_replay)
+						self.replay_memory.save(process_local_optional_replay)
+						del optional_replay
+					except queue.Empty:
+						pass
+			else:
+				if (not learner_replay_que.full()) and len(self.replay_memory.memory) > learner_que_max_size:
+					self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
+					logging.info("refilled learner replay mem with |" + str(learner_que_max_size) + "| elements")
 
-			if (not learner_ee_que.full()) and len(self.replay_memory.memory) > learner_ee_que_max_size:
-				self.fill_learner_ee_que(learner_ee_que, learner_ee_que_max_size)
-				logging.info("refilled learner ee mem with |" + str(learner_ee_que_max_size) + "| elements")
+				if (not learner_ee_que.full()) and len(self.replay_memory.memory) > learner_ee_que_max_size:
+					self.fill_learner_ee_que(learner_ee_que, learner_ee_que_max_size)
+					logging.info("refilled learner ee mem with |" + str(learner_ee_que_max_size) + "| elements")
 
 	def fill_learner_replay_que(self, learner_replay_que, learner_que_max_size):
 		batch = self.replay_memory.sample(forced_batch_size=learner_que_max_size)
