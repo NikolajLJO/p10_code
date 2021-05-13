@@ -148,6 +148,7 @@ class Actor:
 				partition = self.to_actor_partition_que.get(False)
 				proces_local_partition = copy.deepcopy(partition)
 				proces_local_partition[0].to("cuda:0")
+				logging.info(proces_local_partition)
 
 				if len(self.local_partition_memory) == 100:  # TODO get self.argument here for length
 					self.local_partition_memory.pop(0)
