@@ -30,7 +30,7 @@ class MemoryManager:
 
 	def manage(self, learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size):
 		while True:
-			if replay_que.empty() or len(replay_que) < (learner_que_max_size + learner_ee_que_max_size) or learner_replay_que.full() and learner_ee_que.full():
+			if not self.replay_memory.memory or len(self.replay_memory.memory) < (learner_que_max_size + learner_ee_que_max_size) or learner_replay_que.full() and learner_ee_que.full():
 					try:
 						optional_replay = replay_que.get(False)
 						process_local_optional_replay = copy.deepcopy(optional_replay)
