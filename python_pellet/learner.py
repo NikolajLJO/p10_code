@@ -78,7 +78,7 @@ class Learner:
 						str(learner_replay_que.qsize()) +
 						" eeq: " +
 						str(learner_ee_que.qsize()))
-			)
+
 			# when rpelay memory is almost empty, wait until the que has a full memory size
 
 			while learner_replay_que.qsize() < self.learner_que_max_size:
