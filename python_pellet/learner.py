@@ -85,18 +85,21 @@ class Learner:
 				pass
 
 			# then when it does, update it
-			for _ in range(0, int(self.learner_que_max_size)):
-				try:
-					transition = learner_replay_que.get(False)
-					for elem in itertools.islice(transition, 0, 7):
-						elem = elem.to(self.agent.device)
-					process_local_transition = copy.deepcopy(transition)
-					self.replay_memory.memory.append(process_local_transition)
-					del transition
-				except queue.Empty:
-					pass
 
-			logging.info("Refilled replay memory: " + str(len(self.replay_memory.memory)))
+			if not learner_replay_que.empty():
+				pre = learner_replay_que.qsize()
+				for _ in range(0, int(self.learner_que_max_size)):
+					try:
+						transition = learner_replay_que.get(False)
+						for elem in itertools.islice(transition, 0, 7):
+							elem = elem.to(self.agent.device)
+						process_local_transition = copy.deepcopy(transition)
+						self.replay_memory.memory.append(process_local_transition)
+						del transition
+					except queue.Empty:
+						pass
+
+				logging.info("Refilled ee memory with: " + str(pre - learner_replay_que.qsize()) + "total: " + str(len(self.replay_memory.memory)))
 
 			ee_update_count = 0
 			ee_done = False
@@ -105,6 +108,7 @@ class Learner:
 				pass
 
 			if not learner_ee_que.empty():
+				pre = learner_ee_que.qsize()
 				for _ in range(0, int(self.learner_ee_que_max_size)):
 					try:
 						transition = learner_ee_que.get(False)
@@ -114,7 +118,7 @@ class Learner:
 					except queue.Empty:
 						torch.cuda.empty_cache()
 						pass
-				logging.info("Refilled ee memory:" + str(len(self.ee_memory)))
+				logging.info("Refilled ee memory with: " + str(pre - learner_ee_que.qsize()) + "total: " + str(len(self.ee_memory)))
 				ee_update_count += 1
 
 			if not ee_done and ee_update_count * self.learner_ee_que_max_size > 2e6:

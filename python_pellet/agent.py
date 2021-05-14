@@ -71,6 +71,7 @@ class Agent:
 		if batch_size is None:
 			batch_size = replay_memory.batch_size
 		batch = replay_memory.sample(forced_batch_size=batch_size, should_pop=True)
+		logging.info("batch q: " + str(len(batch)))
 		states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
 		states = torch.cat(states).to(self.device)
 		action = torch.cat(action).long().unsqueeze(1).to(self.device)
@@ -97,6 +98,7 @@ class Agent:
 		batch = []
 		for _ in range(0, min(len(ee_memory), 1000)):
 			batch.append(ee_memory.pop())
+			logging.info("batch e: " + str(len(batch)))
 		states, s_primes, smid, auxreward = zip(*batch)
 		states = torch.cat(states).to(self.device)
 		s_primes = torch.cat(s_primes).to(self.device)

@@ -41,12 +41,14 @@ class MemoryManager:
 						pass
 			else:
 				if (not learner_replay_que.full()) and len(self.replay_memory.memory) > learner_que_max_size:
+					pre = learner_replay_que.qsize()
 					self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
-					logging.info("refilled learner replay mem with |" + str(learner_replay_que.qsize()) + "| elements")
+					logging.info("refilled learner replay mem with |" + str(learner_replay_que.qsize() - pre) + "| elements")
 
 				if (not learner_ee_que.full()) and len(self.replay_memory.memory) > learner_ee_que_max_size:
+					pre = learner_ee_que.qsize()
 					self.fill_learner_ee_que(learner_ee_que, learner_ee_que_max_size)
-					logging.info("refilled learner ee mem with |" + str(learner_ee_que.qsize()) + "| elements")
+					logging.info("refilled learner ee mem with |" + str(learner_ee_que.qsize() - pre) + "| elements")
 
 	def fill_learner_replay_que(self, learner_replay_que, learner_que_max_size):
 		batch = self.replay_memory.sample(forced_batch_size=learner_que_max_size)
