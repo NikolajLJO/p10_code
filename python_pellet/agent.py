@@ -98,7 +98,7 @@ class Agent:
 		batch = []
 		for _ in range(0, min(len(ee_memory), 1000)):
 			batch.append(ee_memory.pop())
-			logging.info("batch e: " + str(len(batch)))
+		logging.info("batch e: " + str(len(batch)))
 		states, s_primes, smid, auxreward = zip(*batch)
 		states = torch.cat(states).to(self.device)
 		s_primes = torch.cat(s_primes).to(self.device)
