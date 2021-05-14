@@ -7,6 +7,7 @@ import logging
 import sys
 import copy
 import torch
+import traceback
 
 from memory import ReplayMemory
 
@@ -26,7 +27,11 @@ class MemoryManager:
 		sys.stdout = logger
 		self.replay_memory = ReplayMemory()
 		self.partition_memory = []
-		self.manage(learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size)
+		try:
+			self.manage(learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size)
+		except Exception as err:
+			logging.info(err)
+			logging.info(traceback.format_exc())
 
 	def manage(self, learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size):
 		while True:
