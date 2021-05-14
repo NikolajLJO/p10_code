@@ -92,8 +92,6 @@ class Learner:
 				for _ in range(0, int(self.learner_que_max_size)):
 					try:
 						transition = learner_replay_que.get(False)
-						for elem in itertools.islice(transition, 0, 7):
-							elem = elem.to(self.agent.device)
 						process_local_transition = copy.deepcopy(transition)
 						self.replay_memory.memory.append(process_local_transition)
 						del transition
