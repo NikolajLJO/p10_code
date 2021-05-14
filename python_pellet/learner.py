@@ -70,10 +70,20 @@ class Learner:
 		logging.info("Started with empty memory")
 		learn_count = 0
 		while True:
-			logging.info("itt with: " + str(len(self.replay_memory.memory)) + " replay and: " + str(len(self.ee_memory)))
+			logging.info("itt with: " +
+						str(len(self.replay_memory.memory)) +
+						" replay and: " +
+						str(len(self.ee_memory)) +
+						" r que: " +
+						str(learner_replay_que.qsize() +
+						" eeq: " +
+						str(learner_ee_que.qsize()))
+			)
 			# when rpelay memory is almost empty, wait until the que has a full memory size
+
 			while learner_replay_que.qsize() < self.learner_que_max_size:
 				pass
+
 			# then when it does, update it
 			for _ in range(0, int(self.learner_que_max_size)):
 				try:
