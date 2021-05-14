@@ -112,7 +112,10 @@ class Actor:
 
 				if steps_since_reward > 500:
 					terminating = True
-					episode_buffer[-1][5] = torch.tensor(terminating, device=self.agent.device).unsqueeze(0)
+					if episode_buffer[-1][5].device == "cpu":
+						episode_buffer[-1][5] = torch.tensor(terminating, device="cpu").unsqueeze(0)
+					else:
+						episode_buffer[-1][5] = torch.tensor(terminating, device=self.agent.device).unsqueeze(0)
 					steps_since_reward = 0
 
 		except Exception as err:
