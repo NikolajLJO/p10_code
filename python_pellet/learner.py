@@ -75,7 +75,7 @@ class Learner:
 						" replay and: " +
 						str(len(self.ee_memory)) +
 						" r que: " +
-						str(learner_replay_que.qsize() +
+						str(learner_replay_que.qsize()) +
 						" eeq: " +
 						str(learner_ee_que.qsize()))
 			)
