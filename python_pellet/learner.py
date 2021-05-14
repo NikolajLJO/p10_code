@@ -98,7 +98,7 @@ class Learner:
 					except queue.Empty:
 						pass
 
-				logging.info("Refilled ee memory with: " + str(pre - learner_replay_que.qsize()) + "total: " + str(len(self.replay_memory.memory)))
+				logging.info("Refilled r memory with: " + str(pre - learner_replay_que.qsize()) + "total: " + str(len(self.replay_memory.memory)))
 
 			ee_update_count = 0
 			ee_done = False
