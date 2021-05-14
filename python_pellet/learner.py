@@ -54,7 +54,7 @@ class Learner:
 		self.distance = np.NINF
 		self.agent = setup_agent()
 		self.partition = 0
-		self.replay_memory = ReplayMemory()
+		self.replay_memory = ReplayMemory(max_memory_size=learner_que_max_size)
 		self.ee_memory = []
 		self. learner_que_max_size = learner_que_max_size
 		self.learner_ee_que_max_size = learner_ee_que_max_size
@@ -72,12 +72,13 @@ class Learner:
 		while True:
 			logging.info("itt with: " +
 						str(len(self.replay_memory.memory)) +
-						" replay and: " +
+						"rm  and: " +
 						str(len(self.ee_memory)) +
-						" r que: " +
+						"eem and: " +
 						str(learner_replay_que.qsize()) +
-						" eeq: " +
-						str(learner_ee_que.qsize()))
+						"r que and: " +
+						str(learner_ee_que.qsize()) +
+						"eeq")
 
 			# when rpelay memory is almost empty, wait until the que has a full memory size
 
