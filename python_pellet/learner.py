@@ -150,11 +150,10 @@ class Learner:
 
 			# while we have more than 10% replay memory, learn
 			# ToDO this should prob just do entire que its a frakensetein of old concepts
-			while len(self.replay_memory.memory) >= self.update_memory_break_point and len(self.ee_memory) >= self.update_ee_memory_break_point:
-				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
-				learn_count += 1
 
-			self.ee_memory.clear()
+			self.agent.update(self.replay_memory, self.ee_memory, ee_done)
+			learn_count += 1
+
 			logging.info("I processed que: " + str(learn_count))
 
 			c1 = self.agent.Qnet.state_dict()
