@@ -15,9 +15,9 @@ if __name__ == "__main__":
     else:
         for env_name in env_names:
             # TODO make these inputs come from terminal as options and have the values be the default constructor options
-            agent = QLearning(env_name, episode_steps=4500, stack_count=4, explore_steps=225000, double=True,
-                              target_update_frequency=1000, max_memory=50000, update_frequency=4, max_steps=1000000,
-                              learning_rate=0.0001, initial_eps=1.0, trained_eps=0.01, final_eps=0.01, eps_initial_frames=100000,
+            agent = QLearning(env_name, episode_steps=4500, stack_count=4, explore_steps=2250000, double=True,
+                              target_update_frequency=1000, max_memory=1000000, update_frequency=4, max_steps=10000000,
+                              learning_rate=0.0002, initial_eps=1.0, trained_eps=0.01, final_eps=0.01, eps_initial_frames=1000000,
                               print_freq=20)
             if args.target_fq:
                 agent.target_update_frequency = args.target_fq

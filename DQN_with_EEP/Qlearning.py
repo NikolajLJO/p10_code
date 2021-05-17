@@ -55,13 +55,13 @@ class QLearning:
         self.target_model = copy.deepcopy(self.model)
         self.double = double
         self.qtrain = True
-        self.min_part_for_qlearn = 1
+        self.min_part_for_qlearn = 5
         self.qn = 0.1
 
         self.ee_net = Model.EEnet(self.env.action_space.n).to(self.device)
         self.target_ee = copy.deepcopy(self.ee_net)
-        self.ee_train_start = 25000
-        self.ee_train_end = 200000
+        self.ee_train_start = 250000
+        self.ee_train_end = 2000000
         self.eetrain = True
         self.EE_TIME_SEP_CONSTANT_M = 100
         self.ee_discount = gamma
@@ -94,10 +94,10 @@ class QLearning:
         self.per = pertype
         
         self.partition_memory = []
-        self.START_MAKING_PARTITIONS = 200000
+        self.START_MAKING_PARTITIONS = 2000000
         self.MAX_PARTITIONS = 100
         self.PARTITION_ADD_TIME_MULT = 1.2
-        self.partition_addition_step = 2000
+        self.partition_addition_step = 20000
 
         # Optimizer variables
         self.replay_batch_size = replay_batch_size
