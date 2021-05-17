@@ -171,21 +171,6 @@ class QLearning:
             partitionrewardprime= torch.min(torch.stack([self.maximum_pellet_reward, partitionrewardprime], dim=1),dim=1)[0]
             pellet_reward = (torch.sum(partitionrewardprime, 1) - torch.sum(partitionreward, 1))
 
-            #TODO lars er nået til mcr for pellets (flyttet til save)
-            '''
-            for i, index in enumerate(batchindex):
-                pellet_mcr = 0
-                for i in range(self.memory[index][-1], 0, -1):
-                    discounted_pellet_reward_pre = copy.deepcopy(partitionrewardsingle).unsqueeze(0)
-                    discounted_pellet_reward_post = copy.deepcopy(partitionrewardsingle).unsqueeze(0)
-                    discounted_pellet_reward_pre[self.memory[index+i][5] == 0] = 0
-                    discounted_pellet_reward_post[self.memory[index+i][6] == 0] = 0
-                    discounted_pellet_reward_pre = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), discounted_pellet_reward_pre], dim=1),dim=1)[0]
-                    discounted_pellet_reward_post = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), discounted_pellet_reward_post], dim=1),dim=1)[0]
-                    pellet_mcr = (torch.sum(discounted_pellet_reward_post, 1) - torch.sum(discounted_pellet_reward_pre, 1)) + self.discount * pellet_mcr
-                mcr[i] += pellet_mcr
-            '''
-
             if self.double:
                 double_action = torch.argmax(self.model(s_prime, partitionrewardprime), 1).detach().view(-1, 1)
                 q_values_next = self.target_model(s_prime, partitionrewardprime).gather(1, double_action).detach().squeeze(1)
