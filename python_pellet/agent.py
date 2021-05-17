@@ -13,46 +13,51 @@ class Agent:
     The agent is the primary object containing multiple neural networks
     and methods to use them
     '''
-    def __init__(self, NQ=0.1, NE=0.1, use_RND=False, double_DQN = True):
+    def __init__(self, actionspace, training_time,  NQ=0.1, NE=0.1, use_RND=False, double_DQN = True, qlearn_start=2250000):
         if torch.cuda.is_available():
             self.device = torch.device('cuda')
         else:
             self.device = torch.device('cpu')
 
-        self.q_net = Qnet().to(self.device)
+        self.q_net = Qnet(actionspace.n).to(self.device)
         self.target_q_net = copy.deepcopy(self.q_net)
         if use_RND:
-            self.ee_net = EEnet().to(self.device)
-            self.target_ee_net = EEnet().to(self.device)
+            self.ee_net = EEnet(actionspace.n).to(self.device)
+            self.target_ee_net = EEnet(actionspace.n).to(self.device)
         else:
-            self.ee_net = EEnet().to(self.device)
+            self.ee_net = EEnet(actionspace.n).to(self.device)
             self.target_ee_net = copy.deepcopy(self.ee_net)
         self.use_rnd = use_RND
         self.visited = torch.zeros([1,100], device=self.device)
         self.nq = NQ
         self.ne = NE
+        self.qlearn_start = qlearn_start
         
         self.epsilon_start = 1
         self.epsilon = self.epsilon_start
         self.epsilon_end = 0.01
-        self.epsilon_endt = 1000000
+        self.epsilon_endt = training_time/10
         self.slope = -(1 - 0.05) / 1000000
         self.intercept = 1
         self.q_discount = 0.99
         self.ee_discount = 0.99
-        self.action_space = 0
+        self.action_space = actionspace
 
         temp_discounts = []
-        temp_discounts.append(torch.tensor([self.ee_discount]*18, device=self.device).unsqueeze(0))
+        temp_discounts.append(torch.tensor([self.ee_discount]*actionspace.n, device=self.device).unsqueeze(0))
         for i in range(1,100):
-            temp_discounts.append(torch.tensor([self.ee_discount**(i+1)]*18,
+            temp_discounts.append(torch.tensor([self.ee_discount**(i+1)]*actionspace.n,
                                                 device=self.device).unsqueeze(0))
         self.ee_discounts = torch.cat(temp_discounts)
         self.mse = torch.nn.MSELoss(reduction='none')
 
         self.steps_since_reward = 0
         self.non_reward_steps_before_full_eps = 500
-        self.double = double_DQN 
+        self.double = double_DQN
+        self.maximum_pellet_reward = []
+        for i in range(32):
+            self.maximum_pellet_reward.append([0.1]*100)
+        self.maximum_pellet_reward = torch.tensor(self.maximum_pellet_reward, device=self.device)
 
     def find_action(self, state, step):
         '''
@@ -81,7 +86,7 @@ class Agent:
             # the cummulative reward we can get from a state to the terminating state.
             states, action, visited, reward, terminating, s_primes, visited_prime, targ_mc = zip(*batch)
             states = torch.cat(states)
-            action = torch.cat(action).long().unsqueeze(1)
+            action = torch.cat(action).long()
             reward = torch.cat(reward)
             s_primes = torch.cat(s_primes)
             terminating = torch.cat(terminating).long()
@@ -98,7 +103,8 @@ class Agent:
 
             partitionreward[visited == 0] = 0
             partitionrewardprime[visited_prime == 0] = 0
-
+            partitionreward= torch.min(torch.stack([self.maximum_pellet_reward, partitionreward], dim=1),dim=1)[0]
+            partitionrewardprime= torch.min(torch.stack([self.maximum_pellet_reward, partitionrewardprime], dim=1),dim=1)[0]
 
             pellet_rewards = (torch.sum(partitionrewardprime, 1) - torch.sum(partitionreward, 1))
 
@@ -142,7 +148,7 @@ class Agent:
             future = self.ee_discount * self.target_ee_net(merged).detach()
             targ_onesteps = targ_onesteps + future
 
-            targ_mc = torch.zeros(len(auxreward),18, device=self.device)
+            targ_mc = torch.zeros(len(auxreward),self.action_space.n, device=self.device)
 
             for i, setauxreward in enumerate(auxreward):
                 discounted_aux = torch.stack(setauxreward) + self.ee_discounts[:len(setauxreward)]
@@ -185,7 +191,7 @@ class Agent:
         else:
             self.eelearn(replay_memory)
 
-    def find_current_partition(self, state, partition_memory):
+    def find_current_partition(self, state, partition_memory, visited):
         '''
         This function findc the partition the agent is currently in,
         and adding it to the list of visited partitions.
@@ -196,7 +202,6 @@ class Agent:
                 distance is the maximum distance between the state and all partitions
         '''
         min_distance = np.Inf
-        current_partition = None
 
         if self.use_rnd:
             merged_states_forward = []
@@ -251,12 +256,12 @@ class Agent:
                     index = i
                 
 
-        visited = copy.deepcopy(self.visited)
+        pre_visited = copy.deepcopy(visited)
 
-        if "index" in locals() and self.visited[0][index].item() == 0:
-            self.visited[0][index] = 1 / math.sqrt(max(1, partition_memory[index][1]))
+        if "index" in locals() and visited[0][index].item() == 0:
+            visited[0][index] = 1 / math.sqrt(max(1, partition_memory[index][1]))
 
-        return visited, self.visited, min_distance
+        return pre_visited, visited, min_distance
 
     def e_greedy_action_choice(self, state, step):
         '''
@@ -276,36 +281,11 @@ class Agent:
             self.epsilon = self.epsilon_end + max(0, (self.epsilon_start - self.epsilon_end) * (self.epsilon_endt - max(0, step - self.qlearn_start)) / self.epsilon_endt)
         
         if np.random.rand() > self.epsilon:
-            action = torch.argmax(policy[0])
+            action = policy.max(1)[1].view(1, 1).type(torch.int8)
         else:
-            action = torch.tensor(np.random.randint(1, self.action_space.n), device=self.device)
+            action = torch.tensor([[self.action_space.sample()]], device=self.device).type(torch.int8)
 
-        return action.unsqueeze(0), policy
-
-    def distance(self, s1, s2, ref_point):
-        '''
-        distance uses the ee-netwok to calculate the distance be s1 and s2 via ref_point
-        Input: s1 is a state
-               s2 is a state
-               ref_point is a state
-        Output: The maximum distate from s1 to s2 or s2 to s1
-        '''
-        return max(
-            torch.sum(abs(self.ee_net(merge_states_for_comparason(ref_point, s1)) -
-                          self.ee_net(merge_states_for_comparason(ref_point, s2)))),
-            torch.sum(abs(self.ee_net(merge_states_for_comparason(s1, ref_point)) -
-                          self.ee_net(merge_states_for_comparason(s2, ref_point))))).item()
-
-    def rnd_distance(self, s1, s2):
-        '''
-        This method usues the distilation method to calculates
-        the novelty of the state combination
-        Input: s1 is a state
-               s2 is a state
-        Output: The maximum distate from s1 to s2 or s2 to s1
-        '''
-        return max(self.RND_calculate_novelty(s2, s1),
-                   self.RND_calculate_novelty(s1, s2))
+        return action, policy
 
     def update_targets(self):
         '''
@@ -326,17 +306,6 @@ class Agent:
         torch.save(self.q_net.state_dict(), str(path) + "Qagent_"+ str(step) +".p")
         torch.save(self.ee_net.state_dict(), str(path) + "EEagent_"+ str(step) +".p")
 
-    def RND_calculate_novelty(self, s, s2):
-        '''
-        calculates mean squared error between the target and the predictor using two states
-        Input: s is a state
-               s2 is a state
-        '''
-        netinput = merge_states_for_comparason(s, s2)
-        pred = self.ee_net(netinput)
-        targ = self.target_ee_net(netinput)
-        return torch.mean(self.mse(pred, targ)).item()
-
 
 def merge_states_for_comparason(s1, s2):
     '''
@@ -345,7 +314,7 @@ def merge_states_for_comparason(s1, s2):
            s2 is a state
     Output: A tensor containing the two states on the secound dimention
     '''
-    return torch.stack([s1, s2], dim=2).squeeze(0)
+    return torch.stack([s1[0][0], s2[0][0]]).squeeze(0).unsqueeze(0)
 
 def is_tensor_in_list(mtensor, mlist):
     '''
