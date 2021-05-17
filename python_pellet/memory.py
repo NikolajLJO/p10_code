@@ -7,7 +7,7 @@ import torch
 import numpy as np
 
 class ReplayMemory:
-    def __init__(self, batch_size=32, max_memory_size=70000):
+    def __init__(self, batch_size=32, max_memory_size=900000):
         self.memory = []
         self.batch_size = batch_size
         self.memory_refrence_pointer = 0
