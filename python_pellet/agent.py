@@ -28,7 +28,6 @@ class Agent:
             self.ee_net = EEnet(actionspace.n).to(self.device)
             self.target_ee_net = copy.deepcopy(self.ee_net)
         self.use_rnd = use_RND
-        self.visited = torch.zeros([1,100], device=self.device)
         self.nq = NQ
         self.ne = NE
         self.qlearn_start = qlearn_start
@@ -59,14 +58,14 @@ class Agent:
             self.maximum_pellet_reward.append([0.1]*100)
         self.maximum_pellet_reward = torch.tensor(self.maximum_pellet_reward, device=self.device)
 
-    def find_action(self, state, step):
+    def find_action(self, state, step, visited):
         '''
         this function finds and return an action
         Input: state is the current state and step is the stepcount
         output: the best action according to policy
                 policy the full list of q-values
         '''
-        action, policy = self.e_greedy_action_choice(state, step)
+        action, policy = self.e_greedy_action_choice(state, step, visited)
         return action, policy
 
     def qlearn(self, replay_memory, partition_memory):
@@ -120,7 +119,7 @@ class Agent:
 
             # Calculate extrinsic and intrinsic returns, R and R+,
             # via the remaining history in the replay memory
-            predictions = self.q_net(states, visited).gather(1, action)
+            predictions = self.q_net(states, partitionreward).gather(1, action)
 
             targ_mix = (1 - self.nq) * targ_onesteps + self.nq * targ_mc
             self.q_net.backpropagate(predictions, targ_mix.unsqueeze(1))
@@ -263,7 +262,7 @@ class Agent:
 
         return pre_visited, visited, min_distance
 
-    def e_greedy_action_choice(self, state, step):
+    def e_greedy_action_choice(self, state, step, visited):
         '''
         This function chooses the agction greedily or randomly according to the epsilon value
         Input: state is the state you want an action for
@@ -271,7 +270,7 @@ class Agent:
         Output: action a tensor with the best action index
                 policy is all q-values at the state
         '''
-        policy = self.q_net(state, self.visited)
+        policy = self.q_net(state, visited)
         
         if self.steps_since_reward > self.non_reward_steps_before_full_eps:
             self.epsilon = self.epsilon_start

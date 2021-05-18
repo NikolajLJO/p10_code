@@ -5,6 +5,7 @@ functions to query it.
 import math
 import torch
 import numpy as np
+import random
 
 class ReplayMemory:
     def __init__(self, batch_size=32, max_memory_size=900000):
@@ -60,8 +61,8 @@ class ReplayMemory:
         '''
         # TODO Document what a batch returned from this method contains.
         batch = []
-        for i in range(self.batch_size):
-            state_index = np.random.randint(0, (len(self.memory)))
+        state_indexs = random.sample(range(0, len(self.memory)), self.batch_size)
+        for state_index in state_indexs:
             
             # self.memory[state_index][0] = state at state_index
             # self.memory[state_index][1] = the action done at state

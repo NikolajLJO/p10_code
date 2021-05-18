@@ -24,8 +24,8 @@ def create_atari_env(env_id):
     env = gym.make(env_id)
     env = frame_stacking.FrameStack(env, 4)
     env = EpisodicLifeEnv(env)
-    if 'FIRE' in env.unwrapped.get_action_meanings():
-        env = FireResetEnv(env)
+    '''if 'FIRE' in env.unwrapped.get_action_meanings():
+        env = FireResetEnv(env)'''
     env = AtariRescale(env, device)
     return env
 

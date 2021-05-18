@@ -13,6 +13,7 @@ import logging
 import time
 import sys
 from pathlib import Path
+from numpy import mean
 import torch
 import torchvision.transforms as transforms
 from init import setup
@@ -94,7 +95,7 @@ def mainloop(args):
             replay_memory.memory = []
             replay_memory.memory_refrence_pointer = 0
 
-        action, policy = agent.find_action(state, i)
+        action, policy = agent.find_action(state, i, visited)
 
         auxiliary_reward = torch.tensor(calculate_auxiliary_reward(policy,
                                                                    action.item()),
@@ -126,7 +127,7 @@ def mainloop(args):
         else:
             state_prime = env.reset()
             done = False
-            update_partitions(agent.visited,partition_memory)
+            update_partitions(visited, partition_memory)
             visited[visited != 0] = 0
             visited_prime[visited_prime != 0] = 0
             if i < END_EELEARN or len(partition_memory) >= 5:
@@ -140,7 +141,7 @@ def mainloop(args):
                                  episode_time,
                                  episode_time / len(episode_buffer),
                                  len(partition_memory),
-                                 average(scorelist),
+                                 mean(scorelist),
                                  agent.epsilon))
             episode_buffer.clear()
             now = time.process_time()
