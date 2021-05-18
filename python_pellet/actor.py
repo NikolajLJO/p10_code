@@ -60,7 +60,7 @@ class Actor:
 				start = time.process_time()
 				action, policy = self.agent.find_action(state, i, visited, steps_since_reward)
 
-				auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()),device=self.agent.device)
+				auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()), device=self.agent.device)
 
 				state_prime, reward, terminating, info = env.step(action)
 				total_score += reward
@@ -91,8 +91,6 @@ class Actor:
 
 					total_score = 0
 					steps_since_reward = 0
-
-
 
 				if reward != 0 or len(visited) != len(visited_prime):
 					steps_since_reward = 0

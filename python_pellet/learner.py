@@ -150,9 +150,10 @@ class Learner:
 
 			# while we have more than 10% replay memory, learn
 			# ToDO this should prob just do entire que its a frakensetein of old concepts
-
-			self.agent.update(self.replay_memory, self.ee_memory, ee_done)
+			while not self.replay_memory.memory and not self.ee_memory:
+				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
 			learn_count += 1
+
 
 			logging.info("I processed que: " + str(learn_count))
 
