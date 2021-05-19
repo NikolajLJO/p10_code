@@ -36,7 +36,8 @@ class MemoryManager:
 	def manage(self, learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size):
 		while True:
 			replay_mem_len = len(self.replay_memory.memory)
-			logging.info("re: " + str(replay_mem_len) + " lq: " + str(learner_replay_que.qsize()) + " eeq: " + str(learner_ee_que.qsize()))
+			#logging.info("re: " + str(replay_mem_len) + " lq: " + str(learner_replay_que.qsize()) + " eeq: " + str(learner_ee_que.qsize()))
+			#logging.info("re: " + str(not self.replay_memory.memory) + " lq: " + str(len(self.replay_memory.memory) < (learner_que_max_size + learner_ee_que_max_size)) + " eeq: " + str((learner_replay_que.full() and learner_ee_que.full())))
 			if not self.replay_memory.memory or len(self.replay_memory.memory) < (learner_que_max_size + learner_ee_que_max_size) or (learner_replay_que.full() and learner_ee_que.full()):
 				try:
 					optional_replay = replay_que.get(False)
