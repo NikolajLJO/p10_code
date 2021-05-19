@@ -58,8 +58,6 @@ class Learner:
 		self.ee_memory = []
 		self. learner_que_max_size = learner_que_max_size
 		self.learner_ee_que_max_size = learner_ee_que_max_size
-		self.update_memory_break_point = self.learner_que_max_size / 10
-		self.update_ee_memory_break_point = self.learner_ee_que_max_size / 10
 		try:
 			self.learn(learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que, actor_count)
 		except Exception as err:
@@ -89,9 +87,9 @@ class Learner:
 
 			if not learner_replay_que.empty():
 				pre = learner_replay_que.qsize()
-				for _ in range(0, int(self.learner_que_max_size)):
+				for _ in range(0, learner_replay_que.qsize()):
 					try:
-						transition = learner_replay_que.get(False)
+						transition = learner_replay_que.get()
 						process_local_transition = copy.deepcopy(transition)
 						self.replay_memory.memory.append(process_local_transition)
 						del transition
@@ -110,7 +108,7 @@ class Learner:
 				pre = learner_ee_que.qsize()
 				for _ in range(0, int(self.learner_ee_que_max_size)):
 					try:
-						transition = learner_ee_que.get(False)
+						transition = learner_ee_que.get()
 						process_local_transition = copy.deepcopy(transition)
 						self.ee_memory.append(process_local_transition)
 						del transition
@@ -127,7 +125,7 @@ class Learner:
 				unqued_partitions = []
 				for _ in range(actor_count*2):
 					try:
-						partition = from_actor_partition_que.get(False)
+						partition = from_actor_partition_que.get()
 						process_local_partition = copy.deepcopy(partition)
 						unqued_partitions.append(process_local_partition)
 						del partition
@@ -150,10 +148,9 @@ class Learner:
 
 			# while we have more than 10% replay memory, learn
 			# ToDO this should prob just do entire que its a frakensetein of old concepts
-			while not self.replay_memory.memory and not self.ee_memory:
+			while self.replay_memory.memory and self.ee_memory:
 				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
 			learn_count += 1
-
 
 			logging.info("I processed que: " + str(learn_count))
 
