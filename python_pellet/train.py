@@ -17,6 +17,7 @@ from numpy import mean
 import torch
 import torchvision.transforms as transforms
 from init import setup
+import copy
 
 transform_to_image = transforms.ToPILImage()
 
@@ -122,7 +123,7 @@ def mainloop(args):
                                    torch.tensor(reward, device=agent.device).unsqueeze(0),
                                    torch.tensor(terminating, device=agent.device).unsqueeze(0),
                                    state_prime,
-                                   visited_prime])
+                                   copy.deepcopy(visited_prime)])
 
         else:
             state_prime = env.reset()

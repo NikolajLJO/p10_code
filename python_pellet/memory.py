@@ -6,6 +6,7 @@ import math
 import torch
 import numpy as np
 import random
+import copy
 
 class ReplayMemory:
     def __init__(self, batch_size=32, max_memory_size=900000):
@@ -38,12 +39,12 @@ class ReplayMemory:
                 mc_reward = 0
                 pellet_reward = 0
 
-            post_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), transition[7]], dim=1),dim=1)[0]
-            pre_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), transition[2]], dim=1),dim=1)[0]
+            post_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), copy.deepcopy(transition[7])], dim=1),dim=1)[0]
+            pre_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), copy.deepcopy(transition[2])], dim=1),dim=1)[0]
             pellet_reward = torch.sum(post_visit, 1) - torch.sum(pre_visit, 1)
             full_pellet_reward =  pellet_reward + self.pellet_discount * full_pellet_reward
-            mc_reward =  transition[4].item() + 0.99 * mc_reward
-            transition.append(full_pellet_reward + mc_reward)
+            mc_reward =  transition[4] + 0.99 * mc_reward
+            transition.append(mc_reward + full_pellet_reward)
             transition.append(time_to_term)
             time_to_term += 1
 
