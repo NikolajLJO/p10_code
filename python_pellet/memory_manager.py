@@ -25,7 +25,7 @@ class MemoryManager:
 							filemode='w')
 		logger = tools.get_writer()
 		sys.stdout = logger
-		self.replay_memory = ReplayMemory()
+		self.replay_memory = ReplayMemory(max_memory_size=100000)
 		self.partition_memory = []
 		try:
 			self.manage(learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size)
