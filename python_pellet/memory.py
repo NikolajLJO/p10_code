@@ -5,6 +5,8 @@ functions to query it.
 import math
 import torch
 import numpy as np
+import random
+import copy
 
 class ReplayMemory:
     def __init__(self, batch_size=32, max_memory_size=900000):
@@ -15,6 +17,13 @@ class ReplayMemory:
         self.EE_TIME_SEP_CONSTANT_M = 100
         self.pellet_discount = 0.99
         self.ee_beta = 1
+        self.maximum_pellet_reward = []
+        self.maximum_pellet_reward.append([0.1]*100)
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+        self.maximum_pellet_reward = torch.tensor(self.maximum_pellet_reward, device=device)
 
     def save(self, episode_buffer):
         '''
@@ -23,12 +32,21 @@ class ReplayMemory:
         '''
         full_pellet_reward = 0
         mc_reward = 0
-        for i, transition in enumerate(reversed(episode_buffer)):
-            pellet_reward = torch.sum(transition[7], 1) - torch.sum(transition[2], 1)
+        time_to_term = 0
+        for transition in reversed(episode_buffer):
+            if transition[5]:
+                time_to_term = 0
+                mc_reward = 0
+                pellet_reward = 0
+
+            post_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), copy.deepcopy(transition[7])], dim=1),dim=1)[0]
+            pre_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), copy.deepcopy(transition[2])], dim=1),dim=1)[0]
+            pellet_reward = torch.sum(post_visit, 1) - torch.sum(pre_visit, 1)
             full_pellet_reward =  pellet_reward + self.pellet_discount * full_pellet_reward
-            mc_reward =  transition[4].item() + 0.99 * mc_reward
-            transition.append(full_pellet_reward + mc_reward)
-            transition.append(i)
+            mc_reward =  transition[4] + 0.99 * mc_reward
+            transition.append(mc_reward + full_pellet_reward)
+            transition.append(time_to_term)
+            time_to_term += 1
 
         for transition in episode_buffer:
             if len(self.memory) < self.MAX_MEMORY_SIZE:
@@ -44,8 +62,8 @@ class ReplayMemory:
         '''
         # TODO Document what a batch returned from this method contains.
         batch = []
-        for i in range(self.batch_size):
-            state_index = np.random.randint(0, (len(self.memory)))
+        state_indexs = random.sample(range(0, len(self.memory)), self.batch_size)
+        for state_index in state_indexs:
             
             # self.memory[state_index][0] = state at state_index
             # self.memory[state_index][1] = the action done at state

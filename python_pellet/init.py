@@ -5,13 +5,9 @@ from memory import ReplayMemory
 from multiprocessing import Pool
 
 
-def setup(env_name, RDN):
-    
-    agent = Agent(use_RND=bool(int(RDN)))
-    env = create_atari_env(env_name, agent.device)
-    action_space = env.action_space
-    agent.action_space = action_space
+def setup(env_name, RDN, qlearn_start, training_time):
+    env = create_atari_env(env_name)
+    agent = Agent(env.action_space, training_time, use_RND=bool(int(RDN)), qlearn_start=qlearn_start)
     replay_memory = ReplayMemory()
-    opt = 1
     
-    return action_space, replay_memory, agent, opt, env
+    return replay_memory, agent, env

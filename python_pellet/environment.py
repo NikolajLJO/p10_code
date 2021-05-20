@@ -5,6 +5,7 @@ import torch
 import torchvision.transforms as transforms
 from collections import deque
 from gym.spaces.box import Box
+import gym.wrappers.frame_stack as frame_stacking
 # from skimage.color import rgb2gray
 # from cv2 import resize
 # from skimage.transform import resize
@@ -15,20 +16,28 @@ resize = transforms.Compose([transforms.ToPILImage(),
                              transforms.Resize((84, 84)),
                              transforms.Grayscale(num_output_channels=1)])
 
-def create_atari_env(env_id, device):
-
+def create_atari_env(env_id):
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
     env = gym.make(env_id)
+    env = frame_stacking.FrameStack(env, 4)
     env = EpisodicLifeEnv(env)
-    if 'FIRE' in env.unwrapped.get_action_meanings():
-        env = FireResetEnv(env)
+    '''if 'FIRE' in env.unwrapped.get_action_meanings():
+        env = FireResetEnv(env)'''
     env = AtariRescale(env, device)
     return env
 
 
 def process_frame(frame, device):
-    frame = frame[34:34 + 160, :160]
-    frame = np.array(resize(frame))
-    frame = torch.tensor(frame, dtype=torch.uint8, device=device).unsqueeze(0)
+    preprocess = []
+    for __frame in frame:
+        resize_state = np.array(resize(__frame[34:34 + 160, :160]))
+        resize_state = torch.tensor(resize_state, dtype=torch.uint8, device=device).unsqueeze(0)
+        preprocess.append(resize_state)
+    frame = torch.cat(preprocess).unsqueeze(0).to(device)
+
     return frame
 
 
@@ -39,7 +48,7 @@ class AtariRescale(gym.ObservationWrapper):
         self.device = device
 
     def observation(self, observation):
-        return process_frame(observation, self.device).unsqueeze(0)
+        return process_frame(observation, self.device)
 
 
 class NormalizedEnv(gym.ObservationWrapper):
@@ -90,33 +99,26 @@ class EpisodicLifeEnv(gym.Wrapper):
         Done by DeepMind for the DQN and co. since it helps value estimation.
         """
         gym.Wrapper.__init__(self, env)
-        self.lives = 0
+        self.lives = self.env.ale.lives()
         self.was_real_done = True
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
-        self.was_real_done = done
-        # check current lives, make loss of life terminal,
-        # then update lives to handle bonus lives
-        lives = self.env.unwrapped.ale.lives()
-        if lives < self.lives and lives > 0:
-            # for Qbert sometimes we stay in lives == 0 condtion for a few frames
-            # so its important to keep lives > 0, so that we only reset once
-            # the environment advertises done.
-            done = True
-        self.lives = lives
-        return obs, reward, done, self.was_real_done
+
+        soft_terminating_state = done
+        if info['ale.lives'] < self.lives:
+            #reward -= 1
+            self.lives = info['ale.lives']
+            soft_terminating_state = True
+        return obs, reward, soft_terminating_state, done
 
     def reset(self, **kwargs):
         """Reset only when lives are exhausted.
         This way all states are still reachable even though lives are episodic,
         and the learner need not know about any of this behind-the-scenes.
         """
-        if self.was_real_done:
-            obs = self.env.reset(**kwargs)
-        else:
-            # no-op step to advance from terminal/lost life state
-            obs, _, _, _ = self.env.step(0)
-        self.lives = self.env.unwrapped.ale.lives()
+        obs = self.env.reset(**kwargs)
+
+        self.lives = self.env.ale.lives()
         return obs
 
