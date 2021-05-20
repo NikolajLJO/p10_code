@@ -65,6 +65,8 @@ class Actor:
 				state_prime, reward, terminating, info = env.step(action)
 				total_score += reward
 				reward = int(max(min(reward, 1), -1))
+				if terminating:
+					reward -= 1
 				if i % 10 == 0:
 					visited, visited_prime, distance = self.agent.find_current_partition(state_prime,self.local_partition_memory, visited)
 				episode_buffer.append(
@@ -103,6 +105,8 @@ class Actor:
 
 				if i % 10000 == 0:
 					from_actor_partition_que.put(copy.deepcopy([partition_candidate, dmax]))
+					dmax = 0
+					partition_candidate = None
 
 				state = state_prime
 				if i % 1000 == 0:  # TODO this should prob be some better mere defined value
