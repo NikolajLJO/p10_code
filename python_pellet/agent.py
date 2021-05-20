@@ -102,6 +102,7 @@ class Agent:
 
             partitionreward[visited == 0] = 0
             partitionrewardprime[visited_prime == 0] = 0
+            #these lines calculates the prelletreward as it is at this moment but with a limit to how much the pellet reward can be
             partitionreward= torch.min(torch.stack([self.maximum_pellet_reward, partitionreward], dim=1),dim=1)[0]
             partitionrewardprime= torch.min(torch.stack([self.maximum_pellet_reward, partitionrewardprime], dim=1),dim=1)[0]
 
