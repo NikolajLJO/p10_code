@@ -10,7 +10,7 @@ import logging
 import numpy as np
 from memory import ReplayMemory
 import sys
-from init import setup_agent
+from init import setup
 import traceback
 import torch
 import torchvision.transforms as transforms
@@ -52,11 +52,11 @@ class Learner:
 		self.terminating = False
 		self.dmax = np.NINF
 		self.distance = np.NINF
-		self.agent = setup_agent()
+		self.agent = setup(args[1])[1]
 		self.partition = 0
 		self.replay_memory = ReplayMemory(max_memory_size=learner_que_max_size)
 		self.ee_memory = []
-		self. learner_que_max_size = learner_que_max_size
+		self.learner_que_max_size = learner_que_max_size
 		self.learner_ee_que_max_size = learner_ee_que_max_size
 		try:
 			self.learn(learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que, actor_count)

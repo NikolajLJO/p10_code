@@ -10,7 +10,7 @@ from Qnetwork import Qnet, EEnet
 
 
 class Agent:
-	def __init__(self, nq=0.1, ne=0.1):
+	def __init__(self, action_space, nq=0.1, ne=0.1):
 		torch.multiprocessing.set_sharing_strategy('file_system')
 		if torch.cuda.is_available():
 			self.device = torch.device('cuda')
@@ -18,9 +18,9 @@ class Agent:
 		else:
 			self.device = torch.device('cpu')
 			logging.info("cpu")
-		self.Qnet = Qnet().to(self.device)
+		self.Qnet = Qnet(action_space).to(self.device)
 		self.targetQnet = copy.deepcopy(self.Qnet)
-		self.EEnet = EEnet().to(self.device)
+		self.EEnet = EEnet(action_space).to(self.device)
 		self.targetEEnet = copy.deepcopy(self.EEnet)
 		self.NQ = nq
 		self.NE = ne
@@ -35,7 +35,7 @@ class Agent:
 		self.total_steps = 0
 		self.Q_discount = 0.99
 		self.EE_discount = 0.99
-		self.action_space = 0
+		self.action_space = action_space
 
 		listt = []
 		listt.append(torch.tensor([self.EE_discount] * 18, device=self.device).unsqueeze(0))
@@ -194,7 +194,7 @@ class Agent:
 			if np.random.rand() > self.epsilon:
 				action = torch.argmax(policy[0])
 			else:
-				action = torch.tensor(np.random.randint(1, self.action_space.n), device=self.device)
+				action = torch.tensor(self.action_space.sample(), device=self.device)
 
 			return action.unsqueeze(0), policy
 
