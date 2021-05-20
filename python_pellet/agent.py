@@ -196,8 +196,6 @@ class Agent:
 			else:
 				action = torch.tensor(np.random.randint(1, self.action_space.n), device=self.device)
 
-			self.epsilon = self.slope * step + self.intercept
-
 			return action.unsqueeze(0), policy
 
 	def distance_prime(self, s1, s2, partition_memory):

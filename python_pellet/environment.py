@@ -20,7 +20,7 @@ def create_atari_env(env_id, device):
 
 def process_frame(frame, device):
 	frame = frame[34:34 + 160, :160]
-	frame = np.array(resize(frame))
+	frame = np.array(resize(frame), dtype=np.uint8)
 	frame = torch.tensor(frame, dtype=torch.uint8, device=device).unsqueeze(0)
 	return frame
 

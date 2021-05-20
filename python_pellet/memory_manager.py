@@ -36,7 +36,7 @@ class MemoryManager:
 	def manage(self, learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size):
 		while True:
 			replay_mem_len = len(self.replay_memory.memory)
-			logging.info("re: " + str(replay_mem_len) + " lq: " + str(learner_replay_que.qsize()) + " eeq: " + str(learner_ee_que.qsize()))
+			#logging.info("re: " + str(replay_mem_len) + " lq: " + str(learner_replay_que.qsize()) + " eeq: " + str(learner_ee_que.qsize()))
 			if not self.replay_memory.memory or len(self.replay_memory.memory) < (learner_que_max_size + learner_ee_que_max_size) or (learner_replay_que.full() and learner_ee_que.full()):
 				try:
 					optional_replay = replay_que.get(False)
@@ -46,12 +46,12 @@ class MemoryManager:
 				except queue.Empty:
 					pass
 			else:
-				if learner_replay_que.empty() and replay_mem_len > learner_que_max_size:
+				if learner_replay_que.qsize() == 0 and replay_mem_len > learner_que_max_size:
 					pre = learner_replay_que.qsize()
 					self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
 					logging.info("refilled learner replay mem with |" + str(learner_replay_que.qsize() - pre) + "| elements")
 
-				if learner_ee_que.empty() and replay_mem_len > learner_ee_que_max_size:
+				if learner_ee_que.qsize() == 0 and replay_mem_len > learner_ee_que_max_size:
 					pre = learner_ee_que.qsize()
 					self.fill_learner_ee_que(learner_ee_que, learner_ee_que_max_size)
 					logging.info("refilled learner ee mem with |" + str(learner_ee_que.qsize() - pre) + "| elements")
