@@ -11,11 +11,8 @@ def setup(env_name):
 		device = torch.device('cpu')
 	env = setup_env(env_name, device)
 	agent = setup_agent(env.action_space)
-	action_space = env.action_space
-	#agent.action_space = action_space
-	opt = 1
 
-	return action_space, agent, opt, env
+	return agent, env
 
 
 def setup_env(env_name, device):
