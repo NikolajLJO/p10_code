@@ -52,7 +52,7 @@ class Learner:
 		self.terminating = False
 		self.dmax = np.NINF
 		self.distance = np.NINF
-		self.agent = setup(args[1])[1]
+		self.agent = setup(args[1])[0]
 		self.partition = 0
 		self.replay_memory = ReplayMemory(max_memory_size=learner_que_max_size)
 		self.ee_memory = []
@@ -67,6 +67,9 @@ class Learner:
 	def learn(self, learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que,  actor_count):
 		logging.info("Started with empty memory")
 		learn_count = 0
+		ee_update_count = 0
+		ee_done = False
+		i = 0
 		while True:
 			logging.info("itt with: " +
 						str(len(self.replay_memory.memory)) +
@@ -85,7 +88,7 @@ class Learner:
 
 			# then when it does, update it
 
-			if not learner_replay_que.empty():
+			if not learner_replay_que.empty() and len(self.replay_memory.memory) < 32:
 				pre = learner_replay_que.qsize()
 				for _ in range(0, learner_replay_que.qsize()):
 					try:
@@ -98,13 +101,10 @@ class Learner:
 
 				logging.info("Refilled r memory with: " + str(pre - learner_replay_que.qsize()) + "total: " + str(len(self.replay_memory.memory)))
 
-			ee_update_count = 0
-			ee_done = False
-
 			while learner_ee_que.qsize() < self.learner_ee_que_max_size:
 				pass
 
-			if not learner_ee_que.empty():
+			if not learner_ee_que.empty() and len(self.ee_memory) < 32:
 				pre = learner_ee_que.qsize()
 				for _ in range(0, int(self.learner_ee_que_max_size)):
 					try:
@@ -118,7 +118,7 @@ class Learner:
 				logging.info("Refilled ee memory with: " + str(pre - learner_ee_que.qsize()) + "total: " + str(len(self.ee_memory)))
 				ee_update_count += 1
 
-			if not ee_done and ee_update_count * self.learner_ee_que_max_size > 2e6:
+			if not ee_done and i > 500000:
 				ee_done = True
 
 			if from_actor_partition_que.qsize() >= actor_count * 2:
@@ -145,11 +145,18 @@ class Learner:
 				except queue.Empty:
 					pass
 				logging.info("Pushed partition: " + str(self.partition))
+			
+			
 
 			# while we have more than 10% replay memory, learn
 			# ToDO this should prob just do entire que its a frakensetein of old concepts
 			while self.replay_memory.memory and self.ee_memory:
 				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
+				i += 1
+				if i % 10000 == 0:
+					self.agent.targetQnet = copy.deepcopy(self.agent.Qnet)
+					self.agent.targetEEnet=  copy.deepcopy(self.agent.EEnet)
+			
 			learn_count += 1
 
 			logging.info("I processed que: " + str(learn_count))
