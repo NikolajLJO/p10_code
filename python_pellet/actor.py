@@ -11,7 +11,7 @@ import torch
 import copy
 import time
 import traceback
-
+from numpy import mean
 
 class Actor:
 	def __init__(self,
@@ -48,8 +48,11 @@ class Actor:
 		dmax = np.NINF
 		distance = np.NINF
 		episode_buffer = []
+		start_making_part = 2000000
+		average = []
+		episode_reward = 0
 
-		game_actions, self.agent, opt, env = setup(args[1])
+		self.agent, env = setup(args[1])
 		visited = torch.zeros(1,100, device=self.agent.device)
 		visited_prime = torch.zeros(1,100, device=self.agent.device)
 		state = env.reset()
@@ -90,7 +93,12 @@ class Actor:
 					episode_buffer.clear()
 					visited[visited != 0] = 0
 					visited_prime[visited_prime != 0] = 0
-
+					episode_reward += total_score
+					if info:
+						average.append(episode_reward)
+						average[-100:]
+						episode_reward = logging.info("episode reward: |{0}| average: |{1:.2f}| epsilon: |{2:.2f}|".format(episode_reward, mean(average), self.agent.epsilon))
+						episode_reward = 0
 					total_score = 0
 					steps_since_reward = 0
 
@@ -103,7 +111,7 @@ class Actor:
 					partition_candidate = copy.deepcopy(state_prime).to("cpu")
 					dmax = distance
 
-				if i % 10000 == 0:
+				if start_making_part < i and i % 10000 == 0:
 					from_actor_partition_que.put(copy.deepcopy([partition_candidate, dmax]))
 					dmax = 0
 					partition_candidate = None
