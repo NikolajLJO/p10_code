@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import copy
+import torch
 
 
 class ReplayMemory:
@@ -12,28 +13,21 @@ class ReplayMemory:
 		self.EE_TIME_SEP_CONSTANT_M = 100
 		self.pellet_discount = 0.99
 		self.ee_beta = 1
+		self.maximum_pellet_reward = torch.tensor([[0.1]*100])
 
 	def save(self, episode_buffer):
-		y = 0
-		for i, transition in enumerate(episode_buffer):
-			state_index = i
-			mc_reward = 0
-			terminating = episode_buffer[state_index][5]
-			t = (len(episode_buffer) - 1)
-			mc_reward = episode_buffer[t][4]
-			j = 0
-			while not terminating:
-				if len(episode_buffer[2]) < len(episode_buffer[7]):
-					pellet_reward = self.calc_pellet_reward(episode_buffer[7][-1][1])
-					mc_reward = mc_reward + pellet_reward * (self.pellet_discount ** j)
-				state_index += 1
-				j += 1
-				terminating = episode_buffer[state_index][5]
+		full_pellet_reward = 0
+		mc_reward = 0
+		for i, transition in enumerate(reversed(episode_buffer)):
+			post_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), copy.deepcopy(transition[7])], dim=1),dim=1)[0]
+			pre_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), copy.deepcopy(transition[2])], dim=1),dim=1)[0]
+			pellet_reward = torch.sum(post_visit, 1) - torch.sum(pre_visit, 1)
+			full_pellet_reward =  pellet_reward + self.pellet_discount * full_pellet_reward
+			mc_reward =  transition[4] + 0.99 * mc_reward
+			transition.append(mc_reward + full_pellet_reward)
+			transition.append(i)
 
-			transition.append(mc_reward)
-			transition.append(len(episode_buffer)-y)
-			y += 1
-
+		for transition in episode_buffer:
 			if len(self.memory) < self.MAX_MEMORY_SIZE:
 				self.memory.append(transition)
 			else:
