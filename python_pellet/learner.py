@@ -67,6 +67,8 @@ class Learner:
 	def learn(self, learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que,  actor_count):
 		logging.info("Started with empty memory")
 		learn_count = 0
+		ee_update_count = 0
+		ee_done = False
 		while True:
 			logging.info("itt with: " +
 						str(len(self.replay_memory.memory)) +
@@ -96,8 +98,7 @@ class Learner:
 
 			logging.info("Refilled r memory with: " + str(pre - learner_replay_que.qsize()) + "total: " + str(len(self.replay_memory.memory)))
 
-			ee_update_count = 0
-			ee_done = False
+
 
 			while not learner_ee_que.full():
 				pass
