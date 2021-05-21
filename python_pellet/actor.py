@@ -112,14 +112,6 @@ class Actor:
 				if i % 1000 == 0:  # TODO this should prob be some better mere defined value
 					self.check_ques_for_updates()
 
-				if steps_since_reward > 500:
-					terminating = True
-					if episode_buffer[-1][5].get_device() == -1:
-						episode_buffer[-1][5] = torch.tensor(terminating, device="cpu").unsqueeze(0)
-					else:
-						episode_buffer[-1][5] = torch.tensor(terminating, device=self.agent.device).unsqueeze(0)
-					steps_since_reward = 0
-
 		except Exception as err:
 			logging.info(err)
 			logging.info(traceback.format_exc())

@@ -12,7 +12,7 @@ def conv2d_size_out(height: int, width: int, stride: int, kernel_size: int, padd
 
 
 class Qnet(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, action_space):
         super(Qnet, self).__init__()
 
         # conv_3_channels needs replacement if conv layer setup changes
@@ -26,7 +26,7 @@ class Qnet(torch.nn.Module):
 
         self.layer_node_count = int(height * width * 64)
         self.lay1 = torch.nn.Linear(self.layer_node_count + 100, 512)
-        self.lay2 = torch.nn.Linear(512, 18)
+        self.lay2 = torch.nn.Linear(512, action_space.n)
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=0.00025)
         self.loss = torch.nn.SmoothL1Loss()
@@ -50,7 +50,7 @@ class Qnet(torch.nn.Module):
 
 
 class EEnet(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, action_space):
         super(EEnet, self).__init__()
 
         # conv_3_channels needs replacement if conv layer setup changes
@@ -63,7 +63,7 @@ class EEnet(torch.nn.Module):
 
         layer_node_count = int(height * width * 16)
 
-        self.liniar_net = torch.nn.Sequential(torch.nn.Linear(layer_node_count*2, 128),torch.nn.ReLU(),torch.nn.Linear(128, 18))
+        self.liniar_net = torch.nn.Sequential(torch.nn.Linear(layer_node_count*2, 128),torch.nn.ReLU(),torch.nn.Linear(128, action_space.n))
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=0.0000625)
         self.loss = torch.nn.SmoothL1Loss()

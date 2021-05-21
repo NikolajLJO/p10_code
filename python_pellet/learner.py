@@ -10,7 +10,7 @@ import logging
 import numpy as np
 from memory import ReplayMemory
 import sys
-from init import setup_agent
+from init import setup
 import traceback
 import torch
 import torchvision.transforms as transforms
@@ -52,11 +52,11 @@ class Learner:
 		self.terminating = False
 		self.dmax = np.NINF
 		self.distance = np.NINF
-		self.agent = setup_agent()
+		self.agent = setup(args[1])[1]
 		self.partition = 0
 		self.replay_memory = ReplayMemory(max_memory_size=learner_que_max_size)
 		self.ee_memory = []
-		self. learner_que_max_size = learner_que_max_size
+		self.learner_que_max_size = learner_que_max_size
 		self.learner_ee_que_max_size = learner_ee_que_max_size
 		try:
 			self.learn(learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que, actor_count)
@@ -69,6 +69,7 @@ class Learner:
 		learn_count = 0
 		ee_update_count = 0
 		ee_done = False
+		i = 0
 		while True:
 			logging.info("itt with: " +
 						str(len(self.replay_memory.memory)) +
@@ -97,8 +98,6 @@ class Learner:
 					pass
 
 			logging.info("Refilled r memory with: " + str(pre - learner_replay_que.qsize()) + "total: " + str(len(self.replay_memory.memory)))
-
-
 
 			while not learner_ee_que.full():
 				pass
@@ -148,6 +147,11 @@ class Learner:
 			# ToDO this should prob just do entire que its a frakensetein of old concepts
 			while self.replay_memory.memory and self.ee_memory:
 				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
+				i += 1
+				if i % 10000 == 0:
+					self.agent.targetQnet = copy.deepcopy(self.agent.Qnet)
+					self.agent.targetEEnet=  copy.deepcopy(self.agent.EEnet)
+
 			learn_count += 1
 
 			logging.info("I processed que: " + str(learn_count))
