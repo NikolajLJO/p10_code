@@ -38,9 +38,9 @@ class Agent:
 		self.action_space = action_space
 
 		listt = []
-		listt.append(torch.tensor([self.EE_discount] * 18, device=self.device).unsqueeze(0))
+		listt.append(torch.tensor([self.EE_discount] * action_space.n, device=self.device).unsqueeze(0))
 		for i in range(1, 100):
-			listt.append(torch.tensor([self.EE_discount ** (i + 1)] * 18, device=self.device).unsqueeze(0))
+			listt.append(torch.tensor([self.EE_discount ** (i + 1)] * action_space.n, device=self.device).unsqueeze(0))
 		self.EE_discounts = torch.cat(listt)
 
 	def cast_to_device(self, tensors):
@@ -55,13 +55,13 @@ class Agent:
 		torch.cuda.empty_cache()
 		logging.info("ql")
 		pre_learn = time.process_time_ns()
-		self.qlearn(replay_memory, batch_size=min(1000, len(replay_memory.memory)))
+		self.qlearn(replay_memory, batch_size=min(32, len(replay_memory.memory)))
 		post_learn = time.process_time_ns()
 		logging.info("q learned in: " + "%.2f" % ((post_learn - pre_learn) / 1e9))
 		if not ee_done:
 			pre_learn = time.process_time_ns()
 			logging.info("eel")
-			self.eelearn(ee_memory)
+			self.eelearn(ee_memory, 32)
 			post_learn = time.process_time_ns()
 			logging.info("ee learned in: " + "%.2f" % ((post_learn - pre_learn) / 1e9))
 
@@ -81,6 +81,13 @@ class Agent:
 		s_primes = torch.cat(s_primes).to(self.device)
 		terminating = torch.cat(terminating).long().to(self.device)
 		targ_mc = torch.cat(targ_mc).to(self.device)
+		
+		maximum_pellet_reward = []
+		for i in range(len(states)):
+			maximum_pellet_reward.append([0.1]*100)
+		maximum_pellet_reward = torch.tensor(maximum_pellet_reward, device=self.device)
+		visited = torch.min(torch.stack([maximum_pellet_reward, visited], dim=1),dim=1)[0]
+		visited_prime = torch.min(torch.stack([maximum_pellet_reward, visited_prime], dim=1),dim=1)[0]
 
 		pellet_rewards = torch.sum(visited_prime, dim=1) - torch.sum(visited, dim=1)
 
@@ -90,13 +97,14 @@ class Agent:
 		predictions = self.Qnet(states, visited).gather(1, action)
 
 		targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
+
 		self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
 
 	def eelearn(self, ee_memory, batch_size=1000):
 		# Sample a minibatch of state pairs and interleaving
 		# auxiliary rewards
 		batch = []
-		for _ in range(0, min(len(ee_memory), 1000)):
+		for _ in range(0, min(len(ee_memory), batch_size)):
 			batch.append(ee_memory.pop())
 		logging.info("batch e: " + str(len(batch)))
 		states, s_primes, smid, auxreward = zip(*batch)
@@ -111,7 +119,7 @@ class Agent:
 				+ self.EE_discount
 				* self.targetEEnet(merge_states_for_comparason(smid[i].unsqueeze(0), s_primes[i].unsqueeze(0))))
 
-		targ_mc = torch.zeros(len(auxreward), 18, device=self.device)
+		targ_mc = torch.zeros(len(auxreward), self.action_space.n, device=self.device)
 		for i, setauxreward in enumerate(auxreward):
 			setauxreward = torch.stack(setauxreward).to(self.device)
 			targ_mc[i] = torch.sum(setauxreward + self.EE_discounts[:len(setauxreward)], 0)
