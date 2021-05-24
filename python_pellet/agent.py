@@ -54,15 +54,15 @@ class Agent:
 	def update(self, replay_memory, ee_memory, ee_done: bool):
 		torch.cuda.empty_cache()
 		logging.info("ql")
-		pre_learn = time.process_time_ns()
+		pre_learn = time.process_time()
 		self.qlearn(replay_memory, batch_size=min(32, len(replay_memory.memory)))
-		post_learn = time.process_time_ns()
+		post_learn = time.process_time()
 		logging.info("q learned in: " + "%.2f" % ((post_learn - pre_learn) / 1e9))
 		if not ee_done:
-			pre_learn = time.process_time_ns()
+			pre_learn = time.process_time()
 			logging.info("eel")
 			self.eelearn(ee_memory, 32)
-			post_learn = time.process_time_ns()
+			post_learn = time.process_time()
 			logging.info("ee learned in: " + "%.2f" % ((post_learn - pre_learn) / 1e9))
 
 	def qlearn(self, replay_memory, batch_size=None):
