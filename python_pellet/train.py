@@ -62,7 +62,7 @@ if __name__ == "__main__":
 								   to_actor_partition_que,
 								   actor_count))
 		learner.start()
-		actor_list = [learner, manager] + [
+		actor_list = [
 			mp.Process(target=Actor,
 					   args=(args,
 							 i,
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 		for process in actor_list:
 			process.start()
 
-	for p in actor_list:
+	for p in actor_list+[learner, manager]:
 		p.join()
 
 
