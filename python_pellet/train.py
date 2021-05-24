@@ -62,7 +62,7 @@ if __name__ == "__main__":
 								   to_actor_partition_que,
 								   actor_count))
 		learner.start()
-		actor_list = [
+		actor_list = [learner, manager] + [
 			mp.Process(target=Actor,
 					   args=(args,
 							 i,
