@@ -110,7 +110,7 @@ def mainloop(args):
             reward = max(min(reward,1),-1)
             if terminating:
                 reward -= 1
-            if i % 1 == 0:
+            if i % 10 == 0:
                 visited, visited_prime, distance = agent.find_current_partition(state_prime,
                                                                                 partition_memory,
                                                                                 visited)
