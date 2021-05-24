@@ -28,11 +28,8 @@ class ReplayMemory:
 			transition.append(i)
 
 		for transition in episode_buffer:
-			if len(self.memory) < self.MAX_MEMORY_SIZE:
-				self.memory.append(transition)
-			else:
-				self.memory[self.memory_refrence_pointer] = transition
-			self.memory_refrence_pointer = (self.memory_refrence_pointer + 1) % self.MAX_MEMORY_SIZE
+			self.memory.append(transition)
+			self.memory = self.memory[-self.MAX_MEMORY_SIZE:]
 
 	def sample(self, forced_batch_size=None, should_pop=False):
 		batch = []
