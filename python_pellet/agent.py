@@ -55,13 +55,15 @@ class Agent:
 		torch.cuda.empty_cache()
 		logging.info("ql")
 		pre_learn = time.process_time()
-		self.qlearn(replay_memory, batch_size=min(32, len(replay_memory.memory)))
+		if len(replay_memory.memory) > 0:
+			self.qlearn(replay_memory, batch_size=min(32, len(replay_memory.memory)))
 		post_learn = time.process_time()
 		logging.info("q learned in: " + "%.2f" % ((post_learn - pre_learn) / 1e9))
 		if not ee_done:
 			pre_learn = time.process_time()
 			logging.info("eel")
-			self.eelearn(ee_memory, 32)
+			if len(ee_memory) > 0:
+				self.eelearn(ee_memory, 32)
 			post_learn = time.process_time()
 			logging.info("ee learned in: " + "%.2f" % ((post_learn - pre_learn) / 1e9))
 
