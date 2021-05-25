@@ -32,7 +32,7 @@ class Learner:
                  to_actor_partition_que,
                  actor_count,
                  should_use_rnd):
-        torch.multiprocessing.set_sharing_strategy('file_system')
+        #torch.multiprocessing.set_sharing_strategy('file_system')
         self.path = Path(__file__).parent
         Path(self.path / 'logs').mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()
@@ -52,7 +52,7 @@ class Learner:
         self.terminating = False
         self.dmax = np.NINF
         self.distance = np.NINF
-        self.agent = setup(args[1])[1]
+        self.agent = setup(args[1], should_use_rnd)[1]
         self.partition = 0
         self.replay_memory = ReplayMemory(max_memory_size=learner_que_max_size)
         self.ee_memory = []
@@ -124,7 +124,7 @@ class Learner:
 
             if from_actor_partition_que.qsize() >= actor_count * 2:
                 unqued_partitions = []
-                for _ in range(actor_count * 2):
+                for _ in range(0, actor_count * 2):
                     try:
                         partition = from_actor_partition_que.get(timeout=0.1)
                         process_local_partition = copy.deepcopy(partition)

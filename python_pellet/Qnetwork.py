@@ -63,7 +63,7 @@ class EEnet(torch.nn.Module):
 
         layer_node_count = int(height * width * 16)
 
-        self.liniar_net = torch.nn.Sequential(torch.nn.Linear(layer_node_count*2, 128),torch.nn.ReLU(),torch.nn.Linear(128, action_space.n))
+        self.liniar_net = torch.nn.Sequential(torch.nn.Linear(layer_node_count*2, 128), torch.nn.ReLU(), torch.nn.Linear(128, action_space.n))
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=0.0000625)
         self.loss = torch.nn.SmoothL1Loss()

@@ -10,8 +10,8 @@ from Qnetwork import Qnet, EEnet
 
 
 class Agent:
-	def __init__(self, action_space, nq=0.1, ne=0.1):
-		torch.multiprocessing.set_sharing_strategy('file_system')
+	def __init__(self, action_space, should_use_rnd, nq=0.1, ne=0.1):
+		#torch.multiprocessing.set_sharing_strategy('file_system')
 		if torch.cuda.is_available():
 			self.device = torch.device('cuda')
 			logging.info("cuda")
@@ -20,8 +20,6 @@ class Agent:
 			logging.info("cpu")
 		self.Qnet = Qnet(action_space).to(self.device)
 		self.targetQnet = copy.deepcopy(self.Qnet)
-		self.EEnet = EEnet(action_space).to(self.device)
-		self.targetEEnet = copy.deepcopy(self.EEnet)
 		self.NQ = nq
 		self.NE = ne
 
@@ -36,6 +34,15 @@ class Agent:
 		self.Q_discount = 0.99
 		self.EE_discount = 0.99
 		self.action_space = action_space
+		self.should_use_rnd = should_use_rnd
+		self.mse = torch.nn.MSELoss(reduction='none')
+
+		if should_use_rnd:
+			self.EEnet = EEnet(action_space).to(self.device)
+			self.targetEEnet = EEnet(action_space).to(self.device)
+		else:
+			self.EEnet = EEnet(action_space).to(self.device)
+			self.targetEEnet = copy.deepcopy(self.EEnet)
 
 		listt = []
 		listt.append(torch.tensor([self.EE_discount] * 18, device=self.device).unsqueeze(0))
@@ -180,32 +187,55 @@ class Agent:
 		with torch.no_grad():
 			min_distance = np.Inf
 			index = 0
+			if self.should_use_rnd:
+				merged_states_forward = []
+				merged_states_back = []
+				for s2 in partition_memory:
+					merged_states_forward.append(merge_states_for_comparason(state, s2[0]))
+					merged_states_back.append(merge_states_for_comparason(s2[0], state))
+				merged_states_forward = torch.cat(merged_states_forward)
+				merged_states_back = torch.cat(merged_states_back)
 
-			for i, s2 in enumerate(partition_memory):
-				max_distance = np.NINF
-				state_to_ref = []
-				s2_to_ref = []
-				ref_to_state = []
-				ref_to_s2 = []
-				for refrence in partition_memory[:5]:
-					state_to_ref.append(merge_states_for_comparason(state, refrence[0]))
-					s2_to_ref.append(merge_states_for_comparason(s2[0], refrence[0]))
-					ref_to_state.append(merge_states_for_comparason(refrence[0], state))
-					ref_to_s2.append(merge_states_for_comparason(refrence[0], s2[0]))
+				aux_forward = self.EEnet(merged_states_forward)
+				aux_target_forward = self.targetEEnet(merged_states_forward)
 
-				state_to_ref = torch.cat(state_to_ref)
-				s2_to_ref = torch.cat(s2_to_ref)
-				forward = torch.sum(self.EEnet(state_to_ref) - self.EEnet(s2_to_ref), dim=1)
+				aux_back = self.EEnet(merged_states_back)
+				aux_target_back = self.targetEEnet(merged_states_back)
 
-				ref_to_state = torch.cat(ref_to_state)
-				ref_to_s2 = torch.cat(ref_to_s2)
-				backward = torch.sum(self.EEnet(ref_to_state) - self.EEnet(ref_to_s2), dim=1)
+				aux_forward = torch.mean(self.mse(aux_forward, aux_target_forward), dim=1)
+				aux_back = torch.mean(self.mse(aux_back, aux_target_back), dim=1)
 
-				max_distance = torch.max(torch.max(torch.stack([forward, backward], dim=1), 1)[0], 0)[0].item()
+				novelties = torch.max(torch.stack([aux_forward, aux_back], dim=1), 1)[0]
 
-				if max_distance < min_distance:
-					min_distance = max_distance
-					index = i
+				argmin_value, argmin_index = torch.min(novelties, 0)
+				current_partition = partition_memory[argmin_index.item()]
+				min_distance = argmin_value.item()
+			else:
+				for i, s2 in enumerate(partition_memory):
+					max_distance = np.NINF
+					state_to_ref = []
+					s2_to_ref = []
+					ref_to_state = []
+					ref_to_s2 = []
+					for refrence in partition_memory[:5]:
+						state_to_ref.append(merge_states_for_comparason(state, refrence[0]))
+						s2_to_ref.append(merge_states_for_comparason(s2[0], refrence[0]))
+						ref_to_state.append(merge_states_for_comparason(refrence[0], state))
+						ref_to_s2.append(merge_states_for_comparason(refrence[0], s2[0]))
+
+					state_to_ref = torch.cat(state_to_ref)
+					s2_to_ref = torch.cat(s2_to_ref)
+					forward = torch.sum(self.EEnet(state_to_ref) - self.EEnet(s2_to_ref), dim=1)
+
+					ref_to_state = torch.cat(ref_to_state)
+					ref_to_s2 = torch.cat(ref_to_s2)
+					backward = torch.sum(self.EEnet(ref_to_state) - self.EEnet(ref_to_s2), dim=1)
+
+					max_distance = torch.max(torch.max(torch.stack([forward, backward], dim=1), 1)[0], 0)[0].item()
+
+					if max_distance < min_distance:
+						min_distance = max_distance
+						index = i
 
 			visited_prime = copy.deepcopy(visited)
 

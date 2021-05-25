@@ -77,7 +77,8 @@ if __name__ == "__main__":
                              q_t_network_que,
                              e_t_network_que,
                              from_actor_partition_que,
-                             to_actor_partition_que))
+                             to_actor_partition_que,
+                             should_use_rnd))
             for i in range(actor_count)]
         for process in actor_list:
             process.start()
