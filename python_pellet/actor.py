@@ -54,11 +54,10 @@ class Actor:
 		visited_prime = torch.zeros(1,100, device=self.agent.device)
 		state = env.reset()
 		self.local_partition_memory.append([state, 0])
-		steps_since_reward = 0
 		try:
 			for i in range(1, int(args[2])):
 				start = time.process_time()
-				action, policy = self.agent.find_action(state, i, visited, steps_since_reward)
+				action, policy = self.agent.find_action(state, i, visited)
 
 				auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()), device=self.agent.device)
 
@@ -92,12 +91,6 @@ class Actor:
 					visited_prime[visited_prime != 0] = 0
 
 					total_score = 0
-					steps_since_reward = 0
-
-				if reward != 0 or len(visited) != len(visited_prime):
-					steps_since_reward = 0
-				else:
-					steps_since_reward += 1
 
 				if distance > dmax:
 					partition_candidate = copy.deepcopy(state_prime).to("cpu")

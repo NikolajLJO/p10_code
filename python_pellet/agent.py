@@ -47,23 +47,36 @@ class Agent:
 		for tensor in tensors:
 			tensor = tensor.to(device=self.device)
 
-	def find_action(self, state, step, visited, steps_since_reward):
-		action, policy = self.e_greedy_action_choice(state, step, visited, steps_since_reward)
+	def find_action(self, state, step, visited):
+		"""
+		this function finds and return an action
+		Input: state is the current state and step is the stepcount
+		output: the best action according to policy
+				policy the full list of q-values
+		"""
+		action, policy = self.e_greedy_action_choice(state, step, visited)
 		return action, policy
 
-	def update(self, replay_memory, ee_memory, ee_done: bool):
-		torch.cuda.empty_cache()
+	def update(self, replay_memory, ee_memory, ee_done: bool, should_use_rnd=False):
 		logging.info("ql")
 		pre_learn = time.process_time_ns()
-		self.qlearn(replay_memory, batch_size=min(1000, len(replay_memory.memory)))
+
+		self.qlearn(replay_memory, batch_size=min(32, len(replay_memory.memory)))
+
 		post_learn = time.process_time_ns()
 		logging.info("q learned in: " + "%.2f" % ((post_learn - pre_learn) / 1e9))
-		if not ee_done:
-			pre_learn = time.process_time_ns()
-			logging.info("eel")
-			self.eelearn(ee_memory)
-			post_learn = time.process_time_ns()
-			logging.info("ee learned in: " + "%.2f" % ((post_learn - pre_learn) / 1e9))
+
+		logging.info("eel")
+		pre_learn = time.process_time_ns()
+
+		if not should_use_rnd and not ee_done:
+			self.eelearn(ee_memory, batch_size=min(32, len(ee_memory)))
+		elif should_use_rnd:
+			self.rndlearn(ee_memory, batch_size=min(32, len(ee_memory)))
+
+		post_learn = time.process_time_ns()
+		logging.info("ee learned in: " + "%.2f" % ((post_learn - pre_learn) / 1e9))
+
 
 	def qlearn(self, replay_memory, batch_size=None):
 		# Sample random minibatch of transitions
@@ -72,7 +85,8 @@ class Agent:
 			batch_size = replay_memory.batch_size
 		batch = replay_memory.sample(forced_batch_size=batch_size, should_pop=True)
 		logging.info("batch q: " + str(len(batch)))
-		states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(*batch)
+		states, action, visited, aux_reward, reward, terminating, s_primes, visited_prime, targ_mc, ee_thing = zip(
+			*batch)
 		states = torch.cat(states).to(self.device)
 		action = torch.cat(action).long().unsqueeze(1).to(self.device)
 		visited = torch.cat(visited).to(self.device)
@@ -82,21 +96,30 @@ class Agent:
 		terminating = torch.cat(terminating).long().to(self.device)
 		targ_mc = torch.cat(targ_mc).to(self.device)
 
+		maximum_pellet_reward = []
+		for i in range(len(states)):
+			maximum_pellet_reward.append([0.1] * 100)
+		maximum_pellet_reward = torch.tensor(maximum_pellet_reward, device=self.device)
+		visited = torch.min(torch.stack([maximum_pellet_reward, visited], dim=1), dim=1)[0]
+		visited_prime = torch.min(torch.stack([maximum_pellet_reward, visited_prime], dim=1), dim=1)[0]
+
 		pellet_rewards = torch.sum(visited_prime, dim=1) - torch.sum(visited, dim=1)
 
-		targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes, visited_prime).max(1)[0].detach() * (1 - terminating)
+		targ_onesteps = reward + pellet_rewards + self.Q_discount * self.targetQnet(s_primes, visited_prime).max(1)[
+			0].detach() * (1 - terminating)
 		# Calculate extrinsic and intrinsic returns, R and R+,
 		# via the remaining history in the replay memory
 		predictions = self.Qnet(states, visited).gather(1, action)
 
 		targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
+
 		self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
 
 	def eelearn(self, ee_memory, batch_size=1000):
 		# Sample a minibatch of state pairs and interleaving
 		# auxiliary rewards
 		batch = []
-		for _ in range(0, min(len(ee_memory), 1000)):
+		for _ in range(0, min(len(ee_memory), batch_size)):
 			batch.append(ee_memory.pop())
 		logging.info("batch e: " + str(len(batch)))
 		states, s_primes, smid, auxreward = zip(*batch)
@@ -111,7 +134,7 @@ class Agent:
 				+ self.EE_discount
 				* self.targetEEnet(merge_states_for_comparason(smid[i].unsqueeze(0), s_primes[i].unsqueeze(0))))
 
-		targ_mc = torch.zeros(len(auxreward), 18, device=self.device)
+		targ_mc = torch.zeros(len(auxreward), self.action_space.n, device=self.device)
 		for i, setauxreward in enumerate(auxreward):
 			setauxreward = torch.stack(setauxreward).to(self.device)
 			targ_mc[i] = torch.sum(setauxreward + self.EE_discounts[:len(setauxreward)], 0)
@@ -124,16 +147,36 @@ class Agent:
 			merged.append(merge_states_for_comparason(states[i].unsqueeze(0), s_primes[i].unsqueeze(0)))
 		self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
 
+	def rndlearn(self, ee_memory, batch_size: int):
+		"""
+		rndlearn calucaltes the variabels used for backpropagating the q-network
+		Input: replay_memory to sample from
+		"""
+		batch = []
+		for _ in range(0, min(len(ee_memory), batch_size)):
+			batch.append(ee_memory.pop())
+		logging.info("batch rnd: " + str(len(batch)))
+		states, s_primes, _, _ = zip(*batch)
+		netinput = []
+		for i in range(len(states)):
+			netinput.append(merge_states_for_comparason(states[i], s_primes[i]))
+
+		netinput = torch.cat(netinput)
+		pred = self.EEnet(netinput)
+		targ = self.targetEEnet(netinput)
+
+		self.EEnet.backpropagate(pred, targ)
+
 	def find_current_partition(self, state, partition_memory, visited):
-		'''
+		"""
 		This function findc the partition the agent is currently in,
 		and adding it to the list of visited partitions.
 		Input: state should be the current state
-			   partition_memory is the list of all partitions
+				partition_memory is the list of all partitions
 		output: visited is the list of visited partition before the transition
 				visited_prime is the list of visited states after the transition
 				distance is the maximum distance between the state and all partitions
-		'''
+		"""
 		with torch.no_grad():
 			min_distance = np.Inf
 			index = 0
@@ -152,12 +195,10 @@ class Agent:
 
 				state_to_ref = torch.cat(state_to_ref)
 				s2_to_ref = torch.cat(s2_to_ref)
-				#TODO HERE
 				forward = torch.sum(self.EEnet(state_to_ref) - self.EEnet(s2_to_ref), dim=1)
 
 				ref_to_state = torch.cat(ref_to_state)
 				ref_to_s2 = torch.cat(ref_to_s2)
-				#TODO HERE
 				backward = torch.sum(self.EEnet(ref_to_state) - self.EEnet(ref_to_s2), dim=1)
 
 				max_distance = torch.max(torch.max(torch.stack([forward, backward], dim=1), 1)[0], 0)[0].item()
@@ -169,27 +210,27 @@ class Agent:
 			visited_prime = copy.deepcopy(visited)
 
 			if visited[0][index] is None:
-				visited[0][index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])], device=self.device)
+				visited[0][index] = torch.tensor([partition_memory.calc_pellet_reward(partition_memory[index][1])],
+												device=self.device)
 
 			return visited, visited_prime, min_distance
 
-	def e_greedy_action_choice(self, state, step, visited, steps_since_reward):
-		'''
+	def e_greedy_action_choice(self, state, step, visited):
+		"""
 		This function chooses the agction greedily or randomly according to the epsilon value
 		Input: state is the state you want an action for
-			   step is the current step used to calculate the epsilon for the next decisions
+				step is the current step used to calculate the epsilon for the next decisions
 		Output: action a tensor with the best action index
 				policy is all q-values at the state
-		'''
+		"""
 		with torch.no_grad():
 			policy = self.Qnet(state, visited)
 
-			if steps_since_reward > 500:
-				self.epsilon = self.epsilon_start
-			elif step <= self.qlearn_start:
+			if step <= self.qlearn_start:
 				self.epsilon = self.epsilon_start
 			else:
-				self.epsilon = self.epsilon_end + max(0.0, (self.epsilon_start - self.epsilon_end) *(self.epsilon_endt - max(0, step - self.qlearn_start)) /self.epsilon_endt)
+				self.epsilon = self.epsilon_end + max(0.0, (self.epsilon_start - self.epsilon_end) * (
+							self.epsilon_endt - max(0, step - self.qlearn_start)) / self.epsilon_endt)
 
 			if np.random.rand() > self.epsilon:
 				action = torch.argmax(policy[0])
@@ -208,15 +249,29 @@ class Agent:
 
 	def distance(self, s1, s2, reference_point):
 		with torch.no_grad():
-			return max(torch.sum(abs(self.EEnet(merge_states_for_comparason(reference_point, s1)) -self.EEnet(merge_states_for_comparason(reference_point, s2)))),torch.sum(abs(self.EEnet(merge_states_for_comparason(s1, reference_point)) -self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
+			return max(
+				torch.sum(
+					abs(
+						self.EEnet(merge_states_for_comparason(reference_point, s1)) -
+						self.EEnet(merge_states_for_comparason(reference_point, s2)))),
+				torch.sum(
+					abs(
+						self.EEnet(merge_states_for_comparason(s1, reference_point)) -
+						self.EEnet(merge_states_for_comparason(s2, reference_point))))).item()
 
 	def update_targets(self):
 		self.targetQnet = copy.deepcopy(self.Qnet)
 		self.targetEEnet = copy.deepcopy(self.EEnet)
 
 	def save_networks(self, path, step):
-		torch.save(self.Qnet.state_dict(), str(path) + "/logs/" + "Qagent_" + str(step) + ".p")
-		torch.save(self.EEnet.state_dict(), str(path) + "/logs/" + "EEagent_" + str(step) + ".p")
+		"""
+		This function saves the networks parameters on the provided path
+		using step to indicate when in the training the networks is from
+		Input: path the path to the save location
+				step the step the training is at
+		"""
+		torch.save(self.Qnet.state_dict(), str(path) + "Qagent_" + str(step) + ".p")
+		torch.save(self.EEnet.state_dict(), str(path) + "EEagent_" + str(step) + ".p")
 
 
 def calc_pellet_reward(ee_beta, visits):
@@ -228,6 +283,12 @@ def merge_states_for_comparason(s1, s2):
 
 
 def is_tensor_in_list(mtensor, mlist):
+	"""
+	This function tests if a tensor os in the list
+	Input: mtensor is a tensor
+			mlist is a list of tensors of same form as mtensor
+	Output: boolean dependant on if the mtensor is in the list
+	"""
 	for element in mlist:
 		if torch.equal(mtensor[0], element[0]):
 			return True
