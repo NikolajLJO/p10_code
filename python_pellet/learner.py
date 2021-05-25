@@ -88,7 +88,7 @@ class Learner:
 
 			# then when it does, update it
 
-			if not learner_replay_que.qsize()==0 and len(self.replay_memory.memory) < 32:
+			if learner_replay_que.qsize() == self.learner_que_max_size and len(self.replay_memory.memory) < 32:
 				pre = learner_replay_que.qsize()
 				logging.info("Refill e memory")
 				for _ in range(0, learner_replay_que.qsize()):
@@ -105,7 +105,7 @@ class Learner:
 			while learner_ee_que.qsize() < self.learner_ee_que_max_size:
 				pass
 
-			if not learner_ee_que.qsize()==0 and len(self.ee_memory) < 32:
+			if learner_ee_que.qsize() == self.learner_ee_que_max_size and len(self.ee_memory) < 32:
 				pre = learner_ee_que.qsize()
 				logging.info("Refill ee memory")
 				for _ in range(0, int(self.learner_ee_que_max_size)):
