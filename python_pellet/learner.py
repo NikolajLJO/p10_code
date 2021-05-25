@@ -139,7 +139,10 @@ class Learner:
 				self.partition += 1
 				transform_to_image(best_partition[0][0][0]).save(path)
 				for _ in range(actor_count):
-					to_actor_partition_que.put(copy.deepcopy(best_partition))
+					try:
+						to_actor_partition_que.put_nowait(copy.deepcopy(best_partition))
+					except queue.Full:
+						pass
 				unqued_partitions.clear()
 
 				try:
@@ -170,9 +173,12 @@ class Learner:
 			c4 = self.agent.targetEEnet.state_dict()
 			logging.info("Push networks")
 			for _ in range(actor_count):
-				self.q_network_que.put(copy.deepcopy(c1))
-				self.e_network_que.put(copy.deepcopy(c2))
-				self.q_t_network_que.put(copy.deepcopy(c3))
-				self.e_t_network_que.put(copy.deepcopy(c4))
+				try:
+					self.q_network_que.put_nowait(copy.deepcopy(c1))
+					self.e_network_que.put_nowait(copy.deepcopy(c2))
+					self.q_t_network_que.put_nowait(copy.deepcopy(c3))
+					self.e_t_network_que.put_nowait(copy.deepcopy(c4))
+				except queue.Full:
+					pass
 
 			logging.info("Pushed networks")

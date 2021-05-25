@@ -59,9 +59,15 @@ class MemoryManager:
 	def fill_learner_replay_que(self, learner_replay_que, learner_que_max_size):
 		batch = self.replay_memory.sample(forced_batch_size=learner_que_max_size)
 		for item in batch:
-			learner_replay_que.put(copy.deepcopy(item))
+			try:
+				learner_replay_que.put_nowait(copy.deepcopy(item))
+			except queue.Full:
+				pass
 
 	def fill_learner_ee_que(self, learner_ee_que, learner_ee_que_max_size):
 		batch = self.replay_memory.sample_ee_minibatch(forced_batch_size=learner_ee_que_max_size)
 		for item in batch:
-			learner_ee_que.put(copy.deepcopy(item))
+			try:
+				learner_ee_que.put_nowait(copy.deepcopy(item))
+			except queue.Full:
+				pass
