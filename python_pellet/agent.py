@@ -54,14 +54,8 @@ class Agent:
 		for tensor in tensors:
 			tensor = tensor.to(device=self.device)
 
-	def find_action(self, state, step, visited):
-		"""
-		this function finds and return an action
-		Input: state is the current state and step is the stepcount
-		output: the best action according to policy
-				policy the full list of q-values
-		"""
-		action, policy = self.e_greedy_action_choice(state, step, visited)
+	def find_action(self, state, step, visited, steps_since_reward):
+		action, policy = self.e_greedy_action_choice(state, step, visited, steps_since_reward)
 		return action, policy
 
 	def update(self, replay_memory, ee_memory, ee_done: bool, should_use_rnd=False):

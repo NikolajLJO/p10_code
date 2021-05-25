@@ -55,6 +55,7 @@ class Actor:
 		visited_prime = torch.zeros(1,100, device=self.agent.device)
 		state = env.reset()
 		self.local_partition_memory.append([state, 0])
+		steps_since_reward = 0
 		try:
 			for i in range(1, int(args[2])):
 				start = time.process_time()
@@ -90,13 +91,13 @@ class Actor:
 					episode_buffer.clear()
 					visited[visited != 0] = 0
 					visited_prime[visited_prime != 0] = 0
-					self.agent.steps_since_reward = 0
+					steps_since_reward = 0
 					total_score = 0
 
 				if reward != 0 or (torch.sum(visited_prime, 1) - torch.sum(visited, 1)).item() != 0:
-					self.agent.steps_since_reward = 0
+					steps_since_reward = 0
 				else:
-					self.agent.steps_since_reward += 1
+					steps_since_reward += 1
 
 				if distance > dmax:
 					partition_candidate = copy.deepcopy(state_prime).to("cpu")
