@@ -138,12 +138,15 @@ class Learner:
 				path = (self.path / ("patition_" + str(self.partition) + ".png")).__str__()
 				self.partition += 1
 				transform_to_image(best_partition[0][0][0]).save(path)
-				for _ in range(actor_count):
-					try:
-						to_actor_partition_que.put_nowait(copy.deepcopy(best_partition))
-					except queue.Full:
-						pass
-				unqued_partitions.clear()
+				while to_actor_partition_que.qsize() != 0:
+					time.sleep(1)
+					if to_actor_partition_que.qsize() == 0:
+						for _ in range(actor_count):
+							try:
+								to_actor_partition_que.put_nowait(copy.deepcopy(best_partition))
+							except queue.Full:
+								pass
+						unqued_partitions.clear()
 
 				try:
 					while True:
@@ -171,14 +174,15 @@ class Learner:
 			c2 = self.agent.EEnet.state_dict()
 			c3 = self.agent.targetQnet.state_dict()
 			c4 = self.agent.targetEEnet.state_dict()
-			logging.info("Push networks")
-			for _ in range(actor_count):
-				try:
-					self.q_network_que.put_nowait(copy.deepcopy(c1))
-					self.e_network_que.put_nowait(copy.deepcopy(c2))
-					self.q_t_network_que.put_nowait(copy.deepcopy(c3))
-					self.e_t_network_que.put_nowait(copy.deepcopy(c4))
-				except queue.Full:
-					pass
+			if self.q_network_que.qsize() == 0:
+				logging.info("Push networks")
+				for _ in range(actor_count):
+					try:
+						self.q_network_que.put_nowait(copy.deepcopy(c1))
+						self.e_network_que.put_nowait(copy.deepcopy(c2))
+						self.q_t_network_que.put_nowait(copy.deepcopy(c3))
+						self.e_t_network_que.put_nowait(copy.deepcopy(c4))
+					except queue.Full:
+						pass
 
-			logging.info("Pushed networks")
+				logging.info("Pushed networks")
