@@ -58,12 +58,7 @@ class Learner:
         self.ee_memory = []
         self.learner_que_max_size = learner_que_max_size
         self.learner_ee_que_max_size = learner_ee_que_max_size
-        try:
-            self.learn(learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que,
-                       actor_count, should_use_rnd)
-        except Exception as err:
-            logging.info(err)
-            logging.info(traceback.format_exc())
+
 
     def learn(self, learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que, actor_count,
               should_use_rnd):

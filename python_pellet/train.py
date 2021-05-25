@@ -5,6 +5,9 @@ from actor import Actor
 from learner import Learner
 from memory_manager import MemoryManager
 from memory import ReplayMemory
+import torch
+import numpy as np
+from init import setup
 
 if __name__ == "__main__":
     mp.set_start_method('spawn')
@@ -45,15 +48,19 @@ if __name__ == "__main__":
         learner_ee_que = mp.Queue(maxsize=learner_ee_que_max_size)
         learner_replay_que = mp.Queue(maxsize=learner_que_max_size)
 
-        manager = mp.Process(target=MemoryManager,
-                             args=(replay_que,
+        manager = MemoryManager(replay_que,
+                                   learner_replay_que,
+                                   learner_que_max_size,
+                                   learner_ee_que,
+                                   learner_ee_que_max_size)
+
+        mp.spawn(manager.manage(replay_que,
                                    learner_replay_que,
                                    learner_que_max_size,
                                    learner_ee_que,
                                    learner_ee_que_max_size))
-        manager.start()
-        learner = mp.Process(target=Learner,
-                             args=(args,
+
+        learner = Learner(args,
                                    learner_replay_que,
                                    learner_que_max_size,
                                    q_network_que,
@@ -65,11 +72,14 @@ if __name__ == "__main__":
                                    from_actor_partition_que,
                                    to_actor_partition_que,
                                    actor_count,
-                                   should_use_rnd))
-        learner.start()
+                                   should_use_rnd)
+
+        mp.spawn(learner.learn(learner_replay_que, learner_ee_que, from_actor_partition_que, to_actor_partition_que,
+                       actor_count, should_use_rnd))
+
+
         actor_list = [
-            mp.Process(target=Actor,
-                       args=(args,
+            Actor(args,
                              i,
                              replay_que,
                              q_network_que,
@@ -78,10 +88,22 @@ if __name__ == "__main__":
                              e_t_network_que,
                              from_actor_partition_que,
                              to_actor_partition_que,
-                             should_use_rnd))
+                             should_use_rnd)
             for i in range(actor_count)]
-        for process in actor_list:
-            process.start()
 
-    for p in actor_list:
-        p.join()
+        for process in actor_list:
+            game_actions, agent, opt, env = setup(args[1], should_use_rnd)
+            mp.spawn(process.act(args,
+                        np.NINF,
+                        np.NINF,
+                        env,
+                        [],
+                        from_actor_partition_que,
+                        None,
+                        replay_que,
+                        env.reset(),
+                        0,
+                        torch.zeros(1, 100, device=agent.device),
+                        torch.zeros(1, 100, device=agent.device)))
+
+

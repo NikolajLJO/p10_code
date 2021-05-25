@@ -27,13 +27,8 @@ class MemoryManager:
 		sys.stdout = logger
 		self.replay_memory = ReplayMemory(max_memory_size=750000)
 		self.partition_memory = []
-		try:
-			self.manage(learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size)
-		except Exception as err:
-			logging.info(err)
-			logging.info(traceback.format_exc())
 
-	def manage(self, learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size):
+	def manage(self,replay_que, learner_replay_que, learner_que_max_size, learner_ee_que, learner_ee_que_max_size):
 		while True:
 			replay_mem_len = len(self.replay_memory.memory)
 			#logging.info("re: " + str(replay_mem_len) + " lq: " + str(learner_replay_que.qsize()) + " eeq: " + str(learner_ee_que.qsize()))
