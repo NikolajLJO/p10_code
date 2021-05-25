@@ -84,7 +84,9 @@ class Actor:
 						copy.deepcopy(visited_prime).to("cpu")])
 
 				if terminating:
+					logging.info("buffer to que")
 					replay_que.put(copy.deepcopy(episode_buffer))
+					logging.info("buffer now in que")
 					end = time.process_time()
 					elapsed = (end - start)
 					state_prime = env.reset()
@@ -97,7 +99,7 @@ class Actor:
 					if info:
 						average.append(episode_reward)
 						average[-100:]
-						episode_reward = logging.info("episode reward: |{0}| average: |{1:.2f}| epsilon: |{2:.2f}|".format(episode_reward, mean(average), self.agent.epsilon))
+						logging.info("episode reward: |{0}| average: |{1:.2f}| epsilon: |{2:.2f}|".format(episode_reward, mean(average), self.agent.epsilon))
 						episode_reward = 0
 					total_score = 0
 					steps_since_reward = 0
@@ -118,7 +120,9 @@ class Actor:
 
 				state = state_prime
 				if i % 1000 == 0:  # TODO this should prob be some better mere defined value
+					logging.info("checking ques")
 					self.check_ques_for_updates()
+					logging.info("ques were good")
 
 		except Exception as err:
 			logging.info(err)
@@ -137,7 +141,6 @@ class Actor:
 
 	@staticmethod
 	def update_partitions(visited, partition_memory):
-
 		for i, _visited in enumerate(visited[0]):
 			if _visited.item() != 0:
 				partition_memory[i][1] += 1

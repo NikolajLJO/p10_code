@@ -90,6 +90,7 @@ class Learner:
 
 			if not learner_replay_que.qsize()==0 and len(self.replay_memory.memory) < 32:
 				pre = learner_replay_que.qsize()
+				logging.info("Refill e memory")
 				for _ in range(0, learner_replay_que.qsize()):
 					try:
 						transition = learner_replay_que.get()
@@ -106,6 +107,7 @@ class Learner:
 
 			if not learner_ee_que.qsize()==0 and len(self.ee_memory) < 32:
 				pre = learner_ee_que.qsize()
+				logging.info("Refill ee memory")
 				for _ in range(0, int(self.learner_ee_que_max_size)):
 					try:
 						transition = learner_ee_que.get()
@@ -131,6 +133,7 @@ class Learner:
 						del partition
 					except queue.Empty:
 						pass
+				logging.info("Push partition")
 				best_partition = max(unqued_partitions, key=lambda item: item[1])
 				path = (self.path / ("patition_" + str(self.partition) + ".png")).__str__()
 				self.partition += 1
@@ -165,7 +168,7 @@ class Learner:
 			c2 = self.agent.EEnet.state_dict()
 			c3 = self.agent.targetQnet.state_dict()
 			c4 = self.agent.targetEEnet.state_dict()
-
+			logging.info("Push networks")
 			for _ in range(actor_count):
 				self.q_network_que.put(copy.deepcopy(c1))
 				self.e_network_que.put(copy.deepcopy(c2))
