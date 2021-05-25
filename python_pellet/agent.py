@@ -256,7 +256,9 @@ class Agent:
 		with torch.no_grad():
 			policy = self.Qnet(state, visited)
 
-			if step <= self.qlearn_start:
+			if self.steps_since_reward > self.non_reward_steps_before_full_eps:
+				self.epsilon = self.epsilon_start
+			elif step <= self.qlearn_start:
 				self.epsilon = self.epsilon_start
 			else:
 				self.epsilon = self.epsilon_end + max(0.0, (self.epsilon_start - self.epsilon_end) * (
