@@ -31,7 +31,7 @@ if __name__ == "__main__":
 		exit()
 
 	with mp.Pool(processes=thread_count) as pool:
-		replay_que = mp.Queue()
+		replay_que = mp.Queue(maxsize=1000)
 		q_network_que = mp.Queue()
 		e_network_que = mp.Queue()
 		q_t_network_que = mp.Queue()
