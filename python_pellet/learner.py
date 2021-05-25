@@ -159,7 +159,7 @@ class Learner:
 			while self.replay_memory.memory and self.ee_memory:
 				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
 				i += 1
-				if i % 10000 == 0:
+				if i % 10 == 0:
 					self.agent.targetQnet = copy.deepcopy(self.agent.Qnet)
 					self.agent.targetEEnet=  copy.deepcopy(self.agent.EEnet)
 			

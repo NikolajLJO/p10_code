@@ -43,6 +43,7 @@ class MemoryManager:
 					process_local_optional_replay = copy.deepcopy(optional_replay)
 					self.replay_memory.save(process_local_optional_replay)
 					del optional_replay
+					logging.info("replay memory at " + str(len(self.replay_memory.memory)))
 				except queue.Empty:
 					pass
 			else:
