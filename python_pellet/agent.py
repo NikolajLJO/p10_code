@@ -204,29 +204,29 @@ class Agent:
         min_distance = np.Inf
 
         if self.use_rnd:
-            merged_states_forward = []
-            merged_states_back = []
-            for s2 in partition_memory:
-                merged_states_forward.append(merge_states_for_comparason(state, s2[0]))
-                merged_states_back.append(merge_states_for_comparason(s2[0], state))
-            merged_states_forward = torch.cat(merged_states_forward)
-            merged_states_back = torch.cat(merged_states_back)
-   
-            aux_forward = self.ee_net(merged_states_forward)
-            aux_target_forward = self.target_ee_net(merged_states_forward)
-            
-            aux_back = self.ee_net(merged_states_back)
-            aux_target_back = self.target_ee_net(merged_states_back)
-            
-            aux_forward = torch.mean(self.mse(aux_forward,aux_target_forward), dim = 1)
-            aux_back =  torch.mean(self.mse(aux_back,aux_target_back), dim = 1)
-
-            novelties = torch.max(torch.stack([aux_forward,aux_back], dim=1),1)[0]
-
-            argmin_value, argmin_index = torch.min(novelties,0)
-            index = argmin_index.item()
-            min_distance = argmin_value.item()
-
+            if len(partition_memory) > 0:
+                merged_states_forward = []
+                merged_states_back = []
+                for s2 in partition_memory:
+                    merged_states_forward.append(merge_states_for_comparason(state, s2[0]))
+                    merged_states_back.append(merge_states_for_comparason(s2[0], state))
+                merged_states_forward = torch.cat(merged_states_forward)
+                merged_states_back = torch.cat(merged_states_back)
+       
+                aux_forward = self.ee_net(merged_states_forward)
+                aux_target_forward = self.target_ee_net(merged_states_forward)
+                
+                aux_back = self.ee_net(merged_states_back)
+                aux_target_back = self.target_ee_net(merged_states_back)
+                
+                aux_forward = torch.mean(self.mse(aux_forward,aux_target_forward), dim = 1)
+                aux_back =  torch.mean(self.mse(aux_back,aux_target_back), dim = 1)
+    
+                novelties = torch.max(torch.stack([aux_forward,aux_back], dim=1),1)[0]
+    
+                argmin_value, argmin_index = torch.min(novelties,0)
+                index = argmin_index.item()
+                min_distance = argmin_value.item()
         else:
             for i, s2 in enumerate(partition_memory):
                 max_distance = np.NINF
