@@ -49,12 +49,20 @@ class Agent:
 		for i in range(1, 100):
 			listt.append(torch.tensor([self.EE_discount ** (i + 1)] * 18, device=self.device).unsqueeze(0))
 		self.EE_discounts = torch.cat(listt)
+		self.steps_since_reward = 0
+		self.non_reward_steps_before_full_eps = 500
 
 	def cast_to_device(self, tensors):
 		for tensor in tensors:
 			tensor = tensor.to(device=self.device)
 
 	def find_action(self, state, step, visited, steps_since_reward):
+		"""
+		this function finds and return an action
+		Input: state is the current state and step is the stepcount
+		output: the best action according to policy
+				policy the full list of q-values
+		"""
 		action, policy = self.e_greedy_action_choice(state, step, visited, steps_since_reward)
 		return action, policy
 
@@ -239,7 +247,7 @@ class Agent:
 
 			return visited, visited_prime, min_distance
 
-	def e_greedy_action_choice(self, state, step, visited):
+	def e_greedy_action_choice(self, state, step, visited, steps_since_reward):
 		"""
 		This function chooses the agction greedily or randomly according to the epsilon value
 		Input: state is the state you want an action for
