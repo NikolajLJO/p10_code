@@ -46,6 +46,10 @@ class MemoryManager:
 					logging.info("replay memory at " + str(len(self.replay_memory.memory)))
 				except queue.Empty:
 					pass
+				except Exception as err:
+					logging.info(err)
+					logging.info(traceback.format_exc())
+					pass
 			else:
 				if learner_replay_que.qsize() == 0 and replay_mem_len > learner_que_max_size:
 					pre = learner_replay_que.qsize()
