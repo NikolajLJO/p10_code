@@ -117,7 +117,10 @@ class Actor:
 					dmax = distance
 
 				if start_making_part < i and i % 10000 == 0:
-					from_actor_partition_que.put(copy.deepcopy([partition_candidate, dmax]))
+					try:
+						from_actor_partition_que.put_nowait(copy.deepcopy([partition_candidate, dmax]))
+					except:
+						pass
 					dmax = 0
 					partition_candidate = None
 
