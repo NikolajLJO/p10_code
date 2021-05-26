@@ -7,6 +7,7 @@ import torch
 import numpy as np
 import random
 import copy
+from transition import Transition
 
 class ReplayMemory:
     def __init__(self, batch_size=32, max_memory_size=900000):
@@ -34,13 +35,17 @@ class ReplayMemory:
         mc_reward = 0
         time_to_term = 0
         for transition in reversed(episode_buffer):
-            if transition[5]:
+            if transition[Transition.IS_TERMINAL]:
                 time_to_term = 0
                 mc_reward = 0
                 pellet_reward = 0
 
-            post_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), copy.deepcopy(transition[7])], dim=1),dim=1)[0]
-            pre_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0), copy.deepcopy(transition[2])], dim=1),dim=1)[0]
+            post_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0),
+			 									copy.deepcopy(transition[Transition.VISITED_AFTER])], dim=1),dim=1)[0]
+
+            pre_visit = torch.min(torch.stack([self.maximum_pellet_reward[0].unsqueeze(0),
+												copy.deepcopy(transition[Transition.VISITED_BEFORE])], dim=1),dim=1)[0]
+												
             pellet_reward = torch.sum(post_visit, 1) - torch.sum(pre_visit, 1)
             full_pellet_reward =  pellet_reward + self.pellet_discount * full_pellet_reward
             mc_reward =  transition[4] + 0.99 * mc_reward
@@ -72,10 +77,11 @@ class ReplayMemory:
             # self.memory[state_index][5] = boolean if the transition leads to termination
             # self.memory[state_index][6] = state_prime the state following the state and action pair
             # self.memory[state_index][7] = list of visited partitions after the transition
-            batch.append([self.memory[state_index][0], self.memory[state_index][1],
-                          self.memory[state_index][2], self.memory[state_index][4],
-                          self.memory[state_index][5], self.memory[state_index][6],
-                          self.memory[state_index][7], self.memory[state_index][8]])
+			# self.memory[state_index][8] = Monte Carlo reward.
+            batch.append([self.memory[state_index][Transition.STATE], self.memory[state_index][Transition.ACTION],
+                          self.memory[state_index][Transition.VISITED_BEFORE], self.memory[state_index][Transition.REWARD],
+                          self.memory[state_index][Transition.IS_TERMINAL], self.memory[state_index][Transition.STATE_PRIME],
+                          self.memory[state_index][Transition.VISITED_AFTER], self.memory[state_index][Transition.MC_REWARD]])
 
         return batch
 
@@ -100,11 +106,11 @@ class ReplayMemory:
                 aux.append(auxiliary_reward)
             # self.memory[state_index][0] = state at state_index
             # self.memory[state_prime_index][0] = the state that we want to find the distance to
-            # self.memory[state_index][6]
+            # self.memory[state_index][6] = state prime of current state.
             # aux the auxilary reward form state to state prime in a list
-            batch.append([self.memory[state_index][0],
-                          self.memory[state_prime_index][0],
-                          self.memory[state_index][6],
+            batch.append([self.memory[state_index][Transition.STATE],
+                          self.memory[state_prime_index][Transition.STATE],
+                          self.memory[state_index][Transition.STATE_PRIME],
                           aux])
 
         return batch
