@@ -93,7 +93,7 @@ class Learner:
 				logging.info("Refill e memory")
 				for _ in range(0, learner_replay_que.qsize()):
 					try:
-						transition = learner_replay_que.get()
+						transition = learner_replay_que.get_nowait()
 						process_local_transition = copy.deepcopy(transition)
 						self.replay_memory.memory.append(process_local_transition)
 						del transition
@@ -110,7 +110,7 @@ class Learner:
 				logging.info("Refill ee memory")
 				for _ in range(0, int(self.learner_ee_que_max_size)):
 					try:
-						transition = learner_ee_que.get()
+						transition = learner_ee_que.get_nowait()
 						process_local_transition = copy.deepcopy(transition)
 						self.ee_memory.append(process_local_transition)
 						del transition
