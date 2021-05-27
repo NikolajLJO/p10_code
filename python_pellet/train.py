@@ -90,3 +90,6 @@ if __name__ == "__main__":
 
     for p in actor_list:
         p.join()
+
+    for p in [manager, learner]:
+        p.kill()
