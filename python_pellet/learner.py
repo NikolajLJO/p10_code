@@ -87,7 +87,7 @@ class Learner:
             else:
                 for _ in range(0, self.learner_que_max_size):
                     try:
-                        transition = learner_replay_que.get(False)
+                        transition = learner_replay_que.get()
                         process_local_transition = copy.deepcopy(transition)
                         self.replay_memory.memory.append(process_local_transition)
                         del transition
@@ -96,7 +96,7 @@ class Learner:
                 logging.info("Refilled r :" + str(len(self.replay_memory.memory)))
                 for _ in range(0, self.learner_ee_que_max_size):
                     try:
-                        transition = learner_ee_que.get(False)
+                        transition = learner_ee_que.get()
                         process_local_transition = copy.deepcopy(transition)
                         self.ee_memory.append(process_local_transition)
                         del transition
@@ -113,7 +113,7 @@ class Learner:
                     unqued_partitions = []
                     for _ in range(0, actor_count * 2):
                         try:
-                            partition = from_actor_partition_que.get(False)
+                            partition = from_actor_partition_que.get()
                             process_local_partition = copy.deepcopy(partition)
                             unqued_partitions.append(process_local_partition)
                             del partition
