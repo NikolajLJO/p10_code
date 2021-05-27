@@ -47,13 +47,17 @@ class MemoryManager:
 				except queue.Empty:
 					pass
 			else:
-				if replay_mem_len > learner_que_max_size and (learner_replay_que.empty() or learner_replay_que.qsize() > learner_que_max_size / 500):
+				if replay_mem_len > learner_que_max_size \
+						and (learner_replay_que.empty()
+							 or learner_replay_que.qsize() < learner_que_max_size / 500):
 					pre = learner_replay_que.qsize()
 					self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
 					post = learner_replay_que.qsize()
 					logging.info("refilled learner replay que with |" + str(post-pre) + "| elements")
 
-				if replay_mem_len > learner_ee_que_max_size and (learner_ee_que.empty() or learner_ee_que.qsize() > learner_ee_que_max_size / 500):
+				if replay_mem_len > learner_ee_que_max_size \
+						and (learner_ee_que.empty()
+							 or learner_ee_que.qsize() < learner_ee_que_max_size / 500):
 					pre = learner_ee_que.qsize()
 					self.fill_learner_ee_que(learner_ee_que, learner_ee_que_max_size)
 					post = learner_ee_que.qsize()

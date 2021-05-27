@@ -9,6 +9,7 @@ from memory import ReplayMemory
 if __name__ == "__main__":
     mp.set_start_method('spawn')
     thread_count = min(mp.cpu_count(), 32)
+
     actor_count = 2
     replay_memory = ReplayMemory()
     learner_que_max_size = 1000
@@ -30,6 +31,13 @@ if __name__ == "__main__":
         should_use_rnd = True
     else:
         should_use_rnd = False
+
+    if len(args) > 5:
+        try:
+            actor_count = int(args[5])
+        except ValueError:
+            print("your actor count is f'ed")
+            actor_count = 1
 
     with mp.Pool(processes=thread_count) as pool:
         replay_que = mp.Queue(maxsize=100000)
