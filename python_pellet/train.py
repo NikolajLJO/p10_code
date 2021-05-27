@@ -16,26 +16,23 @@ if __name__ == "__main__":
     args = sys.argv
 
     args = args[1].split(' ')
-    args.reverse()
-    args.append("shit")
-    args.reverse()
-    args[2] = int(args[2])
+    args[1] = int(args[1])
 
-    if (args[3]) == 'y':
-        process_score_over_steps(args[4])
+    if len(args) > 1 and (args[2]) == 'y':
+        process_score_over_steps(args[3])
         exit()
 
-    if args[3] == 'd':
-        process_dis(args[4])
+    if len(args) > 1 and args[2] == 'd':
+        process_dis(args[3])
         exit()
 
-    if args[5] and args[5] == "rnd":
+    if len(args) > 4 and args[5] == "rnd":
         should_use_rnd = True
     else:
         should_use_rnd = False
 
     with mp.Pool(processes=thread_count) as pool:
-        replay_que = mp.Queue()
+        replay_que = mp.Queue(maxsize=100000)
         q_network_que = mp.Queue()
         e_network_que = mp.Queue()
         q_t_network_que = mp.Queue()

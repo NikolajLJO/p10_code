@@ -25,7 +25,7 @@ class Actor:
 				 from_actor_partition_que,
 				 to_actor_partition_que,
 				 should_use_rnd):
-		#torch.multiprocessing.set_sharing_strategy('file_system')
+		torch.multiprocessing.set_sharing_strategy('file_system')
 		self.to_actor_partition_que = to_actor_partition_que
 		self.e_t_network_que = e_t_network_que
 		self.q_t_network_que = q_t_network_que
@@ -50,14 +50,14 @@ class Actor:
 		distance = np.NINF
 		episode_buffer = []
 
-		game_actions, self.agent, opt, env = setup(args[1], should_use_rnd)
+		game_actions, self.agent, opt, env = setup(args[0], should_use_rnd)
 		visited = torch.zeros(1,100, device=self.agent.device)
 		visited_prime = torch.zeros(1,100, device=self.agent.device)
 		state = env.reset()
 		self.local_partition_memory.append([state, 0])
 		steps_since_reward = 0
 		try:
-			for i in range(1, int(args[2])):
+			for i in range(1, int(args[1])):
 				start = time.process_time()
 				action, policy = self.agent.find_action(state, i, visited, steps_since_reward)
 
@@ -82,7 +82,12 @@ class Actor:
 						copy.deepcopy(visited_prime).to("cpu")])
 
 				if terminating:
-					replay_que.put(copy.deepcopy(episode_buffer))
+					try:
+						replay_que.put(copy.deepcopy(episode_buffer))
+					except queue.Full:
+						replay_que.get(False)
+						replay_que.put(copy.deepcopy(episode_buffer))
+						logging.info("potentil loss of episode")
 					end = time.process_time()
 					elapsed = (end - start)
 					state_prime = env.reset()
@@ -156,14 +161,13 @@ class Actor:
 			except queue.Empty:
 				pass
 
-	@staticmethod
-	def check_que_and_update_network(que, network):
+	def check_que_and_update_network(self, que, network):
 		if not que.empty():
 			try:
 				parameters = que.get(False)
 				proces_local_parameters = copy.deepcopy(parameters)
 				for name, single_param in network.state_dict().items():
-					single_param = proces_local_parameters[name]
+					single_param = proces_local_parameters[name].to(self.agent.device)
 					network.state_dict()[name].copy_(single_param)
 				del parameters
 			except queue.Empty:

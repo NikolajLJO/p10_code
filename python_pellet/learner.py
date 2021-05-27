@@ -32,7 +32,7 @@ class Learner:
                  to_actor_partition_que,
                  actor_count,
                  should_use_rnd):
-        #torch.multiprocessing.set_sharing_strategy('file_system')
+        torch.multiprocessing.set_sharing_strategy('file_system')
         self.path = Path(__file__).parent
         Path(self.path / 'logs').mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()
@@ -52,7 +52,7 @@ class Learner:
         self.terminating = False
         self.dmax = np.NINF
         self.distance = np.NINF
-        self.agent = setup(args[1], should_use_rnd)[1]
+        self.agent = setup(args[0], should_use_rnd)[1]
         self.partition = 0
         self.replay_memory = ReplayMemory(max_memory_size=learner_que_max_size)
         self.ee_memory = []
@@ -73,111 +73,98 @@ class Learner:
         ee_done = False
         i = 0
         while True:
-            logging.info("itt with: " +
-                         str(len(self.replay_memory.memory)) +
-                         "rm  and: " +
-                         str(len(self.ee_memory)) +
-                         "eem and: " +
-                         str(learner_replay_que.qsize()) +
-                         "r que and: " +
-                         str(learner_ee_que.qsize()) +
-                         "eeq")
+            if (
+                    not learner_replay_que.qsize() == self.learner_que_max_size
+                    or
+                    not learner_replay_que.qsize() > self.learner_que_max_size * 0.99) \
+                and (
+                    not learner_ee_que.qsize() == self.learner_ee_que_max_size
+                    or
+                    not learner_ee_que.qsize() > self.learner_ee_que_max_size * 0.99
+            ):
+                time.sleep(0.001)
 
-            # when rpelay memory is almost empty, wait until the que has a full memory size
-
-            while not learner_replay_que.qsize() == self.learner_que_max_size:
-                pass
-
-            # then when it does, update it
-            pre = learner_replay_que.qsize()
-            for _ in range(0, learner_replay_que.qsize()):
-                try:
-                    transition = learner_replay_que.get(timeout=0.1)
-                    process_local_transition = copy.deepcopy(transition)
-                    self.replay_memory.memory.append(process_local_transition)
-                    del transition
-                except queue.Empty:
-                    pass
-
-            logging.info("Refilled r memory with: " + str(pre - learner_replay_que.qsize()) + "total: " + str(
-                len(self.replay_memory.memory)))
-
-            while not learner_ee_que.qsize() == self.learner_ee_que_max_size:
-                pass
-
-            pre = learner_ee_que.qsize()
-            for _ in range(0, int(self.learner_ee_que_max_size)):
-                try:
-                    transition = learner_ee_que.get(timeout=0.1)
-                    process_local_transition = copy.deepcopy(transition)
-                    self.ee_memory.append(process_local_transition)
-                    del transition
-                except queue.Empty:
-                    torch.cuda.empty_cache()
-                    pass
-            logging.info(
-                "Refilled ee memory with: " + str(pre - learner_ee_que.qsize()) + "total: " + str(len(self.ee_memory)))
-            ee_update_count += 1
-
-            if not ee_done and ee_update_count * self.learner_ee_que_max_size > 2e6:
-                ee_done = True
-
-            if from_actor_partition_que.qsize() >= actor_count * 2:
-                unqued_partitions = []
-                for _ in range(0, actor_count * 2):
+            else:
+                for _ in range(0, self.learner_que_max_size):
                     try:
-                        partition = from_actor_partition_que.get(timeout=0.1)
-                        process_local_partition = copy.deepcopy(partition)
-                        unqued_partitions.append(process_local_partition)
-                        del partition
+                        transition = learner_replay_que.get(False)
+                        process_local_transition = copy.deepcopy(transition)
+                        self.replay_memory.memory.append(process_local_transition)
+                        del transition
                     except queue.Empty:
                         pass
-                best_partition = max(unqued_partitions, key=lambda item: item[1])
-                path = (self.path / ("patition_" + str(self.partition) + ".png")).__str__()
-                self.partition += 1
-                transform_to_image(best_partition[0][0][0]).save(path)
+                logging.info("Refilled r :" + str(len(self.replay_memory.memory)))
+                for _ in range(0, self.learner_ee_que_max_size):
+                    try:
+                        transition = learner_ee_que.get(False)
+                        process_local_transition = copy.deepcopy(transition)
+                        self.ee_memory.append(process_local_transition)
+                        del transition
+                    except queue.Empty:
+                        torch.cuda.empty_cache()
+                        pass
+                logging.info("Refilled e :" + str(len(self.ee_memory)))
+                ee_update_count += 1
+
+                if not ee_done and ee_update_count * self.learner_ee_que_max_size > 2e6:
+                    ee_done = True
+
+                if from_actor_partition_que.qsize() >= actor_count * 2:
+                    unqued_partitions = []
+                    for _ in range(0, actor_count * 2):
+                        try:
+                            partition = from_actor_partition_que.get(False)
+                            process_local_partition = copy.deepcopy(partition)
+                            unqued_partitions.append(process_local_partition)
+                            del partition
+                        except queue.Empty:
+                            pass
+                    best_partition = max(unqued_partitions, key=lambda item: item[1])
+                    path = (self.path / ("patition_" + str(self.partition) + ".png")).__str__()
+                    self.partition += 1
+                    transform_to_image(best_partition[0][0][0]).save(path)
+                    for _ in range(actor_count):
+                        to_actor_partition_que.put(copy.deepcopy(best_partition))
+                    unqued_partitions.clear()
+
+                    try:
+                        while True:
+                            from_actor_partition_que.get_nowait()
+                    except queue.Empty:
+                        pass
+                    logging.info("Pushed partition: " + str(self.partition))
+
+                # while we have more than 10% replay memory, learn
+                # ToDO this should prob just do entire que its a frakensetein of old concepts
+                while self.replay_memory.memory and self.ee_memory:
+                    self.agent.update(self.replay_memory, self.ee_memory, ee_done, should_use_rnd=should_use_rnd)
+                i += 1
+                if i % 10 == 0:
+                    self.agent.targetQnet = copy.deepcopy(self.agent.Qnet)
+                    if not should_use_rnd:
+                        self.agent.targetEEnet = copy.deepcopy(self.agent.EEnet)
+
+                learn_count += 1
+
+                logging.info("I processed que: " + str(learn_count))
+
+                c1 = self.agent.Qnet.state_dict()
+                for key in c1.keys():
+                    c1[key] = c1[key].to("cpu")
+                c2 = self.agent.EEnet.state_dict()
+                for key in c2.keys():
+                    c2[key] = c2[key].to("cpu")
+                c3 = self.agent.targetQnet.state_dict()
+                for key in c3.keys():
+                    c3[key] = c3[key].to("cpu")
+                c4 = self.agent.targetEEnet.state_dict()
+                for key in c4.keys():
+                    c4[key] = c4[key].to("cpu")
+
                 for _ in range(actor_count):
-                    to_actor_partition_que.put(copy.deepcopy(best_partition))
-                unqued_partitions.clear()
+                    self.q_network_que.put(copy.deepcopy(c1))
+                    self.e_network_que.put(copy.deepcopy(c2))
+                    self.q_t_network_que.put(copy.deepcopy(c3))
+                    self.e_t_network_que.put(copy.deepcopy(c4))
 
-                try:
-                    while True:
-                        from_actor_partition_que.get_nowait()
-                except queue.Empty:
-                    pass
-                logging.info("Pushed partition: " + str(self.partition))
-
-            # while we have more than 10% replay memory, learn
-            # ToDO this should prob just do entire que its a frakensetein of old concepts
-            while self.replay_memory.memory and self.ee_memory:
-                self.agent.update(self.replay_memory, self.ee_memory, ee_done, should_use_rnd=should_use_rnd)
-            i += 1
-            if i % 10 == 0:
-                self.agent.targetQnet = copy.deepcopy(self.agent.Qnet)
-                if not should_use_rnd:
-                    self.agent.targetEEnet = copy.deepcopy(self.agent.EEnet)
-
-            learn_count += 1
-
-            logging.info("I processed que: " + str(learn_count))
-
-            c1 = self.agent.Qnet.state_dict()
-            for key in c1.keys():
-                c1[key] = c1[key].to("cpu")
-            c2 = self.agent.EEnet.state_dict()
-            for key in c2.keys():
-                c2[key] = c2[key].to("cpu")
-            c3 = self.agent.targetQnet.state_dict()
-            for key in c3.keys():
-                c3[key] = c3[key].to("cpu")
-            c4 = self.agent.targetEEnet.state_dict()
-            for key in c4.keys():
-                c4[key] = c4[key].to("cpu")
-
-            for _ in range(actor_count):
-                self.q_network_que.put(copy.deepcopy(c1))
-                self.e_network_que.put(copy.deepcopy(c2))
-                self.q_t_network_que.put(copy.deepcopy(c3))
-                self.e_t_network_que.put(copy.deepcopy(c4))
-
-            logging.info("Pushed networks")
+                logging.info("Pushed networks")

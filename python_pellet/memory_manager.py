@@ -14,7 +14,7 @@ from memory import ReplayMemory
 
 class MemoryManager:
 	def __init__(self, replay_que, learner_replay_que, learner_que_max_size, learner_ee_que, learner_ee_que_max_size):
-		#torch.multiprocessing.set_sharing_strategy('file_system')
+		torch.multiprocessing.set_sharing_strategy('file_system')
 		path = Path(__file__).parent
 		Path(path / 'logs').mkdir(parents=True, exist_ok=True)
 		now = datetime.datetime.now()
@@ -47,15 +47,17 @@ class MemoryManager:
 				except queue.Empty:
 					pass
 			else:
-				if learner_replay_que.empty() and replay_mem_len > learner_que_max_size:
+				if replay_mem_len > learner_que_max_size and (learner_replay_que.empty() or learner_replay_que.qsize() > learner_que_max_size / 500):
 					pre = learner_replay_que.qsize()
 					self.fill_learner_replay_que(learner_replay_que, learner_que_max_size)
-					logging.info("refilled learner replay mem with |" + str(learner_replay_que.qsize() - pre) + "| elements")
+					post = learner_replay_que.qsize()
+					logging.info("refilled learner replay que with |" + str(post-pre) + "| elements")
 
-				if learner_ee_que.empty() and replay_mem_len > learner_ee_que_max_size:
+				if replay_mem_len > learner_ee_que_max_size and (learner_ee_que.empty() or learner_ee_que.qsize() > learner_ee_que_max_size / 500):
 					pre = learner_ee_que.qsize()
 					self.fill_learner_ee_que(learner_ee_que, learner_ee_que_max_size)
-					logging.info("refilled learner ee mem with |" + str(learner_ee_que.qsize() - pre) + "| elements")
+					post = learner_ee_que.qsize()
+					logging.info("refilled learner ee que with |" + str(post - pre) + "| elements")
 
 	def fill_learner_replay_que(self, learner_replay_que, learner_que_max_size):
 		batch = self.replay_memory.sample(forced_batch_size=learner_que_max_size)
