@@ -101,7 +101,7 @@ class Actor:
 					episode_reward += total_score
 					if info:
 						average.append(episode_reward)
-						average[-100:]
+						average = average[-100:]
 						logging.info("episode reward: |{0}| average: |{1:.2f}| epsilon: |{2:.2f}|".format(episode_reward, mean(average), self.agent.epsilon))
 						episode_reward = 0
 					total_score = 0
