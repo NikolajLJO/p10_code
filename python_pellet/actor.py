@@ -133,6 +133,7 @@ class Actor:
 		except Exception as err:
 			logging.info(err)
 			logging.info(traceback.format_exc())
+		logging.info("dead")
 
 	@staticmethod
 	def calculate_auxiliary_reward(policy, aidx):

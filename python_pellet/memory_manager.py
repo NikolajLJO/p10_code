@@ -32,6 +32,7 @@ class MemoryManager:
 		except Exception as err:
 			logging.info(err)
 			logging.info(traceback.format_exc())
+		logging.info("dead")
 
 	def manage(self, learner_replay_que, learner_que_max_size, replay_que, learner_ee_que, learner_ee_que_max_size):
 		while True:
