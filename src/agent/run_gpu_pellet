@@ -131,7 +131,7 @@ steps=10000000
 eval_freq=999999999 #default is 250000
 eval_steps=1 #default is 125000
 prog_freq=10000
-gpu=-1 #-1 = cpu, 0+ = gpu
+gpu=1 #-1 = cpu, 0+ = gpu
 random_starts=0 #30 used for ICML
 pool_frms="type="$pool_frms_type",size="$pool_frms_size
 num_threads=4

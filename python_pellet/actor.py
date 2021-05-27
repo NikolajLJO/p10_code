@@ -23,8 +23,9 @@ class Actor:
 				 q_t_network_que,
 				 e_t_network_que,
 				 from_actor_partition_que,
-				 to_actor_partition_que):
-		torch.multiprocessing.set_sharing_strategy('file_system')
+				 to_actor_partition_que,
+				 should_use_rnd):
+		#torch.multiprocessing.set_sharing_strategy('file_system')
 		self.to_actor_partition_que = to_actor_partition_que
 		self.e_t_network_que = e_t_network_que
 		self.q_t_network_que = q_t_network_que
@@ -49,7 +50,7 @@ class Actor:
 		distance = np.NINF
 		episode_buffer = []
 
-		game_actions, self.agent, opt, env = setup(args[1])
+		game_actions, self.agent, opt, env = setup(args[1], should_use_rnd)
 		visited = torch.zeros(1,100, device=self.agent.device)
 		visited_prime = torch.zeros(1,100, device=self.agent.device)
 		state = env.reset()
@@ -90,11 +91,10 @@ class Actor:
 					episode_buffer.clear()
 					visited[visited != 0] = 0
 					visited_prime[visited_prime != 0] = 0
-
-					total_score = 0
 					steps_since_reward = 0
+					total_score = 0
 
-				if reward != 0 or len(visited) != len(visited_prime):
+				if reward != 0 or (torch.sum(visited_prime, 1) - torch.sum(visited, 1)).item() != 0:
 					steps_since_reward = 0
 				else:
 					steps_since_reward += 1
