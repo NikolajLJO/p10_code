@@ -151,9 +151,10 @@ class Learner:
             # ToDO this should prob just do entire que its a frakensetein of old concepts
             while self.replay_memory.memory and self.ee_memory:
                 self.agent.update(self.replay_memory, self.ee_memory, ee_done, should_use_rnd=should_use_rnd)
-                i += 1
-                if not should_use_rnd and i % 10 == 0:
-                    self.agent.targetQnet = copy.deepcopy(self.agent.Qnet)
+            i += 1
+            if i % 10 == 0:
+                self.agent.targetQnet = copy.deepcopy(self.agent.Qnet)
+                if not should_use_rnd:
                     self.agent.targetEEnet = copy.deepcopy(self.agent.EEnet)
 
             learn_count += 1

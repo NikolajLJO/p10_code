@@ -210,7 +210,7 @@ class Agent:
 				novelties = torch.max(torch.stack([aux_forward, aux_back], dim=1), 1)[0]
 
 				argmin_value, argmin_index = torch.min(novelties, 0)
-				current_partition = partition_memory[argmin_index.item()]
+				index = argmin_index.item()
 				min_distance = argmin_value.item()
 			else:
 				for i, s2 in enumerate(partition_memory):
