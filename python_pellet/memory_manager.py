@@ -70,6 +70,10 @@ class MemoryManager:
 				learner_replay_que.put_nowait(copy.deepcopy(item))
 			except queue.Full:
 				pass
+			except Exception as err:
+					logging.info(err)
+					logging.info(traceback.format_exc())
+					pass
 
 	def fill_learner_ee_que(self, learner_ee_que, learner_ee_que_max_size):
 		batch = self.replay_memory.sample_ee_minibatch(forced_batch_size=learner_ee_que_max_size)
@@ -78,3 +82,7 @@ class MemoryManager:
 				learner_ee_que.put_nowait(copy.deepcopy(item))
 			except queue.Full:
 				pass
+			except Exception as err:
+					logging.info(err)
+					logging.info(traceback.format_exc())
+					pass
