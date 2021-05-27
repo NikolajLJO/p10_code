@@ -157,9 +157,17 @@ class Learner:
 			logging.info("I processed que: " + str(learn_count))
 
 			c1 = self.agent.Qnet.state_dict()
+			for weight in c1.values():
+				weight.to("cpu")
 			c2 = self.agent.EEnet.state_dict()
+			for weight in c2.values():
+				weight.to("cpu")
 			c3 = self.agent.targetQnet.state_dict()
+			for weight in c3.values():
+				weight.to("cpu")
 			c4 = self.agent.targetEEnet.state_dict()
+			for weight in c4.values():
+				weight.to("cpu")
 
 			for _ in range(actor_count):
 				self.q_network_que.put(copy.deepcopy(c1))
