@@ -88,7 +88,7 @@ class Learner:
 
 			# then when it does, update it
 
-			if learner_replay_que.qsize() == self.learner_que_max_size:
+			if learner_replay_que.qsize() == self.learner_que_max_size and len(self.replay_memory.memory) == 0:
 				pre = learner_replay_que.qsize()
 				logging.info("Refill e memory")
 				fill_count = 0
@@ -101,13 +101,18 @@ class Learner:
 						fill_count += 1
 					except queue.Empty:
 						pass
+					except Exception as err:
+						logging.info(err)
+						logging.info(traceback.format_exc())
+						pass
+
 
 				logging.info("Refilled r memory with: " + str(pre - learner_replay_que.qsize()) + "total: " + str(len(self.replay_memory.memory)))
 
 			while learner_ee_que.qsize() < self.learner_ee_que_max_size:
 				pass
 
-			if learner_ee_que.qsize() == self.learner_ee_que_max_size:
+			if learner_ee_que.qsize() == self.learner_ee_que_max_size and len(self.ee_memory) == 0:
 				pre = learner_ee_que.qsize()
 				logging.info("Refill ee memory")
 				fill_count = 0
@@ -120,6 +125,10 @@ class Learner:
 						fill_count += 1
 					except queue.Empty:
 						torch.cuda.empty_cache()
+						pass
+					except Exception as err:
+						logging.info(err)
+						logging.info(traceback.format_exc())
 						pass
 				logging.info("Refilled ee memory with: " + str(pre - learner_ee_que.qsize()) + "total: " + str(len(self.ee_memory)))
 				ee_update_count += 1
@@ -136,6 +145,10 @@ class Learner:
 						unqued_partitions.append(process_local_partition)
 						del partition
 					except queue.Empty:
+						pass
+					except Exception as err:
+						logging.info(err)
+						logging.info(traceback.format_exc())
 						pass
 				logging.info("Push partition")
 				best_partition = max(unqued_partitions, key=lambda item: item[1])
@@ -154,13 +167,17 @@ class Learner:
 						from_actor_partition_que.get_nowait()
 				except queue.Empty:
 					pass
+				except Exception as err:
+						logging.info(err)
+						logging.info(traceback.format_exc())
+						pass
 				logging.info("Pushed partition: " + str(self.partition))
 			
 			
 
 			# while we have more than 10% replay memory, learn
 			# ToDO this should prob just do entire que its a frakensetein of old concepts
-			while self.replay_memory.memory and self.ee_memory:
+			while self.replay_memory.memory or self.ee_memory:
 				self.agent.update(self.replay_memory, self.ee_memory, ee_done)
 				i += 1
 				if i % 10 == 0:
