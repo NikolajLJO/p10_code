@@ -40,7 +40,7 @@ class MemoryManager:
 			#logging.info("re: " + str(replay_mem_len) + " lq: " + str(learner_replay_que.qsize()) + " eeq: " + str(learner_ee_que.qsize()))
 			if not self.replay_memory.memory or len(self.replay_memory.memory) < (learner_que_max_size + learner_ee_que_max_size) or (learner_replay_que.full() and learner_ee_que.full()):
 				try:
-					optional_replay = replay_que.get_nowait()
+					optional_replay = replay_que.get()
 					process_local_optional_replay = copy.deepcopy(optional_replay)
 					self.replay_memory.save(process_local_optional_replay)
 					del optional_replay
@@ -70,11 +70,11 @@ class MemoryManager:
 			try:
 				learner_replay_que.put_nowait(copy.deepcopy(item))
 			except queue.Full:
-				pass
+				break
 			except Exception as err:
-					logging.info(err)
-					logging.info(traceback.format_exc())
-					pass
+				logging.info(err)
+				logging.info(traceback.format_exc())
+				pass
 
 	def fill_learner_ee_que(self, learner_ee_que, learner_ee_que_max_size):
 		batch = self.replay_memory.sample_ee_minibatch(forced_batch_size=learner_ee_que_max_size)
@@ -82,8 +82,8 @@ class MemoryManager:
 			try:
 				learner_ee_que.put_nowait(copy.deepcopy(item))
 			except queue.Full:
-				pass
+				break
 			except Exception as err:
-					logging.info(err)
-					logging.info(traceback.format_exc())
-					pass
+				logging.info(err)
+				logging.info(traceback.format_exc())
+				pass

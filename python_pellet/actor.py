@@ -86,7 +86,7 @@ class Actor:
 				if terminating:
 					logging.info("buffer to que")
 					try:
-						replay_que.put_nowait(copy.deepcopy(episode_buffer))
+						replay_que.put(copy.deepcopy(episode_buffer))
 					except queue.Full:
 						pass
 					logging.info("buffer now in que")
