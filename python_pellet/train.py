@@ -26,7 +26,7 @@ if __name__ == "__main__":
         process_dis(args[3])
         exit()
 
-    if len(args) > 4 and args[5] == "rnd":
+    if len(args) > 4 and args[4] == "rnd":
         should_use_rnd = True
     else:
         should_use_rnd = False
