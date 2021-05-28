@@ -12,6 +12,7 @@ from Qnetwork import Qnet, EEnet
 class Agent:
 	def __init__(self, action_space, should_use_rnd, nq=0.1, ne=0.1):
 		torch.multiprocessing.set_sharing_strategy('file_system')
+		torch.set_num_threads(1)
 		if torch.cuda.is_available():
 			self.device = torch.device('cuda')
 			logging.info("cuda")

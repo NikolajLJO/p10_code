@@ -15,6 +15,7 @@ from memory import ReplayMemory
 class MemoryManager:
 	def __init__(self, replay_que, learner_replay_que, learner_que_max_size, learner_ee_que, learner_ee_que_max_size):
 		torch.multiprocessing.set_sharing_strategy('file_system')
+		torch.set_num_threads(1)
 		path = Path(__file__).parent
 		Path(path / 'logs').mkdir(parents=True, exist_ok=True)
 		now = datetime.datetime.now()
