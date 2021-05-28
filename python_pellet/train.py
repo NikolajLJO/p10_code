@@ -89,6 +89,10 @@ def mainloop(args):
     now = time.process_time()
     scorelist = []
     partaddcount = partition_addition_step
+    if torch.cuda.is_available():
+        logging.info("cuda")
+    else:
+        logging.info("cpu")
 
     for i in range(1, int(args[2])):
 
