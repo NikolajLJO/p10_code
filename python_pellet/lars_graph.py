@@ -35,6 +35,7 @@ if __name__ == "__main__":
         x_label = input("Enter the label for the x-axis of the graph: ")
         y_label = input("Enter the label for the y-axis of the graph: ")
         graph_title = input("Enter the title of the graph: ")
+        
         fig, ax1 = plt.subplots()
         ax1.plot(x_values, y_values)
         ax1.set_xlabel(x_label, fontsize="14")
