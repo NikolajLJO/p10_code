@@ -27,6 +27,7 @@ if __name__ == "__main__":
                 x_values.append(int(row[0]))
                 y_values.append(int(row[1]))
         
+        # To use episodes instead of steps uncomment these lines and remove above x_values.append(int(row[0]))
         #x_values = []
         #for i in range(1,len(y_values)+1):
         #   x_values.append(i)
