@@ -76,6 +76,9 @@ def mainloop(args):
     distance = 0
     episode_buffer = []
 
+    for arg  in args[1:]:
+        logging.info(arg)
+
     replay_memory, agent, env = setup(args[1], args[5], START_QLEARN, int(args[2]))
 
     partition_addition_step = int(args[4])
