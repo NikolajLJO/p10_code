@@ -121,7 +121,7 @@ class Actor:
 						partition_candidate = copy.deepcopy(state_prime).to("cpu")
 						dmax = distance
 
-					if i % 10000 == 0:
+					if i % 10000 == 0 and partition_candidate is not None:
 						try:
 							from_actor_partition_que.put(copy.deepcopy([partition_candidate, dmax]),False)
 						except queue.Full:

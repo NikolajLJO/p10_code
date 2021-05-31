@@ -9,6 +9,7 @@ from memory import ReplayMemory
 
 if __name__ == "__main__":
     mp.set_start_method('spawn')
+    mp.freeze_support()
     thread_count = min(mp.cpu_count(), 32)
 
     actor_count = 2
