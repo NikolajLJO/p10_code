@@ -117,9 +117,10 @@ class Learner:
                     if not ee_done and ee_update_count * self.learner_ee_que_max_size > 2e6:
                         ee_done = True
 
-                    if from_actor_partition_que.qsize() >= actor_count * 2:
+                    if from_actor_partition_que.qsize() >= actor_count:
                         unqued_partitions = []
-                        for _ in range(0, actor_count * 2):
+                        self.partition += 1
+                        for _ in range(0, actor_count):
                             try:
                                 partition = from_actor_partition_que.get(False)
                                 process_local_partition = copy.deepcopy(partition)
@@ -129,7 +130,7 @@ class Learner:
                                 pass
                         best_partition = max(unqued_partitions, key=lambda item: item[1])
                         path = (str(self.path) + (self.now_but_text + "patition_" + str(self.partition) + ".png")).__str__()
-                        self.partition += 1
+                        
                         try:
                             transform_to_image(best_partition[0][0][0]).save(path)
                         except:

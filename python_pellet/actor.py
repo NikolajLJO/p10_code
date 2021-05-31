@@ -59,6 +59,8 @@ class Actor:
 		steps_since_reward = 0
 		game_score = 0
 		average = []
+		partition_addition_step = 20000
+		partaddcount = 20000
 		try:
 			for i in range(1, int(args[1])):
 				try:
@@ -121,7 +123,7 @@ class Actor:
 						partition_candidate = copy.deepcopy(state_prime).to("cpu")
 						dmax = distance
 
-					if i % 10000 == 0 and partition_candidate is not None:
+					if partaddcount == 0 and partition_candidate is not None:
 						try:
 							from_actor_partition_que.put(copy.deepcopy([partition_candidate, dmax]),False)
 						except queue.Full:
@@ -129,10 +131,15 @@ class Actor:
 							pass
 						dmax = 0
 						partition_candidate = None
+						
+						partition_addition_step = int(partition_addition_step * 1.2)
+						partaddcount = partition_addition_step
 
 					state = state_prime
-					if i % 1000 == 0:  # TODO this should prob be some better mere defined value
+					if i % 100 == 0:  # TODO this should prob be some better mere defined value
 						self.check_ques_for_updates()
+					
+					partaddcount -= 1
 				except Exception as err:
 					if not "shared" in err.args[0]:
 						raise
@@ -161,10 +168,10 @@ class Actor:
 				partition_memory[i][1] += 1
 
 	def check_ques_for_updates(self):
-		self.check_que_and_update_network(self.q_network_que, self.agent.Qnet)
-		self.check_que_and_update_network(self.e_network_que, self.agent.EEnet)
-		self.check_que_and_update_network(self.q_t_network_que, self.agent.targetQnet)
-		self.check_que_and_update_network(self.e_t_network_que, self.agent.targetEEnet)
+		self.agent.Qnet = self.check_que_and_update_network(self.q_network_que, self.agent.Qnet)
+		self.agent.EEnet = self.check_que_and_update_network(self.e_network_que, self.agent.EEnet)
+		self.agent.targetQnet = self.check_que_and_update_network(self.q_t_network_que, self.agent.targetQnet)
+		self.agent.targetEEnet = self.check_que_and_update_network(self.e_t_network_que, self.agent.targetEEnet)
 
 		if not self.to_actor_partition_que.empty():
 			try:
@@ -187,9 +194,8 @@ class Actor:
 			try:
 				parameters = que.get(False)
 				proces_local_parameters = copy.deepcopy(parameters)
-				for name, single_param in network.state_dict().items():
-					single_param = proces_local_parameters[name].to(self.agent.device)
-					network.state_dict()[name].copy_(single_param)
+				network.load_state_dict(proces_local_parameters)
 				del parameters
 			except queue.Empty:
 				pass
+		return network
