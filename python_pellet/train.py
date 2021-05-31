@@ -48,7 +48,7 @@ if __name__ == "__main__":
         q_t_network_que = mp.Queue(maxsize=actor_count)
         e_t_network_que = mp.Queue(maxsize=actor_count)
         to_actor_partition_que = mp.Queue(maxsize=actor_count)
-        from_actor_partition_que = mp.Queue(maxsize=actor_count*2)
+        from_actor_partition_que = mp.Queue(maxsize=actor_count)
         learner_ee_que = mp.Queue(maxsize=learner_ee_que_max_size)
         learner_replay_que = mp.Queue(maxsize=learner_que_max_size)
 
