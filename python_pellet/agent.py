@@ -30,7 +30,7 @@ class Agent:
 		self.epsilon_endt = 1000000
 		self.slope = -(1 - 0.05) / 1000000
 		self.intercept = 1
-		self.qlearn_start = 2250000
+		self.qlearn_start = 50000
 		self.total_steps = 0
 		self.Q_discount = 0.99
 		self.EE_discount = 0.99
@@ -124,6 +124,23 @@ class Agent:
 		targ_mix = (1 - self.NQ) * targ_onesteps + self.NQ * targ_mc
 
 		self.Qnet.backpropagate(predictions, targ_mix.unsqueeze(1))
+		del states
+		del action
+		del visited
+		del visited_prime
+		del reward
+		del s_primes
+		del terminating
+		del targ_mc
+		del batch
+		del aux_reward
+		del ee_thing
+		del maximum_pellet_reward
+		del predictions
+		del targ_mix
+		del targ_onesteps
+		del pellet_rewards
+		del replay_memory
 
 	def eelearn(self, ee_memory, batch_size=1000):
 		# Sample a minibatch of state pairs and interleaving
@@ -156,6 +173,17 @@ class Agent:
 		for i in range(len(states)):
 			merged.append(merge_states_for_comparason(states[i].unsqueeze(0), s_primes[i].unsqueeze(0)))
 		self.EEnet.backpropagate(self.EEnet(torch.cat(merged)), targ_mix)
+		del states
+		del s_primes
+		del smid
+		del auxreward
+		del targ_mc
+		del targ_mix
+		del targ_onesteps
+		del setauxreward
+		del merged
+		del batch
+		del ee_memory
 
 	def rndlearn(self, ee_memory, batch_size: int):
 		"""
@@ -171,11 +199,15 @@ class Agent:
 		for i in range(len(states)):
 			netinput.append(merge_states_for_comparason(states[i], s_primes[i]))
 
-		netinput = torch.cat(netinput)
+		netinput = torch.cat(netinput).to(self.device)
 		pred = self.EEnet(netinput)
 		targ = self.targetEEnet(netinput)
 
 		self.EEnet.backpropagate(pred, targ)
+		del batch
+		del netinput
+		del pred
+		del targ
 
 	def find_current_partition(self, state, partition_memory, visited):
 		"""

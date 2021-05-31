@@ -1,5 +1,4 @@
 import queue
-
 import tools
 from pathlib import Path
 import datetime
@@ -11,6 +10,7 @@ import torch
 import copy
 import time
 import traceback
+from statistics import mean
 
 
 class Actor:
@@ -57,66 +57,86 @@ class Actor:
 		state = env.reset()
 		self.local_partition_memory.append([state, 0])
 		steps_since_reward = 0
+		game_score = 0
+		average = []
 		try:
 			for i in range(1, int(args[1])):
-				start = time.process_time()
-				action, policy = self.agent.find_action(state, i, visited, steps_since_reward)
+				try:
+					start = time.process_time()
+					action, policy = self.agent.find_action(state, i, visited, steps_since_reward)
 
-				auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()), device=self.agent.device)
+					auxiliary_reward = torch.tensor(self.calculate_auxiliary_reward(policy, action.item()), device=self.agent.device)
 
-				state_prime, reward, terminating, info = env.step(action)
-				total_score += reward
-				reward = int(max(min(reward, 1), -1))
-				if terminating:
-					reward -= 1
-				if i % 10 == 0:
-					visited, visited_prime, distance = self.agent.find_current_partition(state_prime,self.local_partition_memory, visited)
-				episode_buffer.append(
-					[
-						copy.deepcopy(state).to("cpu"),
-						copy.deepcopy(action).to("cpu"),
-						copy.deepcopy(visited).to("cpu"),
-						copy.deepcopy(auxiliary_reward).to("cpu"),
-						copy.deepcopy(torch.tensor(reward, device="cpu").unsqueeze(0)),
-						copy.deepcopy(torch.tensor(terminating, device="cpu").unsqueeze(0)),
-						copy.deepcopy(state_prime).to("cpu"),
-						copy.deepcopy(visited_prime).to("cpu")])
+					state_prime, reward, terminating, info = env.step(action)
+					total_score += reward
+					reward = int(max(min(reward, 1), -1))
+					if terminating:
+						reward -= 1
+					if i % 10 == 0:
+						visited, visited_prime, distance = self.agent.find_current_partition(state_prime,self.local_partition_memory, visited)
+					episode_buffer.append(
+						[
+							copy.deepcopy(state).to("cpu"),
+							copy.deepcopy(action).to("cpu"),
+							copy.deepcopy(visited).to("cpu"),
+							copy.deepcopy(auxiliary_reward).to("cpu"),
+							copy.deepcopy(torch.tensor(reward, device="cpu").unsqueeze(0)),
+							copy.deepcopy(torch.tensor(terminating, device="cpu").unsqueeze(0)),
+							copy.deepcopy(state_prime).to("cpu"),
+							copy.deepcopy(visited_prime).to("cpu")])
 
-				if terminating:
-					try:
-						replay_que.put(copy.deepcopy(episode_buffer))
-					except queue.Full:
-						replay_que.get(False)
-						replay_que.put(copy.deepcopy(episode_buffer))
-						logging.info("potentil loss of episode")
-					end = time.process_time()
-					elapsed = (end - start)
-					state_prime = env.reset()
-					self.update_partitions(visited, self.local_partition_memory)  # TODO SHOULD local_partition_memory be shared since we just have replicated data for reading? (asnwer is yes)
-					logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.2f}|".format(str(i).rjust(7, " "),int(total_score),elapsed,elapsed / len(episode_buffer)))
-					episode_buffer.clear()
-					visited[visited != 0] = 0
-					visited_prime[visited_prime != 0] = 0
-					steps_since_reward = 0
-					total_score = 0
+					if terminating:
+						try:
+							replay_que.put(copy.deepcopy(episode_buffer), False)
+						except queue.Full:
+							try:
+								replay_que.get(False)
+								replay_que.put(copy.deepcopy(episode_buffer),False)
+							except:
+								pass
+							logging.info("potentil loss of episode")
+						end = time.process_time()
+						elapsed = (end - start)
+						state_prime = env.reset()
+						self.update_partitions(visited, self.local_partition_memory)  # TODO SHOULD local_partition_memory be shared since we just have replicated data for reading? (asnwer is yes)
+						logging.info("step: |{0}| total_score:  |{1}| Time: |{2:.2f}| Time pr step: |{3:.2f}|".format(str(i).rjust(7, " "),int(total_score),elapsed,elapsed / len(episode_buffer)))
+						game_score += total_score
+						if info:
+							average.append(game_score)
+							average = average[-100:]
+							logging.info("step: |{0}| total_game_score:  |{1}| average pr 100 |{2:.2f}| epsilon |{3:.2f}|".format(str(i).rjust(7, " "),int(game_score), mean(average), self.agent.epsilon))
+							game_score = 0
+						episode_buffer.clear()
+						visited[visited != 0] = 0
+						visited_prime[visited_prime != 0] = 0
+						steps_since_reward = 0
+						total_score = 0
 
-				if reward != 0 or (torch.sum(visited_prime, 1) - torch.sum(visited, 1)).item() != 0:
-					steps_since_reward = 0
-				else:
-					steps_since_reward += 1
+					if reward != 0 or (torch.sum(visited_prime, 1) - torch.sum(visited, 1)).item() != 0:
+						steps_since_reward = 0
+					else:
+						steps_since_reward += 1
 
-				if distance > dmax:
-					partition_candidate = copy.deepcopy(state_prime).to("cpu")
-					dmax = distance
+					if distance > dmax:
+						partition_candidate = copy.deepcopy(state_prime).to("cpu")
+						dmax = distance
 
-				if i % 10000 == 0:
-					from_actor_partition_que.put(copy.deepcopy([partition_candidate, dmax]))
-					dmax = 0
-					partition_candidate = None
+					if i % 10000 == 0:
+						try:
+							from_actor_partition_que.put(copy.deepcopy([partition_candidate, dmax]),False)
+						except queue.Full:
+							logging.info("potential loss of partition")
+							pass
+						dmax = 0
+						partition_candidate = None
 
-				state = state_prime
-				if i % 1000 == 0:  # TODO this should prob be some better mere defined value
-					self.check_ques_for_updates()
+					state = state_prime
+					if i % 1000 == 0:  # TODO this should prob be some better mere defined value
+						self.check_ques_for_updates()
+				except Exception as err:
+					if not "shared" in err.args[0]:
+						raise
+					pass
 
 		except Exception as err:
 			logging.info(err)

@@ -6,6 +6,7 @@ from learner import Learner
 from memory_manager import MemoryManager
 from memory import ReplayMemory
 
+
 if __name__ == "__main__":
     mp.set_start_method('spawn')
     thread_count = min(mp.cpu_count(), 32)
@@ -40,13 +41,13 @@ if __name__ == "__main__":
             actor_count = 1
 
     with mp.Pool(processes=thread_count) as pool:
-        replay_que = mp.Queue(maxsize=100000)
-        q_network_que = mp.Queue()
-        e_network_que = mp.Queue()
-        q_t_network_que = mp.Queue()
-        e_t_network_que = mp.Queue()
-        to_actor_partition_que = mp.Queue()
-        from_actor_partition_que = mp.Queue()
+        replay_que = mp.Queue(maxsize=100)
+        q_network_que = mp.Queue(maxsize=actor_count)
+        e_network_que = mp.Queue(maxsize=actor_count)
+        q_t_network_que = mp.Queue(maxsize=actor_count)
+        e_t_network_que = mp.Queue(maxsize=actor_count)
+        to_actor_partition_que = mp.Queue(maxsize=actor_count)
+        from_actor_partition_que = mp.Queue(maxsize=actor_count*2)
         learner_ee_que = mp.Queue(maxsize=learner_ee_que_max_size)
         learner_replay_que = mp.Queue(maxsize=learner_que_max_size)
 
