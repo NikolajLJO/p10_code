@@ -62,7 +62,7 @@ def mainloop(args):
     now = datetime.datetime.now()
     logpath= str(path) + "/logs/" + str(now.date()) + '-' + str(now.hour) + str(now.minute)
     logging.basicConfig(level=logging.DEBUG,
-                        format='%(message)s',
+                        format='%(asctime)-15s | %(message)s',
                         filename=(logpath + "-log.txt"),
                         filemode='w')
     logger = get_writer()
