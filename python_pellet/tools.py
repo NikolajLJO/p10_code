@@ -16,14 +16,17 @@ def process_score_over_steps(in_file_name: str):
 	# TODO if file name not end txt add it
 	path = Path(__file__).parent
 	csv_path = path / "logs" / (now_but_text + ".csv")
-	in_file_path = path / "logs" / (in_file_name + ".txt")
+	if in_file_name.endswith(".txt"):
+		in_file_path = path / "logs" / in_file_name
+	else:
+		in_file_path = path / "logs" / (in_file_name + ".txt")
 	with open(csv_path, 'w', newline='') as outfile:
 		writer = csv.writer(outfile, )
 		with open(in_file_path, 'r') as infile:
 			for line in infile:
 				if line.__contains__(":"):
 					items = line.split('|')
-					printable_items = [items[1].strip(),items[3].strip(),items[5].strip(),items[7].strip()]
+					printable_items = [items[1].strip(),items[3].strip(),items[5].strip(),items[7].strip(), items[9].strip(), items[11].strip()]
 					writer.writerow(printable_items)
 
 
