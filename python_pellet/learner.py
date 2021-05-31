@@ -128,7 +128,7 @@ class Learner:
                             except queue.Empty:
                                 pass
                         best_partition = max(unqued_partitions, key=lambda item: item[1])
-                        path = (self.path / (self.now_but_text + "patition_" + str(self.partition) + ".png")).__str__()
+                        path = (str(self.path) + (self.now_but_text + "patition_" + str(self.partition) + ".png")).__str__()
                         self.partition += 1
                         try:
                             transform_to_image(best_partition[0][0][0]).save(path)
