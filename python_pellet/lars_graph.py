@@ -3,6 +3,8 @@ from matplotlib import pyplot as plt
 from tools import process_score_over_steps
 import csv
 from matplotlib.ticker import FuncFormatter
+from datetime import datetime
+import matplotlib.dates as mdates
 
 
 
@@ -18,7 +20,7 @@ def millions_formatter(x, pos):
 
 
 def plot_graph(index, ax1):
-    csv_filename = input("Enter the file name of the {}st csv file WITH .csv: ".format("index"))
+    csv_filename = input("Enter the file name of the {}st csv file WITH .csv: ".format(index))
     x_values = []
     y_values = []
     use_average_score = input("Do you want to create the graph over the averege score for 100 steps (y/n): ")
@@ -28,18 +30,27 @@ def plot_graph(index, ax1):
             for row in csv.reader(file_handle):
                 x_values.append(int(row[0]))
                 y_values.append(float(row[AVERAGE_100_SCORE_INDEX]))
-    else:
+    elif use_average_score == "n":
         with open("logs/" + csv_filename, newline='') as file_handle:
             for row in csv.reader(file_handle):
                 x_values.append(int(row[0]))
                 y_values.append(int(row[EPISODE_SCORE_INDEX]))
+    else:
+        with open("logs/" + csv_filename, newline='') as file_handle:
+            for row in csv.reader(file_handle, delimiter=";"):
+                try:
+                    x_values.append(datetime.strptime(row[0],"%H:%M:%S"))
+                    y_values.append(float(row[2]))
+                except ValueError:
+                    break
     
     # To use episodes instead of steps uncomment these lines and remove above x_values.append(int(row[0]))
     #x_values = []
     #for i in range(1,len(y_values)+1):
     #   x_values.append(i)
 
-    ax1.plot(x_values, y_values)
+    line_label = input("Enter the label for the line to plot: ")
+    ax1.plot(x_values, y_values, label=line_label)
     
 
 
@@ -61,6 +72,9 @@ if __name__ == "__main__":
         graph_title = input("Enter the title of the graph: ")
         ax1.set_xlabel(x_label, fontsize="14")
         ax1.set_ylabel(y_label, fontsize="14")
-        ax1.set_title(graph_title, fontsize="14")
-        ax1.xaxis.set_major_formatter(FuncFormatter(millions_formatter))
+        ax1.set_title(graph_title, fontsize="16", pad="20")
+        #ax1.xaxis.set_major_formatter(FuncFormatter(millions_formatter))
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+        plt.legend(fontsize="14")
+        plt.gcf().autofmt_xdate()
         plt.show()
