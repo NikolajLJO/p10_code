@@ -32,7 +32,10 @@ class Learner:
                  to_actor_partition_que,
                  actor_count,
                  should_use_rnd):
+
         torch.multiprocessing.set_sharing_strategy('file_system')
+        torch.set_num_threads(1)
+
         self.path = Path(__file__).parent
         Path(self.path / 'logs').mkdir(parents=True, exist_ok=True)
         now = datetime.datetime.now()

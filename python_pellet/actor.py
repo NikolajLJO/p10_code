@@ -26,6 +26,7 @@ class Actor:
 				 to_actor_partition_que,
 				 should_use_rnd):
 		torch.multiprocessing.set_sharing_strategy('file_system')
+		torch.set_num_threads(1)
 		self.to_actor_partition_que = to_actor_partition_que
 		self.e_t_network_que = e_t_network_que
 		self.q_t_network_que = q_t_network_que
