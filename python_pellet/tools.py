@@ -21,9 +21,10 @@ def process_score_over_steps(in_file_name: str):
 		writer = csv.writer(outfile, )
 		with open(in_file_path, 'r') as infile:
 			for line in infile:
-				if line.__contains__(":"):
+				if not line.__contains__("u"):
 					items = line.split('|')
-					printable_items = [items[1].strip(),items[3].strip(),items[5].strip(),items[7].strip()]
+					"2021-05-28 12:23:24,643"
+					printable_items = [items[0].strip()[11:22],items[2].strip()]
 					writer.writerow(printable_items)
 
 
@@ -56,3 +57,39 @@ def process_dis(in_file_name: str):
 
 		back_props_done = j * 1000
 		writer.writerow([running_time, back_props_done])
+
+
+def calc_percent_per_actor(in_file_name: str):
+	total = 0
+	first = None
+	lastLine = None
+	secondLastLine = None
+
+	now = datetime.datetime.now()
+	now_but_text = str(now.date()) + '-' + str(now.hour) + str(now.minute)
+	# TODO if file name not end txt add it
+	path = Path(__file__).parent
+	csv_path = path / "logs" / (now_but_text + ".csv")
+	in_file_path = path / "logs" / (in_file_name + ".txt")
+	with open(csv_path, 'w', newline='') as outfile:
+		writer = csv.writer(outfile, )
+		with open(in_file_path, 'r') as infile:
+			for line in infile:
+				if not line.__contains__("u"):
+					items = line.split("|")
+					if not first:
+						first = items[0]
+					secondLastLine = lastLine
+					lastLine = line
+
+	max = int(lastLine.split("|")[2])
+	first = datetime.datetime.strptime(first[11:22], '%H:%M:%S,%f')
+	last = datetime.datetime.strptime(lastLine.split("|")[0][11:22], '%H:%M:%S,%f')
+	time = last - first
+	# stop at 1342
+	print(time)
+	print(time.total_seconds())
+	print(max)
+	print("my throughput is: " + str(
+		max/time.total_seconds()
+	))

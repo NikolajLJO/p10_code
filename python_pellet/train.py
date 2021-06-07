@@ -1,6 +1,6 @@
 import sys
 from torch import multiprocessing as mp
-from tools import process_score_over_steps, process_dis
+from tools import process_score_over_steps, process_dis, calc_percent_per_actor
 from actor import Actor
 from learner import Learner
 from memory_manager import MemoryManager
@@ -25,6 +25,10 @@ if __name__ == "__main__":
 
     if len(args) > 1 and args[2] == 'd':
         process_dis(args[3])
+        exit()
+
+    if len(args) > 1 and (args[2]) == 'p':
+        calc_percent_per_actor(args[3])
         exit()
 
     if len(args) > 4 and args[4] == "rnd":
